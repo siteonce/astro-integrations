@@ -1,0 +1,13 @@
+{
+  "name": "astro-stack",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Monorepo for the astro-lib integration and the starter that consumes it.",
+  "type": "module",
+  "scripts": {
+    "dev": "pnpm --filter starter dev",
+    "build": "pnpm --filter starter build",
+    "preview": "pnpm --filter starter preview"
+  },
+  "packageManager": "pnpm@11.2.2"
+}
