@@ -163,20 +163,25 @@ These shape every item in `TODO.md`. Change one and the list shifts.
   is separated from auto-activating instruction files so we don't
   pollute every consumer agent's context with files meant for the lib
   team, and vice versa.
-  - **Tier 1 — Internal dev.** Repo-root `AGENTS.md` (this file) and any
-    per-directory `AGENTS.md` inside the monorepo (auto-loaded by
-    Claude Code, Cursor, Codex, etc. when working on our code).
+  - **Tier 1 — Internal dev.** Repo-root `AGENTS.md` (this file, loaded
+    via root `CLAUDE.md` → `@AGENTS.md`) and any per-directory `AGENTS.md`
+    inside the monorepo. Read by Codex/Cursor when working in that
+    subtree; **Claude Code does not auto-load nested `AGENTS.md`** (only
+    `CLAUDE.md`), so a nested `AGENTS.md` we want Claude Code to pick up
+    needs a sibling one-line `CLAUDE.md` stub — see the Tier-3 note below.
     Covers how we build and ship.
   - **Tier 2 — Consumer-facing rules (lib-shipped).** Plain markdown
     in `packages/astro-lib/rules/`. *Not* named AGENTS.md, so it does
     not auto-activate. Imported by reference from consumer files.
     Updated by us, delivered via `pnpm update`.
-  - **Tier 3 — Consumer-owned.** Starter ships thin AGENTS.md files
-    that import Tier-2 rules via
-    `@.agents/lib-rules/<area>.md` (relative path inside the consumer
-    repo) plus leave space for the consumer's own additions. Owned by
-    the consumer after degit; lib-rule content auto-refreshes on
-    `pnpm update`.
+  - **Tier 3 — Consumer-owned.** Per directory, the starter ships a
+    content-bearing `AGENTS.md` **plus a one-line `CLAUDE.md` stub**
+    (`@AGENTS.md`) so both Claude Code (via `CLAUDE.md`) and Codex/Cursor
+    (via `AGENTS.md`) auto-load it. The `AGENTS.md` imports Tier-2 rules
+    via a path relative to itself (e.g.
+    `@../../.agents/lib-rules/<area>.md`) plus leaves space for the
+    consumer's own additions. Owned by the consumer after degit; lib-rule
+    content auto-refreshes on `pnpm update`.
   - **Distribution mechanism (sync-rules).** Tier-2 files do not live
     in `node_modules/` at read time. The lib ships
     `packages/astro-lib/scripts/sync-rules.mjs`, which copies
@@ -193,19 +198,25 @@ These shape every item in `TODO.md`. Change one and the list shifts.
       `starter/package.json` so it survives `degit`. Useful for
       re-syncing without a full install cycle.
 
-    Tier-3 AGENTS.md files import via `@.agents/lib-rules/<area>.md`
-    — a relative path inside the consumer repo, so symlinks and
-    node_modules layouts are irrelevant. `.agents/lib-rules/` is
-    **committed** to git (not gitignored): cold clones and CI need
-    the rule content available before any install runs.
-  - **Per-tool import support is uneven** (spike 2026-05-22). Claude
-    Code's `@filepath` syntax is the reference target. Cursor's
-    `.cursor/rules/*.mdc` supports `@filename.ext` but cross-directory
-    behavior is undocumented. Codex has no `@import` mechanism at
-    all — the synced files still ship as part of the repo, but Codex
-    relies on walking AGENTS.md from root to cwd. Fallback: Tier-3
-    AGENTS.md files stay self-describing enough to give context even
-    when an import isn't followed.
+    Claude Code resolves `@`-paths **relative to the importing file**
+    (verified against docs 2026-05-23), not the repo root — so the
+    depth-correct form is `@../.agents/lib-rules/<area>.md` from
+    `src/AGENTS.md` and `@../../.agents/lib-rules/<area>.md` from
+    `src/<sub>/AGENTS.md`. `..` traversal works; node_modules layout is
+    irrelevant because the rules are synced into the repo, not read from
+    `node_modules/`. `.agents/lib-rules/` is **committed** to git (not
+    gitignored): cold clones and CI need the rule content available
+    before any install runs.
+  - **Per-tool import support is uneven** (spike 2026-05-22, re-verified
+    2026-05-23). Claude Code's `@filepath` syntax is the reference
+    target — but Claude Code auto-loads only `CLAUDE.md`, **not** nested
+    `AGENTS.md`; hence the per-directory `CLAUDE.md` stub. Max import
+    depth is five hops. Cursor's `.cursor/rules/*.mdc` supports
+    `@filename.ext` but cross-directory behavior is undocumented. Codex
+    has no `@import` mechanism at all — the synced files still ship as
+    part of the repo, but Codex relies on walking AGENTS.md from root to
+    cwd. Fallback: Tier-3 AGENTS.md files stay self-describing enough to
+    give context even when an import isn't followed.
 
 ---
 
@@ -274,35 +285,13 @@ Listed so they aren't relitigated each phase.
 
 ## Tier-2 boilerplate content
 
-*(Draft. This block is the seed content for
-`packages/astro-lib/rules/boilerplate.md`, which lands in Phase 0-A.
-Once that file exists, replace this section with a one-line pointer to
-the live file — keeping both in sync is exactly the duplication the
-sync-rules mechanism was built to avoid.)*
-
-The lib's `sync-rules` script copies `rules/boilerplate.md` into each
-consumer at `.agents/lib-rules/boilerplate.md`, and every Tier-3
-(consumer-owned) AGENTS.md imports it from there via
-`@.agents/lib-rules/boilerplate.md`. Replaces the previous "paste into
-every file" pattern; single canonical source means consumers receive
-updates via `pnpm update` (which re-fires the postinstall sync).
-
-> **Version policy.** Never guess package or framework versions. Resolve
-> via Context7 MCP (`mcp__context7__resolve-library-id` →
-> `mcp__context7__query-docs`) or read the installed `package.json` /
-> `pnpm-lock.yaml` before generating code that names a version, API, or
-> feature.
->
-> **Config policy.** Secrets and env-dependent values → `.env`
-> (read via `astro:env`). Structured static values → `src/config/*.ts`.
-> Never inline either in components or pages.
->
-> **Framework default.** Svelte for everything. Astro only when forced
-> — `<head>` injection or other Astro-only lifecycle hooks (`Base`,
-> `Seo`, `Schema`, `Analytics`, `Favicon`). Unhydrated Svelte components
-> in Astro ship zero JS.
->
-> **Pre-commit gate.** `pnpm check` must pass.
+Now lives at **`packages/astro-lib/rules/boilerplate.md`** (the live
+file, synced into each consumer at `.agents/lib-rules/boilerplate.md`).
+The former seed block here was promoted into that file on 2026-05-23;
+this pointer replaces it so there is one canonical source. Every Tier-3
+`AGENTS.md` imports it via a path relative to itself (e.g.
+`@../../.agents/lib-rules/boilerplate.md`); consumers receive updates via
+`pnpm update`, which re-fires the postinstall sync.
 
 ---
 

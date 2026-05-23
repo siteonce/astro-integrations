@@ -5,5 +5,7 @@ allowBuilds:
   '@parcel/watcher': true
   esbuild: true
   sharp: true
+  # Permits the lib's postinstall (sync-rules.mjs) to run on consumer install.
+  '@gravitysupport/astro-lib': true
 minimumReleaseAgeExclude:
   - astro@6.3.7
