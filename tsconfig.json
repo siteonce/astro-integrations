@@ -1,0 +1,22 @@
+{
+  "$schema": "https://json.schemastore.org/tsconfig",
+  "compilerOptions": {
+    // Shared strict baseline for the monorepo. Framework-agnostic on
+    // purpose: no `jsx`/`include` here so packages layer their own on top
+    // (e.g. starter extends astro/tsconfigs/strict + this file).
+    "target": "ESNext",
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "allowImportingTsExtensions": true,
+    "resolveJsonModule": true,
+    "verbatimModuleSyntax": true,
+    "isolatedModules": true,
+    // Astro/Vite run TS directly; declaration emit is a publish-time
+    // concern (post-TODO), so nothing here emits.
+    "noEmit": true,
+    "forceConsistentCasingInFileNames": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "strict": true
+  }
+}

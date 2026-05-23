@@ -1,0 +1,15 @@
+# Mirrors Biome's formatter defaults (2-space, LF, trimmed, final newline).
+# Biome/Prettier are authoritative on save; this covers editors and file
+# types they don't touch.
+root = true
+
+[*]
+charset = utf-8
+end_of_line = lf
+indent_style = space
+indent_size = 2
+insert_final_newline = true
+trim_trailing_whitespace = true
+
+[*.md]
+trim_trailing_whitespace = false

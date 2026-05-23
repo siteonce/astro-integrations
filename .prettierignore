@@ -1,0 +1,6 @@
+# Prettier only formats .astro files here (Biome owns everything else).
+# Keep it off generated/vendored trees.
+**/node_modules
+**/dist
+**/.astro
+pnpm-lock.yaml

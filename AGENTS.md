@@ -50,21 +50,13 @@ context. The starter is the socket those opinions plug into.
 
 ## Working mode
 
-**Current phase: brainstorm / organize / clean. No implementation work until
-further notice.**
+**Implementation has begun. Next phase: 1 (Foundations).**
 
-We are explicitly *not* writing feature code yet. Until both conditions
-hold, the only allowed activities are: refining `TODO.md` + this file,
-moving and organizing existing files, writing AGENTS.md content, and
-removing chaos.
-
-Stop conditions for leaving this phase:
-
-1. `TODO.md` is settled. Multiple iterations are expected.
-2. The codebase is structurally clean (Phase 0-A and 0-B in `TODO.md`
-   complete).
-
-When in doubt: clean, strategize, brainstorm. Do not start a feature.
+Phases 0-A (structural cleanup) and 0-B (Biome/Prettier, tsconfig, build
+strategy, Husky) are complete — `pnpm check` is the live pre-commit gate.
+The earlier brainstorm-only restriction has been lifted. Work the active
+phase in `TODO.md`, one phase per session, without widening scope into
+adjacent phases.
 
 **Delivery flow.** Once implementation begins, work lands via plain
 commits to `main`. No PR workflow for this TODO — `pnpm check` is still
@@ -142,6 +134,25 @@ These shape every item in `TODO.md`. Change one and the list shifts.
 - **Tooling.** Biome 2 for JS/TS/JSON, Prettier + `prettier-plugin-astro`
   for `.astro` files (Biome doesn't parse Astro). `pnpm check` is the
   single pre-commit command.
+- **TS config layout.** No project references, no `paths` mapping. A
+  shared strict base at the repo root (`tsconfig.json`); lib and starter
+  extend it. Starter→lib type resolution rides the pnpm workspace symlink
+  + the lib's `exports`/`types` (Phase 1), not a `paths` alias. Starter
+  extends `["astro/tsconfigs/strict", "../tsconfig.json"]` to keep Astro's
+  jsx/types idioms on top of the monorepo baseline. *Rationale:* the lib
+  is consumed as source (no `dist/` during the TODO), there is no
+  incremental build graph to order, and references add `composite`/
+  build-order friction against set-and-forget. (Decided 2026-05-23, Phase
+  0-B — supersedes the "decide before Phase 1" note.)
+- **Build & declarations.** Source-shipped, **ESM-only, no bundler**. The
+  lib ships `.ts`/`.svelte`/`.astro`/`.tsx`/`.scss` source; `noEmit: true`
+  (Astro runs TS directly). `.d.ts` emit (`tsc --emitDeclarationOnly` over
+  the pure-TS surfaces: helpers, schemas, integration) is a *publish-time*
+  concern and lands post-TODO with the publish flow — not inside any
+  phase. *Rationale:* `.svelte`/`.astro` cannot be meaningfully
+  pre-bundled for a downstream Astro/Vite pipeline, bundling fights the
+  "pluck out a single file" north star, and the Astro 6 ecosystem is ESM
+  end-to-end (no CJS consumers to serve). (Decided 2026-05-23, Phase 0-B.)
 - **Version policy.** Never infer package/framework versions from training
   data. Resolve via Context7 MCP
   (`mcp__context7__resolve-library-id` → `mcp__context7__query-docs`) or
