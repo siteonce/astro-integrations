@@ -1,13 +1,20 @@
 {
   "permissions": {
     "allow": [
+      "WebSearch",
+      "WebFetch(domain:agents.md)",
+      "WebFetch(domain:docs.cursor.com)",
+      "WebFetch(domain:developers.openai.com)",
+      "mcp__context7__resolve-library-id",
+      "mcp__context7__get-library-docs",
+      "mcp__context7__query-docs",
+      "Bash(pnpm build *)",
+      "Bash(pnpm check *)",
       "Bash(pnpm install *)",
       "Bash(pnpm view *)",
-      "WebFetch(domain:docs.cursor.com)",
-      "WebFetch(domain:agents.md)",
-      "WebFetch(domain:developers.openai.com)",
-      "WebFetch(domain:cursor.com)",
-      "WebSearch"
+      "Bash(pnpm info:*)",
+      "Bash(pnpm outdated:*)",
+      "Bash(pnpm --filter starter sync-rules)"
     ]
   }
 }
