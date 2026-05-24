@@ -287,7 +287,7 @@ Listed so they aren't relitigated each phase.
   monorepo. See `README.md` for the flip-before-share procedure.
   Release mechanism (Changesets vs. manual vs. release-please) lands
   with the publish setup itself.
-- A dedicated forms layer beyond the existing `mixins/forms/`.
+- A dedicated forms layer beyond the existing `mixins/form/`.
 - Bits UI / Floating UI / focus-trap / tabbable. Revisit when a real
   component needs them.
 - `css-declaration-sorter`. Revisit on real need.
