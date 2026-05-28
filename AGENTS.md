@@ -50,10 +50,11 @@ context. The starter is the socket those opinions plug into.
 
 ## Working mode
 
-**Implementation has begun. Next phase: 1 (Foundations).**
+**Implementation has begun. Next phase: 3 (HTML / SEO skeleton).**
 
-Phases 0-A (structural cleanup) and 0-B (Biome/Prettier, tsconfig, build
-strategy, Husky) are complete — `pnpm check` is the live pre-commit gate.
+Phases 0-A (structural cleanup), 0-B (Biome/Prettier, tsconfig, build
+strategy, Husky), 1 (Foundations), and 2 (Config layer) are complete —
+`pnpm check` is the live pre-commit gate.
 The earlier brainstorm-only restriction has been lifted. Work the active
 phase in `TODO.md`, one phase per session, without widening scope into
 adjacent phases.
