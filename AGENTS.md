@@ -18,9 +18,9 @@ Anything that isn't always-needed lives in `docs/` and is read on demand — go 
 
 ## Working mode
 
-**Implementation has begun. Next phase: 3 (HTML / SEO skeleton).**
+**Implementation has begun. Next phase: 4 (Structural primitives, Svelte).**
 
-Phases 0-A (structural cleanup), 0-B (Biome/Prettier, tsconfig, build strategy, Husky), 1 (Foundations), and 2 (Config layer) are complete — `pnpm check` is the live pre-commit gate. Work the active phase in `plans/foundation/`, one phase per session, without widening scope into adjacent phases.
+Phases 0-A (structural cleanup), 0-B (Biome/Prettier, tsconfig, build strategy, Husky), 1 (Foundations), 2 (Config layer), and 3 (HTML / SEO skeleton) are complete — `pnpm check` is the live pre-commit gate. Work the active phase in `plans/foundation/`, one phase per session, without widening scope into adjacent phases.
 
 **Delivery flow.** Work lands via plain commits to `main`. No PR workflow for this TODO — `pnpm check` is the local gate, no review step before merge. Squash logic into sensible commits as you go.
 
@@ -39,6 +39,7 @@ These shape every item in `plans/foundation/`. Change one and the list shifts. T
 - **Public API shape.** Consumer import paths are pinned (refactoring them downstream is painful): integration default export, `/components/*`, `/schemas/config/*`, `/schemas/content/*`, `/helpers/*`, `/scss/foundation`, `/scss/mixins/*` (+ barrel). Full map + `src/` placement principle: → `docs/public-api.md`.
 - **Config format.** TypeScript files with Zod schemas. Schema in lib, populated values in starter, validated at startup. Split per concern in `starter/src/config/` (`siteConfig.ts`, `i18nConfig.ts`, `ogConfig.ts`, `authConfig.ts`, `seoConfig.ts`).
 - **Config vs env policy.** Secrets and environment-dependent values → `.env` (read via `astro:env` for typed access). Structured static values → `src/config/*.ts`. Never inline either in components or pages.
+- **Config access (runtime).** Lib components/helpers read the consumer's config via the `virtual:astro-lib/config` virtual module (`import { siteConfig } from 'virtual:astro-lib/config'`), never by importing `starter/src/config` (the lib can't reach it). The integration validates each config at startup and serializes the parsed result into that module (Vite plugin), and types it via `injectTypes`. This is the single config-access path for all lifecycle/head components and later phases (OG, i18n). Settled Phase 3 — see `plans/foundation/phase-3.md`.
 - **State.** Astro Sessions for server-side per-user state across requests; nanostores for cross-island client state; Svelte `$state` for within-island state.
 - **No `<style>` block in low-level components**, per `packages/astro-lib/COMPONENTS.md`. `ab-` is the reserved class prefix.
 - **Fonts & icons.** `@fontsource/*` from npm (no `src/fonts/`); `astro-icon` consuming `src/icons/`. → `docs/assets-conventions.md`.
