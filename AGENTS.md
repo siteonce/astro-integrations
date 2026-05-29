@@ -18,9 +18,9 @@ Anything that isn't always-needed lives in `docs/` and is read on demand — go 
 
 ## Working mode
 
-**Implementation has begun. Next phase: 6 (i18n).**
+**Implementation has begun. Next phase: 7 (OG images).**
 
-Phases 0-A (structural cleanup), 0-B (Biome/Prettier, tsconfig, build strategy, Husky), 1 (Foundations), 2 (Config layer), 3 (HTML / SEO skeleton), 4 (Structural primitives, Svelte), and 5 (Prose publishing) are complete — `pnpm check` is the live pre-commit gate. Work the active phase in `plans/foundation/`, one phase per session, without widening scope into adjacent phases.
+Phases 0-A (structural cleanup), 0-B (Biome/Prettier, tsconfig, build strategy, Husky), 1 (Foundations), 2 (Config layer), 3 (HTML / SEO skeleton), 4 (Structural primitives, Svelte), 5 (Prose publishing), and 6 (i18n) are complete — `pnpm check` is the live pre-commit gate. Work the active phase in `plans/foundation/`, one phase per session, without widening scope into adjacent phases.
 
 **Delivery flow.** Work lands via plain commits to `main`. No PR workflow for this TODO — `pnpm check` is the local gate, no review step before merge. Squash logic into sensible commits as you go.
 
@@ -36,7 +36,7 @@ These shape every item in `plans/foundation/`. Change one and the list shifts. T
 - **Target Astro version.** Astro 6.x. Svelte, Node, and pnpm majors follow whatever the installed lockfile pins; resolve specifics via Context7 before generating code that names a version or API surface.
 - **Framework default & interactivity ladder.** Svelte is the authoring language; React stays out (hydration overhead). The cost is _hydration_, not the language — unhydrated Svelte (and `.astro`) ship zero JS. So reach for interactivity by climbing a ladder and stopping at the first rung that works: (1) platform/CSS (`popover`, `<details>`, `:has()`); (2) a few lines of vanilla JS in an Astro `<script>`; (3) a hydrated Svelte island (`client:*`) — only for genuinely stateful reactive logic, not mere show/hide. Author static components in Svelte (one language + frictionless hydrate-later path); use `.astro` only when forced — head injection or Astro-only lifecycle/globals (`Base`, `Seo`, `Schema`, `Analytics`, `Favicon`), or composing other `.astro`. → `docs/decisions.md`.
 - **Package shape.** Dual-purpose: named imports (`import { Container } from '@gravitysupport/astro-lib/components'`) _and_ an Astro integration (`integrations: [astroLib(opts)]`) that owns lifecycle-bound work. → `docs/public-api.md`.
-- **Public API shape.** Consumer import paths are pinned (refactoring them downstream is painful): integration default export, `/components/*`, `/schemas/config/*`, `/schemas/content/*`, `/helpers/*`, `/scss/foundation`, `/scss/mixins/*` (+ barrel). Full map + `src/` placement principle: → `docs/public-api.md`.
+- **Public API shape.** Consumer import paths are pinned (refactoring them downstream is painful): integration default export, `/components/*`, `/i18n`, `/schemas/config/*`, `/schemas/content/*`, `/helpers/*`, `/scss/foundation`, `/scss/mixins/*` (+ barrel). Full map + `src/` placement principle: → `docs/public-api.md`.
 - **Config format.** TypeScript files with Zod schemas. Schema in lib, populated values in starter, validated at startup. Split per concern in `starter/src/config/` (`siteConfig.ts`, `i18nConfig.ts`, `ogConfig.ts`, `authConfig.ts`, `seoConfig.ts`).
 - **Config vs env policy.** Secrets and environment-dependent values → `.env` (read via `astro:env` for typed access). Structured static values → `src/config/*.ts`. Never inline either in components or pages.
 - **Config access (runtime).** Lib components/helpers read the consumer's config via the `virtual:astro-lib/config` virtual module (`import { siteConfig } from 'virtual:astro-lib/config'`), never by importing `starter/src/config` (the lib can't reach it). The integration validates each config at startup and serializes the parsed result into that module (Vite plugin), and types it via `injectTypes`. This is the single config-access path for all lifecycle/head components and later phases (OG, i18n). Settled Phase 3 — see `plans/foundation/phase-3.md`.
