@@ -15,7 +15,8 @@
       "Bash(pnpm info:*)",
       "Bash(pnpm outdated:*)",
       "Bash(pnpm --filter starter sync-rules)",
-      "Bash(pnpm format:check)"
+      "Bash(pnpm format:check)",
+      "Bash(npm view *)"
     ]
   }
 }
