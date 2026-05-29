@@ -18,9 +18,9 @@ Anything that isn't always-needed lives in `docs/` and is read on demand — go 
 
 ## Working mode
 
-**Implementation has begun. Next phase: 4 (Structural primitives, Svelte).**
+**Implementation has begun. Next phase: 5 (Prose publishing).**
 
-Phases 0-A (structural cleanup), 0-B (Biome/Prettier, tsconfig, build strategy, Husky), 1 (Foundations), 2 (Config layer), and 3 (HTML / SEO skeleton) are complete — `pnpm check` is the live pre-commit gate. Work the active phase in `plans/foundation/`, one phase per session, without widening scope into adjacent phases.
+Phases 0-A (structural cleanup), 0-B (Biome/Prettier, tsconfig, build strategy, Husky), 1 (Foundations), 2 (Config layer), 3 (HTML / SEO skeleton), and 4 (Structural primitives, Svelte) are complete — `pnpm check` is the live pre-commit gate. Work the active phase in `plans/foundation/`, one phase per session, without widening scope into adjacent phases.
 
 **Delivery flow.** Work lands via plain commits to `main`. No PR workflow for this TODO — `pnpm check` is the local gate, no review step before merge. Squash logic into sensible commits as you go.
 
