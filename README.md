@@ -42,7 +42,7 @@ Options for managing step 2:
 - **Manual flip.** Edit `starter/package.json` by hand before each share, revert after. Simple, error-prone.
 - **Release script.** A script that copies `starter/` to a release branch (or separate repo) with the field rewritten. Avoids polluting the dev-friendly `workspace:*` in main.
 
-pnpm rewrites `workspace:` ranges automatically when publishing *packages*, but the starter is not a published package — it is a `degit` target — so pnpm's built-in rewrite does not help here. The rewrite has to happen at "starter release" time, not at "lib publish" time.
+pnpm rewrites `workspace:` ranges automatically when publishing _packages_, but the starter is not a published package — it is a `degit` target — so pnpm's built-in rewrite does not help here. The rewrite has to happen at "starter release" time, not at "lib publish" time.
 
 Until both steps are done, the starter is only runnable from inside this monorepo.
 

@@ -1,4 +1,4 @@
-# Prettier only formats .astro files here (Biome owns everything else).
+# Prettier owns .astro and .md here (Biome owns the rest; it can't parse either).
 # Keep it off generated/vendored trees.
 **/node_modules
 **/dist
