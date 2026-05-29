@@ -10,11 +10,13 @@ Anything that isn't always-needed lives in `docs/` and is read on demand
 the **Reference shelf** at the bottom for what's there. New instructions
 land by the **Placement rule**, also below.
 
-**Phase-by-phase work lives in `TODO.md`.** When implementing a phase,
-read this file once for orientation, then work from the phase section in
-`TODO.md`. Anchoring decisions referenced from phases (e.g., *"per
-Anchoring → Error policy"*) live here; section references like *"see Out
-of scope"* resolve in `docs/` — go there and its index routes you.
+**Phase-by-phase work lives in `plans/foundation/`.** When implementing a
+phase, read this file once for orientation, then work from that phase's
+file in `plans/foundation/` (its index `AGENTS.md` auto-loads on entry and
+routes you to the right `phase-N.md`). Anchoring decisions referenced from
+phases (e.g., *"per Anchoring → Error policy"*) live here; section
+references like *"see Out of scope"* resolve in `docs/` — go there and its
+index routes you.
 
 ---
 
@@ -39,8 +41,8 @@ and everything modular at the file level.
 Phases 0-A (structural cleanup), 0-B (Biome/Prettier, tsconfig, build
 strategy, Husky), 1 (Foundations), and 2 (Config layer) are complete —
 `pnpm check` is the live pre-commit gate. Work the active phase in
-`TODO.md`, one phase per session, without widening scope into adjacent
-phases.
+`plans/foundation/`, one phase per session, without widening scope into
+adjacent phases.
 
 **Delivery flow.** Work lands via plain commits to `main`. No PR workflow
 for this TODO — `pnpm check` is the local gate, no review step before
@@ -55,7 +57,7 @@ scope.
 
 ## Anchoring decisions
 
-These shape every item in `TODO.md`. Change one and the list shifts. The
+These shape every item in `plans/foundation/`. Change one and the list shifts. The
 compressed ones point to a deep-dive for full rationale.
 
 - **Boundary.** `packages/astro-lib` is the framework (components, schemas,
@@ -136,8 +138,8 @@ home (AGENTS.md files point, they never duplicate):
 
 - Always true **everywhere** → this root `AGENTS.md` (rare).
 - Always true **in one area** → that area's nested `AGENTS.md`.
-- Needed only while doing **one unit of work** → that phase/plan file (in
-  `TODO.md` today; top-level `plans/<plan>/` once that lands).
+- Needed only while doing **one unit of work** → that phase/plan file
+  (top-level `plans/<plan>/`, e.g. `plans/foundation/phase-3.md`).
 - Occasional **reference** detail → a `docs/` deep-dive (catalog it in
   `docs/AGENTS.md`).
 
