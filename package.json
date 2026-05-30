@@ -13,12 +13,14 @@
     "lint": "biome lint .",
     "lint:fix": "biome lint --write .",
     "check": "biome check --write . && prettier --write \"**/*.{astro,md}\"",
+    "typecheck": "pnpm -r typecheck",
     "prepare": "husky"
   },
   "packageManager": "pnpm@11.2.2",
   "devDependencies": {
     "@biomejs/biome": "2.4.15",
     "husky": "9.1.7",
+    "lint-staged": "17.0.5",
     "prettier": "3.8.3",
     "prettier-plugin-astro": "0.14.1",
     "typescript": "6.0.3"
