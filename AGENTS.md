@@ -22,6 +22,8 @@ Anything that isn't always-needed lives in `docs/` and is read on demand — go 
 
 Phases 0-A (structural cleanup), 0-B (Biome/Prettier, tsconfig, build strategy, Husky), 1 (Foundations), 2 (Config layer), 3 (HTML / SEO skeleton), 4 (Structural primitives, Svelte), 5 (Prose publishing), 6 (i18n), and 8 (Edge / runtime helpers) are complete — `pnpm check` is the live pre-commit gate. Phase 8 was built ahead of 7 (it depends only on Phases 2 + 5, not 7). Work the active phase in `plans/foundation/`, one phase per session, without widening scope into adjacent phases.
 
+**Remaining (pending):** 7 (OG images, next), then 9 (Maintenance / repo-health kit), 10 (Commit hygiene + lean CI gate — lint-staged, project-wide typecheck, a lean push-to-`main` workflow), and 11 (Hosting adapters — exploration-only: carve Netlify out of lib/starter into a per-host package under `packages/`; flags a Boundary-anchor change to settle when worked).
+
 **Delivery flow.** Work lands via plain commits to `main`. No PR workflow for this TODO — `pnpm check` is the local gate, no review step before merge. Squash logic into sensible commits as you go.
 
 **NPM publishing is post-TODO.** The lib is consumed via `workspace:*` for the duration of this TODO. Do not set up the publish flow, version bumping, or release tooling inside any phase. See Reference shelf → Out of scope.
