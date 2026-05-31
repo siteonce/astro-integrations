@@ -18,15 +18,7 @@ Anything that isn't always-needed lives in `docs/` and is read on demand — go 
 
 ## Working mode
 
-**Implementation has begun. Next phase: 7 (OG images).**
-
-Phases 0-A (structural cleanup), 0-B (Biome/Prettier, tsconfig, build strategy, Husky), 1 (Foundations), 2 (Config layer), 3 (HTML / SEO skeleton), 4 (Structural primitives, Svelte), 5 (Prose publishing), 6 (i18n), 8 (Edge / runtime helpers), and 10 (Commit hygiene + lean CI gate) are complete. Phases 8 and 10 were built ahead of 7 (neither depends on it). **The pre-commit gate is now `lint-staged` (staged-file Biome/Prettier, auto-restaged); whole-tree verification + project-wide `pnpm typecheck` + build run in CI** (`.github/workflows/ci.yml`, push to `main`). The old whole-repo `pnpm check` is still the manual full-pass command. Work the active phase in `plans/foundation/`, one phase per session, without widening scope into adjacent phases.
-
-**Remaining (pending):** 7 (OG images, next), then 9 (Maintenance / repo-health kit), and 11 (Hosting adapters — exploration-only: carve Netlify out of lib/starter into a per-host package under `packages/`; flags a Boundary-anchor change to settle when worked).
-
-**Delivery flow.** Work lands via plain commits to `main`. No PR workflow for this TODO — `pnpm check` is the local gate, no review step before merge. Squash logic into sensible commits as you go.
-
-**NPM publishing is post-TODO.** The lib is consumed via `workspace:*` for the duration of this TODO. Do not set up the publish flow, version bumping, or release tooling inside any phase. See Reference shelf → Out of scope.
+Implementation is underway, phase by phase. **Current status, the pre-commit/CI gate, delivery flow, and TODO-scoped constraints (e.g. npm-publishing-post-TODO) live in `plans/foundation/AGENTS.md`** — the plan index, which auto-loads when you enter `plans/foundation/`. Read it when starting phase work. Durable tooling/build/error rules are in Anchoring decisions below.
 
 ---
 
