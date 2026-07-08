@@ -4,6 +4,10 @@ The foundation for every Astro site built on this stack: the library `@gravitysu
 
 ## Language
 
+### Packages
+
+**`@gravitysupport/astro-lib`**: The Astro-integration framework for the stack — the integration itself plus the reusable layers it wires together (SCSS foundation + mixins, components, blocks, helpers, config/content schemas, OG support, edge helpers, i18n).
+
 ### Lifecycle & head components
 
 **`Base`**: The bare HTML skeleton component — `<html lang>` plus a `<head>` slot and a `<body>` slot.
