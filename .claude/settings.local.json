@@ -18,5 +18,16 @@
       "Bash(pnpm format:check)",
       "Bash(npm view *)"
     ]
+  },
+  "extraKnownMarketplaces": {
+    "gravitysupport": {
+      "source": {
+        "source": "directory",
+        "path": "/Users/marcwiest/Code/agentic-plugins/dist"
+      }
+    }
+  },
+  "enabledPlugins": {
+    "gs-bearings@gravitysupport": true
   }
 }
