@@ -4,7 +4,7 @@ This file holds the **always-true invariants** for `astro-stack` — the directi
 
 - **Vocabulary** — component and module names live in the root **`CONTEXT.md`** glossary. Use its terms; respect its _Avoid_ entries.
 - **Reference detail** — lives in **`docs/`**, read on demand; its index (`docs/AGENTS.md`) auto-loads when you enter and routes you to spec assertions (`docs/spec/`), decision records (`docs/adr/`), and the remaining deep-dives.
-- **Phase work** — lives in **`docs/plans/foundation/`**; its index auto-loads on entry and carries current status, delivery flow, and TODO-scoped constraints. Read this file once for orientation, then work from the single `phase-N.md`. Anchoring references in phase files (e.g. _"per Anchoring → Error policy"_) resolve here.
+- **Phase work** — lives in **`docs/plans/`**; do not read unless you need to.
 
 `astro-stack` is the foundation for every Astro site built on this stack: the library (`@gravitysupport/astro-lib`) is the product; `starter/` is a thin shell that wires it in. Full framing and the set-and-forget guarantees: `docs/spec/north-star.md`.
 
