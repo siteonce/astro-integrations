@@ -1,51 +1,37 @@
 # astro-stack — architectural context
 
-This file holds the **always-true invariants** for `astro-stack` — the decisions that shape every piece of code regardless of what you're working on. It's auto-loaded by Claude Code / Cursor / Codex in every session, so it is kept deliberately lean: rules here, detail one hop away in `docs/`.
+This file holds the **always-true invariants** for `astro-stack` — the directives that shape every piece of code regardless of what you're working on. It's auto-loaded every session, so it stays lean: rules here, everything else one hop away.
 
-Anything that isn't always-needed lives in `docs/` and is read on demand — go there and its index (`docs/AGENTS.md`) auto-loads to route you. See the **Reference shelf** at the bottom for what's there. New instructions land by the **Placement rule**, also below.
+- **Vocabulary** — component and module names live in the root **`CONTEXT.md`** glossary. Use its terms; respect its _Avoid_ entries.
+- **Reference detail** — lives in **`docs/`**, read on demand; its index (`docs/AGENTS.md`) auto-loads when you enter and routes you to spec assertions (`docs/spec/`), decision records (`docs/adr/`), and the remaining deep-dives.
+- **Phase work** — lives in **`docs/plans/foundation/`**; its index auto-loads on entry and carries current status, delivery flow, and TODO-scoped constraints. Read this file once for orientation, then work from the single `phase-N.md`. Anchoring references in phase files (e.g. _"per Anchoring → Error policy"_) resolve here.
 
-**Phase-by-phase work lives in `plans/foundation/`.** When implementing a phase, read this file once for orientation, then work from that phase's file in `plans/foundation/` (its index `AGENTS.md` auto-loads on entry and routes you to the right `phase-N.md`). Anchoring decisions referenced from phases (e.g., _"per Anchoring → Error policy"_) live here; section references like _"see Out of scope"_ resolve in `docs/` — go there and its index routes you.
-
----
-
-## What this is
-
-`astro-stack` is the foundation for every Astro site built on this stack — both personal sites and client work. The library (`@gravitysupport/astro-lib`) is the product; the starter is a thin shell that wires it in. The north star is **plug-and-play, set-and-forget**: a site runs end-to-end the moment `degit` finishes, with baseline web infra (SEO, sitemap, RSS, OG, favicon, analytics, staging auth) on by default, and everything modular at the file level.
-
-→ Full framing: `docs/north-star.md`.
-
----
-
-## Working mode
-
-Implementation is underway, phase by phase. **Current status, the pre-commit/CI gate, delivery flow, and TODO-scoped constraints (e.g. npm-publishing-post-TODO) live in `plans/foundation/AGENTS.md`** — the plan index, which auto-loads when you enter `plans/foundation/`. Read it when starting phase work. Durable tooling/build/error rules are in Anchoring decisions below.
+`astro-stack` is the foundation for every Astro site built on this stack: the library (`@gravitysupport/astro-lib`) is the product; `starter/` is a thin shell that wires it in. Full framing and the set-and-forget guarantees: `docs/spec/north-star.md`.
 
 ---
 
 ## Anchoring decisions
 
-These shape every item in `plans/foundation/`. Change one and the list shifts. The compressed ones point to a deep-dive for full rationale.
+These shape every item in `docs/plans/foundation/`. Change one and the list shifts.
 
 - **Boundary.** `packages/astro-lib` is the framework (components, schemas, helpers, OG pipeline, edge-fn helpers, integrations, agent rules for patterns). `starter/` is a thin shell that wires lib in and supplies populated config + content + project-specific templates. _If it's identical across every consuming project → lib. If it's a project choice → starter._
 - **Target Astro version.** Astro 6.x. Svelte, Node, and pnpm majors follow whatever the installed lockfile pins; resolve specifics via Context7 before generating code that names a version or API surface.
-- **Framework default & interactivity ladder.** Svelte is the authoring language; React stays out (hydration overhead). The cost is _hydration_, not the language — unhydrated Svelte (and `.astro`) ship zero JS. So reach for interactivity by climbing a ladder and stopping at the first rung that works: (1) platform/CSS (`popover`, `<details>`, `:has()`); (2) a few lines of vanilla JS in an Astro `<script>`; (3) a hydrated Svelte island (`client:*`) — only for genuinely stateful reactive logic, not mere show/hide. Author static components in Svelte (one language + frictionless hydrate-later path); use `.astro` only when forced — head injection or Astro-only lifecycle/globals (`Base`, `Seo`, `Schema`, `Analytics`, `Favicon`), or composing other `.astro`. → `docs/decisions.md`.
-- **Package shape.** Dual-purpose: named imports (`import { Container } from '@gravitysupport/astro-lib/components'`) _and_ an Astro integration (`integrations: [astroLib(opts)]`) that owns lifecycle-bound work. → `docs/public-api.md`.
-- **Public API shape.** Consumer import paths are pinned (refactoring them downstream is painful): integration default export, `/components/*`, `/i18n`, `/schemas/config/*`, `/schemas/content/*`, `/helpers/*`, `/edge/*`, `/scss/foundation`, `/scss/mixins/*` (+ barrel). Full map + `src/` placement principle: → `docs/public-api.md`.
+- **Framework default & interactivity ladder.** Svelte is the authoring language; React stays out (hydration overhead). The cost is _hydration_, not the language — unhydrated Svelte (and `.astro`) ship zero JS. Reach for interactivity by climbing a ladder and stopping at the first rung that works: (1) platform/CSS (`popover`, `<details>`, `:has()`); (2) a few lines of vanilla JS in an Astro `<script>`; (3) a hydrated Svelte island (`client:*`) — only for genuinely stateful reactive logic, not mere show/hide. Author static components in Svelte; use `.astro` only when forced — head injection, Astro-only lifecycle/globals, or composing other `.astro`. → `docs/adr/0011`.
+- **Public API.** Consumer import paths are pinned — refactoring them downstream is painful. Read `docs/spec/public-api.md` (package shape, full path map, `src/` placement principle) before adding or changing any consumer-facing import path.
 - **Config format.** TypeScript files with Zod schemas. Schema in lib, populated values in starter, validated at startup. Split per concern in `starter/src/config/` (`siteConfig.ts`, `i18nConfig.ts`, `ogConfig.ts`, `authConfig.ts`, `seoConfig.ts`).
 - **Config vs env policy.** Secrets and environment-dependent values → `.env` (read via `astro:env` for typed access). Structured static values → `src/config/*.ts`. Never inline either in components or pages.
-- **Config access (runtime).** Lib components/helpers read the consumer's config via the `virtual:astro-lib/config` virtual module (`import { siteConfig } from 'virtual:astro-lib/config'`), never by importing `starter/src/config` (the lib can't reach it). The integration validates each config at startup and serializes the parsed result into that module (Vite plugin), and types it via `injectTypes`. This is the single config-access path for all lifecycle/head components and later phases (OG, i18n). Settled Phase 3 — see `plans/foundation/phase-3.md`.
-- **State.** Astro Sessions for server-side per-user state across requests; Svelte `$state` for within-island state; Svelte `setContext`/`getContext` to share down one island's subtree; nanostores **only** for state shared across ≥2 hydrated islands — it is a coordination layer between islands you already have, never a reason to hydrate.
-- **Astro ↔ Svelte data boundary.** Two channels, kept distinct. (1) Static config crosses via `virtual:astro-lib/config` — Svelte imports it directly, never through props. (2) Per-request/route context (`Astro.url`, `params`, `currentLocale`, `locals`, `cookies`) is **never** importable by Svelte (a module-level global bleeds across concurrent requests server-side, and a hydrated island runs client-side with no request at all); it enters once at the `.astro` composition root — the page, or a layout only for the chrome it itself renders — and is passed only to the few components that need it (Nav→pathname, LocaleSwitcher→locale), never drizzled over every child. Hydrated-island props must be JSON-serializable; slotted children don't hydrate. Centralize the _source_ (middleware→`Astro.locals`), never the _destination_. → `docs/decisions.md`.
+- **Config access (runtime).** Lib components/helpers read the consumer's config via the `virtual:astro-lib/config` virtual module (`import { siteConfig } from 'virtual:astro-lib/config'`), never by importing `starter/src/config` (the lib can't reach it). This is the single config-access path for all lifecycle/head components and later phases (OG, i18n).
+- **State.** Astro Sessions for server-side per-user state across requests; Svelte `$state` for within-island state; Svelte `setContext`/`getContext` to share down one island's subtree; nanostores **only** for state shared across ≥2 hydrated islands — never a reason to hydrate. → `docs/adr/0012`.
+- **Astro ↔ Svelte data boundary.** Two channels, kept distinct. (1) Static config crosses via `virtual:astro-lib/config` — Svelte imports it directly, never through props. (2) Per-request/route context (`Astro.url`, `params`, `currentLocale`, `locals`, `cookies`) is **never** importable by Svelte; it enters once at the `.astro` composition root and is passed only to the few components that need it, never drizzled over every child. Hydrated-island props must be JSON-serializable; slotted children don't hydrate. Centralize the _source_ (middleware→`Astro.locals`), never the _destination_. → `docs/adr/0013`.
 - **No `<style>` block in low-level components**, per `packages/astro-lib/COMPONENTS.md`. `ab-` is the reserved class prefix.
-- **Call-site styling (Panda CSS).** Panda is the call-site styling escape hatch — `css({…})` for ad-hoc, per-use styles with pseudo/media/state that inline `style=""` can't express. **Escape hatch only, no token layer** (CSS custom properties + project-owned tokens stay the design-scale path; consumers define their own properties). Build-time, zero client runtime. **Complements** the `COMPONENTS.md` model — never replaces the `componentStyle` knob mechanism or the SCSS foundation/restyling. Lib-integration-owned wiring (zero-config); `styled-system/` is per-consumer (starter, gitignored). Execution lands in Phase 1. → `packages/astro-lib/PANDA-CSS.md`.
-- **Fonts & icons.** `@fontsource/*` from npm (no `src/fonts/`); `astro-icon` consuming `src/icons/`. → `docs/assets-conventions.md`.
-- **Tooling.** Biome 2 for JS/TS/JSON, Prettier for `.astro` (via `prettier-plugin-astro`) and Markdown (Biome parses neither; Markdown uses `proseWrap: never` — one line per paragraph, fewest newline tokens for agent reads; humans read rendered, which reflows anyway). Pre-commit runs `lint-staged` (Biome/Prettier over staged files, auto-restaged); `pnpm check` remains the manual whole-repo pass and `pnpm typecheck` + build gate in CI (Phase 10).
-- **TS config layout.** No project references, no `paths` mapping; shared strict base at repo root, lib + starter extend it. → `docs/ts-config.md`.
-- **Build & declarations.** Source-shipped, ESM-only, no bundler; `noEmit: true`. `.d.ts` emit is a publish-time concern (post-TODO). → `docs/build-strategy.md`.
+- **Call-site styling (Panda CSS).** Panda is the call-site styling escape hatch — `css({…})` for ad-hoc, per-use styles with pseudo/media/state that inline `style=""` can't express. **Escape hatch only, no token layer** (CSS custom properties + project-owned tokens stay the design-scale path). Build-time, zero client runtime. **Complements** the `COMPONENTS.md` model — never replaces the `componentStyle` knob mechanism or the SCSS foundation/restyling. Lib-integration-owned wiring (zero-config); `styled-system/` is per-consumer (starter, gitignored). → `packages/astro-lib/PANDA-CSS.md`.
+- **Fonts & icons.** `@fontsource/*` from npm (no `src/fonts/`); `astro-icon` consuming `src/icons/`.
+- **Tooling.** Biome 2 for JS/TS/JSON, Prettier for `.astro` (via `prettier-plugin-astro`) and Markdown (Biome parses neither; Markdown uses `proseWrap: never` — one line per paragraph, fewest newline tokens for agent reads). Pre-commit runs `lint-staged` (Biome/Prettier over staged files, auto-restaged); `pnpm check` is the manual whole-repo pass; `pnpm typecheck` + build gate in CI.
+- **Build & TS layout.** Source-shipped, ESM-only, no bundler, `noEmit: true`; no project references, no `paths` mapping — shared strict base at repo root, lib + starter extend it. → `docs/spec/build-and-ts.md`, rationale in `docs/adr/0020` + `docs/adr/0021`.
 - **Version policy.** Never infer package/framework versions from training data. Resolve via Context7 MCP (`mcp__context7__resolve-library-id` → `mcp__context7__query-docs`) or read the installed `package.json` / `pnpm-lock.yaml` before generating code that names a version, API surface, or feature.
 - **Testing posture.** No formal test framework for v1. Verify by build + visual inspection. Revisit when lib surface area justifies it (Vitest for helpers/schemas, Playwright for integration).
 - **Error policy.** Loud at startup when the error is statically resolvable (schema parse, missing config, unknown route/collection reference, missing required env var). Silent skip / no-op at runtime when the same condition can only be detected at render time, so a malformed config does not break the whole render. Log at the runtime fallback path. Applies project-wide: config validation, OG element resolution, content visibility, edge functions. Push checks to startup wherever possible.
-- **AGENTS.md architecture (three tiers).** Every `AGENTS.md` MUST have a `CLAUDE.md` sibling that `@`-references it — Claude Code reads only `CLAUDE.md`, never bare `AGENTS.md`, so an unpaired one is invisible to it. Tier 1 internal dev (this file + nested `AGENTS.md`); Tier 2 consumer-facing rules in `packages/astro-lib/rules/` (synced into consumers at `.agents/lib-rules/` via `sync-rules`); Tier 3 consumer-owned per-dir `AGENTS.md` + `CLAUDE.md` stub. → `docs/agents-architecture.md`.
+- **AGENTS.md pairing.** Every `AGENTS.md` MUST have a `CLAUDE.md` sibling whose content is `@AGENTS.md` — Claude Code reads only `CLAUDE.md`, so an unpaired file is invisible to it. The three-tier architecture (internal dev / lib-shipped consumer rules / consumer-owned) and nested-file required sections: `docs/spec/agents-architecture.md`.
 
 ---
 
@@ -55,13 +41,12 @@ When a new instruction or decision is created, file it by **scope of applicabili
 
 - Always true **everywhere** → this root `AGENTS.md` (rare).
 - Always true **in one area** → that area's nested `AGENTS.md`.
-- Needed only while doing **one unit of work** → that phase/plan file (top-level `plans/<plan>/`, e.g. `plans/foundation/phase-3.md`).
-- Occasional **reference** detail → a `docs/` deep-dive (catalog it in `docs/AGENTS.md`).
+- Needed only while doing **one unit of work** → that phase/plan file (`docs/plans/<plan>/`, e.g. `docs/plans/foundation/phase-3.md`).
+- Occasional **reference** detail → `docs/` (spec assertion, ADR, or deep-dive; catalog it in `docs/AGENTS.md`).
 
 This keeps the always-loaded budget flat as the project grows. Most decisions are unit- or area-scoped and must **not** land in this file.
 
----
+## Logging decisions
 
-## Reference shelf → `docs/`
-
-Detail that isn't always-needed lives in **`docs/`**, read on demand: go there and its index (`docs/AGENTS.md`) auto-loads to route you to the exact file. It covers framing & philosophy, the AGENTS/rules system, public API & package shape, build & TS-config strategy, asset conventions, cross-phase (Env-aware / Netlify) context, and project scope (out-of-scope, deferred decisions, glossary, loop checklist). Section references elsewhere (e.g. _"see Out of scope"_) resolve here.
+- When a skill's procedure instructs you to record an implementation decision, append the non-obvious _why_ to `build-log.md` with the build-log append helper (`build_log.py append --dir docs/plans/<plan> --line "<one-line why>"`).
+- Never read `brief-log.md`, `spec-log.md`, or `build-log.md` into context, and never edit them by hand or write to them outside that skill-instructed append.
