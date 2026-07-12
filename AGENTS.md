@@ -26,6 +26,8 @@ When a new instruction or decision is created, file it by **scope of applicabili
 - Needed only while doing **one unit of work** → that phase/plan file (`docs/plans/<plan>/`, e.g. `docs/plans/foundation/phase-3.md`).
 - Occasional **reference** detail → `docs/` (spec assertion, ADR, or deep-dive; catalog it in `docs/AGENTS.md`).
 
+**Code ownership (lib vs starter vs host adapter):** identical across every host and project → `packages/astro-lib`; host choice (Netlify, …) → a sibling adapter package under `packages/` (e.g. `astro-netlify`); project choice / wiring → `starter/`. Adapters may depend on the lib; the lib never depends on an adapter. → `docs/spec/public-api.md`, ADR-0023.
+
 This keeps the always-loaded budget flat as the project grows. Most decisions are unit- or area-scoped and must **not** land in this file.
 
 ## Logging decisions

@@ -1,9 +1,10 @@
 # astro-stack
 
-Monorepo for two Astro deliverables consumed together:
+Monorepo for Astro deliverables consumed together:
 
-- **`packages/astro-lib/`** — the integration, published as `@gravitysupport/astro-lib`. SCSS foundation + parameterized Sass mixins. See [`packages/astro-lib/AGENTS.md`](packages/astro-lib/AGENTS.md).
-- **`starter/`** — a blank Astro project that wires `@gravitysupport/astro-lib` in. Intended to be cloned via `degit` as the starting point for new sites.
+- **`packages/astro-lib/`** — the host-agnostic integration, published as `@gravitysupport/astro-lib`. SCSS foundation + parameterized Sass mixins. See [`packages/astro-lib/AGENTS.md`](packages/astro-lib/AGENTS.md).
+- **`packages/astro-netlify/`** — optional Netlify host adapter (`@gravitysupport/astro-netlify`): deploy-context bridge, staging-auth edge function. See [`packages/astro-netlify/AGENTS.md`](packages/astro-netlify/AGENTS.md).
+- **`starter/`** — a blank Astro project that wires the lib (and Netlify adapter) in. Intended to be cloned via `degit` as the starting point for new sites.
 
 ## Cloning the starter
 
@@ -55,4 +56,4 @@ pnpm build
 pnpm preview
 ```
 
-Changes to `packages/astro-lib/` are picked up live in `starter/` via pnpm's workspace symlink.
+Changes to `packages/astro-lib/` and `packages/astro-netlify/` are picked up live in `starter/` via pnpm's workspace symlink.

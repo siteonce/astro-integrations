@@ -45,15 +45,25 @@ importers:
       '@astrojs/svelte':
         specifier: 8.1.2
         version: 8.1.2(@types/node@24.12.4)(astro@6.3.7(@types/node@24.12.4)(rollup@4.60.4)(sass@1.99.0)(yaml@2.9.0))(sass@1.99.0)(svelte@5.55.10)(typescript@6.0.3)(yaml@2.9.0)
-      '@netlify/edge-functions':
-        specifier: 3.0.8
-        version: 3.0.8
       astro:
         specifier: 6.3.7
         version: 6.3.7(@types/node@24.12.4)(rollup@4.60.4)(sass@1.99.0)(yaml@2.9.0)
       svelte:
         specifier: 5.55.10
         version: 5.55.10
+
+  packages/astro-netlify:
+    dependencies:
+      '@gravitysupport/astro-lib':
+        specifier: workspace:*
+        version: link:../astro-lib
+    devDependencies:
+      '@netlify/edge-functions':
+        specifier: 3.0.8
+        version: 3.0.8
+      astro:
+        specifier: 6.3.7
+        version: 6.3.7(@types/node@24.12.4)(rollup@4.60.4)(sass@1.99.0)(yaml@2.9.0)
 
   starter:
     dependencies:
@@ -63,6 +73,9 @@ importers:
       '@gravitysupport/astro-lib':
         specifier: workspace:*
         version: link:../packages/astro-lib
+      '@gravitysupport/astro-netlify':
+        specifier: workspace:*
+        version: link:../packages/astro-netlify
       astro:
         specifier: ^6.3.7
         version: 6.3.7(@types/node@24.12.4)(rollup@4.60.4)(sass@1.99.0)(yaml@2.9.0)
