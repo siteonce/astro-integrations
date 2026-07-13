@@ -22,6 +22,18 @@ The foundation for every Astro site built on this stack: the library `@gravitysu
 
 **`Favicon`**: The component that emits the standard favicon tag block; agnostic to how the icon files are generated.
 
+### Styling
+
+**Panda**: The build-time styling engine for lib component styles and call-site style objects; it generates static CSS. _Avoid_: CSS-in-JS (runtime), token system (not the stack’s Panda posture).
+
+**recipe**: A Panda definition of a component’s base styles and its variant-prop options.
+
+**`css` prop**: An optional style-object prop on lib components, merged after the recipe so consumer declarations win.
+
+**value prop**: A typed component prop that supplies an open CSS value (usually a length), bridged to a CSS custom property at render time. _Avoid_: continuous prop, knob.
+
+**variant prop**: A typed component prop that picks from a fixed set of options and maps to a recipe variant.
+
 ### Layout components
 
 **`componentStyle`**: The helper that turns typed component props into an inline `--ab-{component}--{name}` custom-property string.
