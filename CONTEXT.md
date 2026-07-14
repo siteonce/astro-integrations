@@ -30,17 +30,17 @@ The foundation for every Astro site built on this stack: the library `@gravitysu
 
 **`css` prop**: An optional style-object prop on lib components, merged after the recipe so consumer declarations win.
 
-**value prop**: A typed component prop that supplies an open CSS value (usually a length), bridged to a CSS custom property at render time. _Avoid_: continuous prop, knob.
+**value prop**: A typed component prop that supplies an open CSS value (usually a length), bridged to a CSS custom property at render time. _Avoid_: continuous prop, knob (as the primary name).
 
 **variant prop**: A typed component prop that picks from a fixed set of options and maps to a recipe variant.
 
-### Layout components
+**`componentStyle`**: The shared helper that bridges value props to inline CSS custom properties on the element. Scope is value props only; names follow `--{component}-{prop}`. _Avoid_: knob (as the primary name for this helper).
 
-**`componentStyle`**: The helper that turns typed component props into an inline `--ab-{component}--{name}` custom-property string.
+### Layout components
 
 **`Region`**: The margin-collapse-containment component with a polymorphic semantic element; carries no spacing opinion. _Avoid_: Section
 
-**`Container`**: The width-constraint component — horizontal gutter, vertical rhythm, and alignment; value props become `--ab-container--*` CSS vars.
+**`Container`**: The width-constraint component — horizontal gutter, vertical rhythm, and alignment; value props become component-scoped CSS vars (e.g. `--container-size`).
 
 **`SiteFrameProvider`**: The top-level positioning context for the site frame; isolates a stacking context and hosts panels.
 
