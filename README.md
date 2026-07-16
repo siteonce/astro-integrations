@@ -3,8 +3,9 @@
 Monorepo for Astro deliverables consumed together:
 
 - **`packages/astro-lib/`** — the host-agnostic integration, published as `@gravitysupport/astro-lib`. SCSS foundation + parameterized Sass mixins. See [`packages/astro-lib/AGENTS.md`](packages/astro-lib/AGENTS.md).
+- **`packages/astro-og-image/`** — optional OG image generator (`@gravitysupport/astro-og-image`): injected endpoint, Satori templates, fonts, and cache. See [`packages/astro-og-image/AGENTS.md`](packages/astro-og-image/AGENTS.md).
 - **`packages/astro-netlify/`** — optional Netlify host adapter (`@gravitysupport/astro-netlify`): deploy-context bridge, staging-auth edge function. See [`packages/astro-netlify/AGENTS.md`](packages/astro-netlify/AGENTS.md).
-- **`starter/`** — a blank Astro project that wires the lib (and Netlify adapter) in. Intended to be cloned via `degit` as the starting point for new sites.
+- **`starter/`** — a blank Astro project that wires core, OG generation, and the Netlify adapter together. Intended to be cloned via `degit` as the starting point for new sites.
 
 ## Cloning the starter
 
@@ -35,8 +36,8 @@ Inside this monorepo, pnpm resolves `workspace:*` to the local `packages/astro-l
 
 Two things have to happen:
 
-1. **Publish `@gravitysupport/astro-lib` to a registry** (npm, or a private registry). Today the package is marked `"private": true` and has never been published.
-2. **Rewrite the starter's dependency** from `workspace:*` to a real semver range matching the published version, e.g. `"@gravitysupport/astro-lib": "^0.1.0"`.
+1. **Publish the packages consumed by the starter** to a registry. Today they are private workspace packages and have never been published.
+2. **Rewrite the starter's `workspace:*` dependencies** to real semver ranges matching the published versions.
 
 Options for managing step 2:
 
@@ -56,4 +57,4 @@ pnpm build
 pnpm preview
 ```
 
-Changes to `packages/astro-lib/` and `packages/astro-netlify/` are picked up live in `starter/` via pnpm's workspace symlink.
+Changes to packages under `packages/` are picked up live in `starter/` via pnpm's workspace symlinks.

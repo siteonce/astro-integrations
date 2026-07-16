@@ -6,7 +6,9 @@ The foundation for every Astro site built on this stack: the library `@gravitysu
 
 ### Packages
 
-**`@gravitysupport/astro-lib`**: The Astro-integration framework for the stack — the integration itself plus the reusable layers it wires together (SCSS foundation + mixins, components, blocks, helpers, config/content schemas, OG support, i18n). Host-agnostic; host wiring lives in adapter packages.
+**`@gravitysupport/astro-lib`**: The core Astro-integration framework for the stack — reusable SCSS, components, helpers, schemas, OG metadata, and i18n. Optional generators and host wiring live in sibling packages.
+
+**`@gravitysupport/astro-og-image`**: The optional OG image generator — injected endpoint, Satori-to-Sharp renderer, template contract, fonts, and internal cache. Depends on `astro-lib`; core never depends on it.
 
 **`@gravitysupport/astro-netlify`**: The Netlify host adapter — `astroNetlify()` integration (bridges Netlify `CONTEXT` → lib `DEPLOY_CONTEXT`), staging-auth edge function, and Netlify context helpers. Optional sibling to the lib; install only when deploying on Netlify.
 
@@ -48,7 +50,9 @@ The foundation for every Astro site built on this stack: the library `@gravitysu
 
 ### Integration & environment
 
-**`astroLib()` integration**: The lib's default export — the Astro integration that wires rehype, OG middleware, Partytown, sitemap, i18n, and config validation.
+**`astroLib()` integration**: The lib's default export — the Astro integration that wires rehype, Partytown, sitemap, i18n, core config validation, and OG metadata support.
+
+**`astroOgImage()` integration**: The optional generator integration — validates generation config and injects the prerendered OG image endpoint.
 
 **`deployEnv`**: The host-agnostic helper that reads ambient `DEPLOY_CONTEXT` via `astro:env` and exposes `isProd`/`isPreview`/`isLocal` for SSR/build product code. _Avoid_: netlifyEnv (renamed; host binding lives in the adapter).
 
@@ -60,10 +64,12 @@ The foundation for every Astro site built on this stack: the library `@gravitysu
 
 **`rehypeExternalLinks`**: The integration-wired rehype plugin that adds `target="_blank" rel="noopener noreferrer"` to outbound prose links not listed in `siteConfig.externalLink.exceptions`.
 
-### OG pipeline
+### OG images
 
-**`og/renderer`**: The Satori + satori-html pipeline that renders OG images.
+**OG image endpoint**: The prerendered `/og/[...path].png` route injected by `astroOgImage()`; the page path determines the image path. _Avoid_: build hook, manifest.
 
-**`og/cache`**: The content-hash-keyed PNG cache for generated OG images.
+**`OgContext`**: The complete per-render data contract passed to project-authored Satori JSX templates.
 
-**`og/resolver`**: The mapper from a request path to its template entry in `ogConfig.pages`.
+**`ogImageFor()`**: The pure helper that maps a page pathname to Seo-compatible generated-image props.
+
+**OG image cache**: The generator's internal content-hash cache; cache identity is independent of the public endpoint URL.

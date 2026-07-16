@@ -1,0 +1,41 @@
+{
+  "name": "@gravitysupport/astro-og-image",
+  "version": "0.0.1",
+  "private": true,
+  "description": "Optional build-time Open Graph image generation for the astro-stack.",
+  "type": "module",
+  "exports": {
+    ".": "./src/integration.ts",
+    "./config": "./src/config.ts",
+    "./context": "./src/context.ts",
+    "./helpers/ogImageFor": "./src/helpers/ogImageFor.ts",
+    "./jsx-runtime": "./src/jsx-runtime.ts",
+    "./jsx-dev-runtime": "./src/jsx-runtime.ts",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "src"
+  ],
+  "dependencies": {
+    "@gravitysupport/astro-lib": "workspace:*",
+    "devalue": "5.8.1",
+    "satori": "0.26.0",
+    "zod": "4.4.3"
+  },
+  "peerDependencies": {
+    "astro": "^6.0.0",
+    "sharp": "^0.34.0"
+  },
+  "devDependencies": {
+    "astro": "6.3.7",
+    "sharp": "0.34.5"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "keywords": [
+    "astro",
+    "open-graph",
+    "satori"
+  ]
+}
