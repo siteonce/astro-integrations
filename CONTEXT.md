@@ -66,10 +66,10 @@ The foundation for every Astro site built on this stack: the library `@gravitysu
 
 ### OG images
 
-**OG image endpoint**: The prerendered `/og/[...path].png` route injected by `astroOgImage()`; the page path determines the image path. _Avoid_: build hook, manifest.
+**OG image endpoint**: The configurable raw-PNG namespace injected by `astroOgImage()`, defaulting to `/_og`; the page path determines the image path. _Avoid_: build hook, manifest.
 
 **`OgContext`**: The complete per-render data contract passed to project-authored Satori JSX templates.
 
-**`ogImageFor()`**: The pure helper that maps a page pathname to Seo-compatible generated-image props.
+**`ogImageFor()`**: The pure helper that maps a page pathname and explicit generation config to Seo-compatible generated-image props.
 
 **OG image cache**: The generator's internal content-hash cache; cache identity is independent of the public endpoint URL.

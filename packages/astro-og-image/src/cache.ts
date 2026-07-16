@@ -1,3 +1,4 @@
+// Stores rendered PNGs under stable hashes of every input that can affect output.
 import { createHash } from 'node:crypto';
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';

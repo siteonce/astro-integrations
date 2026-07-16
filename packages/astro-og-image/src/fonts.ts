@@ -1,19 +1,13 @@
+// Validates, loads, and fingerprints consumer-owned fonts for Satori renders.
 import { createHash } from 'node:crypto';
 import { existsSync, readFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
-import { resolve } from 'node:path';
+import { extname, resolve } from 'node:path';
 import type { OgImageConfig } from './config.ts';
 
 export type SatoriFont = {
   name: string;
   data: Buffer;
-  weight: number;
-  style: 'normal' | 'italic';
-};
-
-export type BundledFont = {
-  name: string;
-  base64: string;
   weight: number;
   style: 'normal' | 'italic';
 };
@@ -31,8 +25,12 @@ export function resolveFontPath(path: string, projectRoot: string): string {
 
 export function assertFontFiles(fonts: OgImageConfig['fonts'], projectRoot: string): void {
   for (const font of fonts) {
-    if (font.path.toLowerCase().endsWith('.woff2')) {
+    const extension = extname(font.path).toLowerCase();
+    if (extension === '.woff2') {
       throw new Error(`Satori cannot consume .woff2; use .woff, .ttf, or .otf: ${font.path}`);
+    }
+    if (!['.woff', '.ttf', '.otf'].includes(extension)) {
+      throw new Error(`OG font must be .woff, .ttf, or .otf: ${font.path}`);
     }
     const absolute = resolveFontPath(font.path, projectRoot);
     if (!existsSync(absolute)) {
@@ -41,24 +39,13 @@ export function assertFontFiles(fonts: OgImageConfig['fonts'], projectRoot: stri
   }
 }
 
-export function loadFonts(
-  fonts: OgImageConfig['fonts'],
-  projectRoot: string,
-  bundledFonts: BundledFont[],
-): SatoriFont[] {
-  const bundled = bundledFonts.map((font) => ({
-    name: font.name,
-    data: Buffer.from(font.base64, 'base64'),
-    weight: font.weight,
-    style: font.style,
-  }));
-  const consumer = fonts.map((font) => ({
+export function loadFonts(fonts: OgImageConfig['fonts'], projectRoot: string): SatoriFont[] {
+  return fonts.map((font) => ({
     name: font.name,
     data: readFileSync(resolveFontPath(font.path, projectRoot)),
     weight: font.weight,
     style: font.style,
   }));
-  return [...bundled, ...consumer];
 }
 
 export function fontRegistryDigest(fonts: SatoriFont[]): string {

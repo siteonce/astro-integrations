@@ -1,3 +1,5 @@
-// Dev uses the same request handler without exporting getStaticPaths. Astro's
-// content data is resolved on demand after the initial content sync.
-export { GET } from './route.ts';
+// Serves raw PNGs on demand in dev after Astro's initial content sync completes.
+import type { APIRoute } from 'astro';
+import { handleImageRequest } from './route.ts';
+
+export const GET: APIRoute = (context) => handleImageRequest(context, true);

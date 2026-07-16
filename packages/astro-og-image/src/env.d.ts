@@ -1,3 +1,4 @@
+// Declares integration-owned virtual modules and ambient env bindings for source typechecking.
 declare module 'astro:env/server' {
   export const DEPLOY_CONTEXT: 'production' | 'preview' | 'local' | undefined;
 }
@@ -17,7 +18,13 @@ declare module 'virtual:astro-og-image/config' {
   export const templateSources: Record<string, string>;
   export const projectRoot: string;
   export const publicDir: string;
-  export const bundledFonts: import('./fonts.ts').BundledFont[];
+  export const projectRoutes: Array<{
+    pattern: string;
+    pathname?: string;
+    type: 'page' | 'endpoint' | 'redirect' | 'fallback';
+    origin: 'internal' | 'external' | 'project';
+    entrypoint: string;
+  }>;
   export const getCollection: (
     name: string,
   ) => Promise<Array<{ id: string; collection: string; data: Record<string, unknown> }>>;

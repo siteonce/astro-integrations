@@ -1,3 +1,4 @@
+// Converts project template output into fixed-size PNGs while inlining public assets.
 import { existsSync, readFileSync } from 'node:fs';
 import { extname, resolve } from 'node:path';
 import satori from 'satori';

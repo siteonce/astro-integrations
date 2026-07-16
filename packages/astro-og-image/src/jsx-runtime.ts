@@ -1,3 +1,4 @@
+// Provides the minimal automatic JSX runtime and intrinsic types required by Satori templates.
 export type OgStyle = Record<string, string | number | undefined>;
 
 export type OgNode = {

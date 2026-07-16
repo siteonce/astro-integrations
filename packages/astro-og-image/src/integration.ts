@@ -1,11 +1,18 @@
-import { existsSync, readFileSync } from 'node:fs';
+// Wires validated project config, public route metadata, and command-specific endpoints into Astro.
+import { existsSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import type { AstroIntegration } from 'astro';
+import type { AstroIntegration, IntegrationResolvedRoute } from 'astro';
 import * as z from 'zod';
 import { type OgImageConfig, ogImageConfigSchema } from './config.ts';
-import { assertFontFiles } from './fonts.ts';
+import { assertFontFiles, resolveFontPath } from './fonts.ts';
+import {
+  dynamicParameterCount,
+  isDynamicPattern,
+  isIncludedRoute,
+  normalizePath,
+} from './routing.ts';
 
 const VIRTUAL_MODULE_ID = 'virtual:astro-og-image/config';
 const RESOLVED_VIRTUAL_MODULE_ID = `\0${VIRTUAL_MODULE_ID}`;
@@ -14,24 +21,39 @@ export type AstroOgImageOptions = {
   config: unknown;
 };
 
+type PublicRoute = Pick<
+  IntegrationResolvedRoute,
+  'pattern' | 'pathname' | 'type' | 'origin' | 'entrypoint'
+>;
+
 function validateRoutes(config: OgImageConfig): void {
-  if (!config.templates[config.default]) {
-    throw new Error(`default template "${config.default}" is not registered.`);
+  const fallback = config.routes['*'];
+  if (!isIncludedRoute(fallback) || !fallback.template) {
+    throw new Error('routes["*"] must be an inclusion object with a template.');
+  }
+  if (!config.templates[fallback.template]) {
+    throw new Error(`routes["*"] references unknown template "${fallback.template}".`);
   }
 
-  for (const [route, page] of Object.entries(config.pages)) {
-    if (!route.startsWith('/')) throw new Error(`page route must start with "/": ${route}`);
-    if (!config.templates[page.template]) {
-      throw new Error(`pages["${route}"] references unknown template "${page.template}".`);
+  for (const [route, definition] of Object.entries(config.routes)) {
+    if (route !== '*' && (!route.startsWith('/') || normalizePath(route) !== route)) {
+      throw new Error(`route keys must be normalized absolute paths: ${route}`);
     }
-    const parameters = route.match(/\[(?:\.\.\.)?[^\]]+\]/g) ?? [];
-    if (parameters.length > 1) {
-      throw new Error(`page route may contain at most one dynamic parameter: ${route}`);
+    if (definition === false) continue;
+    if (definition.template && !config.templates[definition.template]) {
+      throw new Error(`routes["${route}"] references unknown template "${definition.template}".`);
     }
-    if (parameters.length === 1 && !/^\/[^/]+\/\[(?:\.\.\.)?[^\]]+\]$/.test(route)) {
-      throw new Error(
-        `dynamic OG routes must use /<collection>/[param] or /<collection>/[...param]: ${route}`,
-      );
+    if (!isDynamicPattern(route)) {
+      if (definition.collection) {
+        throw new Error(`static route "${route}" must not define collection.`);
+      }
+      continue;
+    }
+    if (dynamicParameterCount(route) !== 1) {
+      throw new Error(`included dynamic route must contain exactly one parameter: ${route}`);
+    }
+    if (!definition.collection) {
+      throw new Error(`included dynamic route "${route}" must define collection.`);
     }
   }
 }
@@ -41,12 +63,7 @@ function virtualConfigPlugin(options: {
   projectRoot: string;
   publicDir: string;
   templateFiles: Record<string, string>;
-  bundledFonts: Array<{
-    name: string;
-    base64: string;
-    weight: number;
-    style: 'normal';
-  }>;
+  routes: PublicRoute[];
   devaluePath: string;
 }) {
   return {
@@ -58,23 +75,26 @@ function virtualConfigPlugin(options: {
       if (id !== RESOLVED_VIRTUAL_MODULE_ID) return;
       const entries = Object.entries(options.templateFiles);
       const imports = entries
-        .map(([, file], index) => `import template${index} from ${JSON.stringify(file)};`)
+        .flatMap(([, file], index) => [
+          `import template${index} from ${JSON.stringify(file)};`,
+          `import templateSource${index} from ${JSON.stringify(`${file}?raw`)};`,
+        ])
         .join('\n');
       const templates = entries
         .map(([name], index) => `${JSON.stringify(name)}: template${index}`)
         .join(', ');
-      const sources = Object.fromEntries(
-        entries.map(([name, file]) => [name, readFileSync(file, 'utf8')]),
-      );
+      const sources = entries
+        .map(([name], index) => `${JSON.stringify(name)}: templateSource${index}`)
+        .join(', ');
       return `import contentData from 'astro:data-layer-content';
 import { unflatten } from ${JSON.stringify(options.devaluePath)};
 ${imports}
 export const generationConfig = ${JSON.stringify(options.config)};
 export const templates = { ${templates} };
-export const templateSources = ${JSON.stringify(sources)};
+export const templateSources = { ${sources} };
 export const projectRoot = ${JSON.stringify(options.projectRoot)};
 export const publicDir = ${JSON.stringify(options.publicDir)};
-export const bundledFonts = ${JSON.stringify(options.bundledFonts)};
+export const projectRoutes = ${JSON.stringify(options.routes)};
 const contentMap = contentData instanceof Map ? contentData : unflatten(contentData);
 export const getCollection = async (name) => {
   const collection = contentMap.get(name);
@@ -86,7 +106,23 @@ export const getCollection = async (name) => {
   };
 }
 
+function isNamespaceCollision(
+  route: PublicRoute,
+  basePath: string,
+  ownEntrypoints: Set<string>,
+  projectRoot: string,
+) {
+  if (ownEntrypoints.has(resolve(projectRoot, route.entrypoint))) return false;
+  const pattern = normalizePath(route.pattern);
+  return pattern === basePath || pattern.startsWith(`${basePath}/`);
+}
+
 export default function astroOgImage(options: AstroOgImageOptions): AstroIntegration {
+  let generationConfig: OgImageConfig | undefined;
+  const publicRoutes: PublicRoute[] = [];
+  let ownEntrypoints = new Set<string>();
+  let consumerRoot = '';
+
   return {
     name: '@gravitysupport/astro-og-image',
     hooks: {
@@ -114,7 +150,7 @@ export default function astroOgImage(options: AstroOgImageOptions): AstroIntegra
           throw new Error('@gravitysupport/astro-og-image: config validation failed.');
         }
 
-        const generationConfig = parsed.data;
+        generationConfig = parsed.data;
         try {
           validateRoutes(generationConfig);
         } catch (error) {
@@ -123,27 +159,10 @@ export default function astroOgImage(options: AstroOgImageOptions): AstroIntegra
         }
 
         const projectRoot = fileURLToPath(config.root);
+        consumerRoot = projectRoot;
         const publicDir = fileURLToPath(config.publicDir);
         const templatesDir = fileURLToPath(new URL('og-templates/', config.srcDir));
         const devaluePath = createRequire(import.meta.url).resolve('devalue');
-        const bundledFonts = [
-          {
-            name: 'Inter',
-            base64: readFileSync(
-              fileURLToPath(new URL('./fonts/inter-latin-400-normal.woff', import.meta.url)),
-            ).toString('base64'),
-            weight: 400,
-            style: 'normal' as const,
-          },
-          {
-            name: 'Inter',
-            base64: readFileSync(
-              fileURLToPath(new URL('./fonts/inter-latin-700-normal.woff', import.meta.url)),
-            ).toString('base64'),
-            weight: 700,
-            style: 'normal' as const,
-          },
-        ];
         const templateFiles: Record<string, string> = {};
         for (const name of Object.keys(generationConfig.templates)) {
           const file = resolve(templatesDir, `${name}.tsx`);
@@ -163,6 +182,7 @@ export default function astroOgImage(options: AstroOgImageOptions): AstroIntegra
                 `@gravitysupport/astro-og-image: templates["${name}"].bgImage not found: ${background}.`,
               );
             }
+            addWatchFile(absolute);
           }
         }
 
@@ -170,6 +190,9 @@ export default function astroOgImage(options: AstroOgImageOptions): AstroIntegra
           assertFontFiles(generationConfig.fonts, projectRoot);
         } catch (error) {
           throw new Error(`@gravitysupport/astro-og-image: ${(error as Error).message}`);
+        }
+        for (const font of generationConfig.fonts) {
+          addWatchFile(resolveFontPath(font.path, projectRoot));
         }
 
         updateConfig({
@@ -180,23 +203,59 @@ export default function astroOgImage(options: AstroOgImageOptions): AstroIntegra
                 projectRoot,
                 publicDir,
                 templateFiles,
-                bundledFonts,
+                routes: publicRoutes,
                 devaluePath,
               }),
             ],
           },
         });
 
+        const rawEntrypoint = fileURLToPath(
+          new URL(command === 'build' ? './route.ts' : './route-dev.ts', import.meta.url),
+        );
         injectRoute({
-          pattern: '/og/[...path].png',
-          entrypoint: fileURLToPath(
-            new URL(command === 'build' ? './route.ts' : './route-dev.ts', import.meta.url),
-          ),
-          // Build emits static PNGs through getStaticPaths. Dev keeps the same
-          // route on demand because Astro can evaluate injected getStaticPaths
-          // before content collections finish their initial sync.
+          pattern: `${generationConfig.basePath}/[...path].png`,
+          entrypoint: rawEntrypoint,
           prerender: command === 'build',
         });
+
+        ownEntrypoints = new Set([rawEntrypoint]);
+        if (command === 'dev') {
+          const galleryEntrypoint = fileURLToPath(new URL('./gallery.ts', import.meta.url));
+          const previewEntrypoint = fileURLToPath(new URL('./preview.ts', import.meta.url));
+          injectRoute({
+            pattern: generationConfig.basePath,
+            entrypoint: galleryEntrypoint,
+            prerender: false,
+          });
+          injectRoute({
+            pattern: `${generationConfig.basePath}/preview/[...path]`,
+            entrypoint: previewEntrypoint,
+            prerender: false,
+          });
+          ownEntrypoints.add(galleryEntrypoint);
+          ownEntrypoints.add(previewEntrypoint);
+        }
+      },
+      'astro:routes:resolved': ({ routes }) => {
+        if (!generationConfig) return;
+        const basePath = generationConfig.basePath;
+        const mapped = routes.map(({ pattern, pathname, type, origin, entrypoint }) => ({
+          pattern,
+          pathname,
+          type,
+          origin,
+          entrypoint,
+        }));
+        const collision = mapped.find((route) =>
+          isNamespaceCollision(route, basePath, ownEntrypoints, consumerRoot),
+        );
+        if (collision) {
+          throw new Error(
+            `@gravitysupport/astro-og-image: basePath "${basePath}" collides with route "${collision.pattern}" (${collision.entrypoint}).`,
+          );
+        }
+        publicRoutes.splice(0, publicRoutes.length, ...mapped);
       },
       'astro:config:done': ({ injectTypes }) => {
         injectTypes({
@@ -207,7 +266,7 @@ export default function astroOgImage(options: AstroOgImageOptions): AstroIntegra
   export const templateSources: Record<string, string>;
   export const projectRoot: string;
   export const publicDir: string;
-  export const bundledFonts: Array<{ name: string; base64: string; weight: number; style: 'normal' | 'italic' }>;
+  export const projectRoutes: Array<{ pattern: string; pathname?: string; type: 'page' | 'endpoint' | 'redirect' | 'fallback'; origin: 'internal' | 'external' | 'project'; entrypoint: string }>;
   export const getCollection: (name: string) => Promise<Array<{ id: string; collection: string; data: Record<string, unknown> }>>;
 }
 `,
