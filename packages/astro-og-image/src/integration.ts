@@ -197,6 +197,11 @@ export default function astroOgImage(options: AstroOgImageOptions): AstroIntegra
 
         updateConfig({
           vite: {
+            // Astro's base TypeScript config preserves JSX. Vite 8's Oxc
+            // transform must lower project-authored Satori `.tsx` templates
+            // before Rolldown parses them; each template's @jsxImportSource
+            // pragma selects this package's runtime.
+            oxc: { jsx: { runtime: 'automatic' } },
             plugins: [
               virtualConfigPlugin({
                 config: generationConfig,
@@ -210,17 +215,18 @@ export default function astroOgImage(options: AstroOgImageOptions): AstroIntegra
           },
         });
 
+        const isDev = command === 'dev';
         const rawEntrypoint = fileURLToPath(
-          new URL(command === 'build' ? './route.ts' : './route-dev.ts', import.meta.url),
+          new URL(isDev ? './route-dev.ts' : './route.ts', import.meta.url),
         );
         injectRoute({
           pattern: `${generationConfig.basePath}/[...path].png`,
           entrypoint: rawEntrypoint,
-          prerender: command === 'build',
+          prerender: !isDev,
         });
 
         ownEntrypoints = new Set([rawEntrypoint]);
-        if (command === 'dev') {
+        if (isDev) {
           const galleryEntrypoint = fileURLToPath(new URL('./gallery.ts', import.meta.url));
           const previewEntrypoint = fileURLToPath(new URL('./preview.ts', import.meta.url));
           injectRoute({
