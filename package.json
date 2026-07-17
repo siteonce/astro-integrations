@@ -8,6 +8,7 @@
     "dev": "pnpm --filter starter dev",
     "build": "pnpm --filter starter build",
     "preview": "pnpm --filter starter preview",
+    "sync-rules": "ASTRO_LIB_RULES_CONSUMER_ROOT=starter node packages/astro-lib/scripts/sync-rules.mjs",
     "format": "biome format --write . && prettier --write \"**/*.{astro,md}\"",
     "format:check": "biome format . && prettier --check \"**/*.{astro,md}\"",
     "lint": "biome lint .",

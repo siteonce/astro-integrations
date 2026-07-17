@@ -6,7 +6,7 @@ The foundation for every Astro site built on this stack: the library `@gravitysu
 
 ### Packages
 
-**`@gravitysupport/astro-lib`**: The core Astro-integration framework for the stack — reusable SCSS, components, helpers, schemas, OG metadata, and i18n. Optional generators and host wiring live in sibling packages.
+**`@gravitysupport/astro-lib`**: The core Astro-integration framework for the stack — reusable SCSS, components, utilities, schemas, OG metadata, and i18n. Optional generators and host wiring live in sibling packages.
 
 **`@gravitysupport/astro-og-image`**: The optional OG image generator — injected endpoint, Satori-to-Sharp renderer, template contract, fonts, and internal cache. Depends on `astro-lib`; core never depends on it.
 
@@ -14,7 +14,7 @@ The foundation for every Astro site built on this stack: the library `@gravitysu
 
 ### Lifecycle & head components
 
-**`Base`**: The bare HTML skeleton component — `<html lang>` plus a `<head>` slot and a `<body>` slot.
+**`BaseLayout`**: The bare HTML skeleton component — `<html lang>` plus a `<head>` slot and a `<body>` slot.
 
 **`Seo`**: The component that owns `<head>` tag emission (title, meta, Open Graph, Twitter), driven by `seoConfig`.
 

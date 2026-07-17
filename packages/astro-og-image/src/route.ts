@@ -8,8 +8,8 @@ import {
   templateSources,
   templates,
 } from 'virtual:astro-og-image/config';
-import { isLocal, isPreview } from '@gravitysupport/astro-lib/helpers/deployEnv';
 import { useTranslations } from '@gravitysupport/astro-lib/i18n';
+import { isLocal, isPreview } from '@gravitysupport/astro-lib/utils/deployEnv';
 import type { APIContext, APIRoute, GetStaticPaths } from 'astro';
 import { computeHash, readCached, writeCached } from './cache.ts';
 import { fontRegistryDigest, loadFonts } from './fonts.ts';

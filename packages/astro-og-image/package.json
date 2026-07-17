@@ -8,7 +8,7 @@
     ".": "./src/integration.ts",
     "./config": "./src/config.ts",
     "./context": "./src/context.ts",
-    "./helpers/ogImageFor": "./src/helpers/ogImageFor.ts",
+    "./utils/ogImageFor": "./src/utils/ogImageFor.ts",
     "./jsx-runtime": "./src/jsx-runtime.ts",
     "./jsx-dev-runtime": "./src/jsx-runtime.ts",
     "./package.json": "./package.json"

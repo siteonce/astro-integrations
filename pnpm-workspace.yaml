@@ -1,5 +1,6 @@
 packages:
   - 'packages/*'
+  - 'sites/*'
   - 'starter'
 allowBuilds:
   '@parcel/watcher': true
