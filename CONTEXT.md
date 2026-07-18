@@ -20,9 +20,9 @@ The foundation for every Astro site built on this stack: the library `@gravitysu
 
 **`Schema`**: The JSON-LD emitter component (Article, BreadcrumbList, Organization, WebSite).
 
-**`Analytics`**: The analytics provider tag component, wrapped in Partytown.
+**`Analytics`**: The starter-owned analytics tag component (GA4 via Partytown). Project concern, not a lib export; the lib only registers Partytown when `siteConfig.analytics` is set.
 
-**`Favicon`**: The component that emits the standard favicon tag block; agnostic to how the icon files are generated.
+**`Favicon`**: The lib component that emits the standard favicon tag block; agnostic to how the icon files are generated (files live in the consumer’s `public/`).
 
 ### Styling
 
