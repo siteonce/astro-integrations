@@ -1,5 +1,5 @@
 {
-  "name": "astro-stack",
+  "name": "siteonce-stack",
   "version": "0.0.0",
   "private": true,
   "description": "Monorepo for the astro-lib integration and the starter that consumes it.",

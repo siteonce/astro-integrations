@@ -7,7 +7,7 @@ allowBuilds:
   esbuild: true
   sharp: true
   # Permits the lib's postinstall (sync-rules.mjs) to run on consumer install.
-  '@gravitysupport/astro-lib': true
+  '@siteonce/astro-lib': true
 minimumReleaseAgeExclude:
   - astro@7.0.9
   - '@netlify/edge-functions@3.0.8'

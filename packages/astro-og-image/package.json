@@ -1,8 +1,8 @@
 {
-  "name": "@gravitysupport/astro-og-image",
+  "name": "@siteonce/astro-og-image",
   "version": "0.0.1",
   "private": true,
-  "description": "Optional build-time Open Graph image generation for the astro-stack.",
+  "description": "Optional build-time Open Graph image generation for Site Once.",
   "type": "module",
   "exports": {
     ".": "./src/integration.ts",
@@ -17,7 +17,7 @@
     "src"
   ],
   "dependencies": {
-    "@gravitysupport/astro-lib": "workspace:*",
+    "@siteonce/astro-lib": "workspace:*",
     "devalue": "5.8.1",
     "satori": "0.26.0",
     "zod": "4.4.3"

@@ -4,8 +4,8 @@ declare module 'astro:env/server' {
 }
 
 declare module 'virtual:astro-lib/config' {
-  export const siteConfig: import('@gravitysupport/astro-lib/schemas/config/siteConfig').SiteConfig;
-  export const i18nConfig: import('@gravitysupport/astro-lib/schemas/config/i18nConfig').I18nConfig;
+  export const siteConfig: import('@siteonce/astro-lib/schemas/config/siteConfig').SiteConfig;
+  export const i18nConfig: import('@siteonce/astro-lib/schemas/config/i18nConfig').I18nConfig;
 }
 
 declare module 'virtual:astro-lib/i18n' {

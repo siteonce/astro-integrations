@@ -1,6 +1,6 @@
 // Defines the complete render context passed to project-authored OG templates.
-import type { SiteConfig } from '@gravitysupport/astro-lib/schemas/config/siteConfig';
-import type { Prose } from '@gravitysupport/astro-lib/schemas/content/prose';
+import type { SiteConfig } from '@siteonce/astro-lib/schemas/config/siteConfig';
+import type { Prose } from '@siteonce/astro-lib/schemas/content/prose';
 import type { OgImageConfig } from './config.ts';
 import type { OgNode } from './jsx-runtime.ts';
 

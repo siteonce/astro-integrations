@@ -8,8 +8,8 @@ import {
   templateSources,
   templates,
 } from 'virtual:astro-og-image/config';
-import { useTranslations } from '@gravitysupport/astro-lib/i18n';
-import { isLocal, isPreview } from '@gravitysupport/astro-lib/utils/deployEnv';
+import { useTranslations } from '@siteonce/astro-lib/i18n';
+import { isLocal, isPreview } from '@siteonce/astro-lib/utils/deployEnv';
 import type { APIContext, APIRoute, GetStaticPaths } from 'astro';
 import { computeHash, readCached, writeCached } from './cache.ts';
 import { fontRegistryDigest, loadFonts } from './fonts.ts';
@@ -38,7 +38,7 @@ export async function handleImageRequest(
 
   const template = templates[routeProps.templateId];
   if (!template) {
-    throw new Error(`@gravitysupport/astro-og-image: unknown template "${routeProps.templateId}".`);
+    throw new Error(`@siteonce/astro-og-image: unknown template "${routeProps.templateId}".`);
   }
 
   const fonts = loadFonts(generationConfig.fonts, projectRoot);
