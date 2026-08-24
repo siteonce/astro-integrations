@@ -6,7 +6,11 @@ The foundation for every Astro site built on this stack: the library `@siteonce/
 
 ### Packages
 
-**`@siteonce/astro-lib`**: The core Astro-integration framework for the stack — reusable SCSS, components, utilities, schemas, OG metadata, and i18n. Optional generators and host wiring live in sibling packages.
+**`@siteonce/core`**: Framework-agnostic Panda recipes and pure helpers (resolveOpenState) for portable UI primitives. Imported by both `@siteonce/react` and `@siteonce/astro-lib`.
+
+**`@siteonce/react`**: React implementations of SiteOnce UI primitives (Container, Flow, SiteFrame) — RSC-friendly where applicable. Imports recipes from `@siteonce/core`.
+
+**`@siteonce/astro-lib`**: The core Astro-integration framework for the stack — reusable SCSS, Svelte components, utilities, schemas, OG metadata, and i18n. Svelte components now import recipes from `@siteonce/core` for portability. Optional generators and host wiring live in sibling packages.
 
 **`@siteonce/astro-og-image`**: The optional OG image generator — injected endpoint, Satori-to-Sharp renderer, template contract, fonts, and internal cache. Depends on `astro-lib`; core never depends on it.
 
@@ -40,9 +44,9 @@ The foundation for every Astro site built on this stack: the library `@siteonce/
 
 ### Layout components
 
-**`Region`**: The margin-collapse-containment component with a polymorphic semantic element; carries no spacing opinion. _Avoid_: Section
+**`Flow`**: The vertical rhythm stack (Root + Item). `Flow.Root` establishes a BFC boundary; `Flow.Item` carries block margin via `blockMargin` prop → `--flow-item-block-margin` CSS var. Replaces `Region` for vertical layout composition. _Avoid_: Region (deprecated; use Flow instead).
 
-**`Container`**: The width-constraint component — horizontal gutter, vertical rhythm, and alignment; value props become component-scoped CSS vars (e.g. `--container-size`).
+**`Container`**: The width-constraint component — horizontal gutter and alignment. Variant props: `width` (measure | wide | full), `gap` (default | flush), `align` (start | center | end). CSS vars: `--container-size`, `--container-gutter`. Vertical rhythm moved to `Flow.Item`.
 
 **`SiteFrameProvider`**: The top-level positioning context for the site frame; isolates a stacking context and hosts panels.
 
