@@ -32,7 +32,7 @@ The foundation for every Astro site built on this stack: the library `@siteonce/
 
 **Panda**: The build-time styling engine for lib component styles and call-site style objects; it generates static CSS. _Avoid_: CSS-in-JS (runtime), token system (not the stack’s Panda posture).
 
-**recipe**: A Panda definition of a component’s base styles and its variant-prop options.
+**recipe**: A Panda definition of a component’s base styles and its variant-prop options. Portable recipes live in `@siteonce/core`; components import them from generated `styled-system/recipes`.
 
 **`css` prop**: An optional style-object prop on lib components, merged after the recipe so consumer declarations win.
 
@@ -46,7 +46,7 @@ The foundation for every Astro site built on this stack: the library `@siteonce/
 
 **`Flow`**: The vertical rhythm stack (Root + Item). `Flow.Root` establishes a BFC boundary; `Flow.Item` carries block margin via `blockMargin` prop → `--flow-item-block-margin` CSS var. Replaces `Region` for vertical layout composition. _Avoid_: Region (deprecated; use Flow instead).
 
-**`Container`**: The width-constraint component — horizontal gutter and alignment. Variant props: `width` (measure | wide | full), `gap` (default | flush), `align` (start | center | end). CSS vars: `--container-size`, `--container-gutter`. Vertical rhythm moved to `Flow.Item`.
+**`Container`**: The width-constraint component — horizontal gutter and alignment. Value props `size` / `gutter` (open CSS lengths) become component-scoped CSS vars (e.g. `--container-size`); `align` is the only closed variant (start | center | end). Vertical rhythm moved to `Flow.Item`.
 
 **`SiteFrameProvider`**: The top-level positioning context for the site frame; isolates a stacking context and hosts panels.
 
