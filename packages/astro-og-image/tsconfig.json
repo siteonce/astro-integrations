@@ -3,7 +3,7 @@
   "extends": "../../tsconfig.json",
   "compilerOptions": {
     "jsx": "react-jsx",
-    "jsxImportSource": "@gravitysupport/astro-og-image"
+    "jsxImportSource": "@siteonce/astro-og-image"
   },
   "include": ["src"]
 }

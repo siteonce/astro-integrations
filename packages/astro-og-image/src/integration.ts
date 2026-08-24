@@ -124,7 +124,7 @@ export default function astroOgImage(options: AstroOgImageOptions): AstroIntegra
   let consumerRoot = '';
 
   return {
-    name: '@gravitysupport/astro-og-image',
+    name: '@siteonce/astro-og-image',
     hooks: {
       'astro:config:setup': ({
         config,
@@ -135,19 +135,17 @@ export default function astroOgImage(options: AstroOgImageOptions): AstroIntegra
         logger,
       }) => {
         if (
-          !config.integrations.some(
-            (integration) => integration.name === '@gravitysupport/astro-lib',
-          )
+          !config.integrations.some((integration) => integration.name === '@siteonce/astro-lib')
         ) {
           throw new Error(
-            '@gravitysupport/astro-og-image requires @gravitysupport/astro-lib to be registered first.',
+            '@siteonce/astro-og-image requires @siteonce/astro-lib to be registered first.',
           );
         }
 
         const parsed = ogImageConfigSchema.safeParse(options.config);
         if (!parsed.success) {
           logger.error(`Invalid OG image config:\n${z.prettifyError(parsed.error)}`);
-          throw new Error('@gravitysupport/astro-og-image: config validation failed.');
+          throw new Error('@siteonce/astro-og-image: config validation failed.');
         }
 
         generationConfig = parsed.data;
@@ -155,7 +153,7 @@ export default function astroOgImage(options: AstroOgImageOptions): AstroIntegra
           validateRoutes(generationConfig);
         } catch (error) {
           logger.error((error as Error).message);
-          throw new Error(`@gravitysupport/astro-og-image: ${(error as Error).message}`);
+          throw new Error(`@siteonce/astro-og-image: ${(error as Error).message}`);
         }
 
         const projectRoot = fileURLToPath(config.root);
@@ -167,9 +165,7 @@ export default function astroOgImage(options: AstroOgImageOptions): AstroIntegra
         for (const name of Object.keys(generationConfig.templates)) {
           const file = resolve(templatesDir, `${name}.tsx`);
           if (!existsSync(file)) {
-            throw new Error(
-              `@gravitysupport/astro-og-image: template "${name}" not found at ${file}.`,
-            );
+            throw new Error(`@siteonce/astro-og-image: template "${name}" not found at ${file}.`);
           }
           templateFiles[name] = file;
           addWatchFile(file);
@@ -179,7 +175,7 @@ export default function astroOgImage(options: AstroOgImageOptions): AstroIntegra
             const absolute = resolve(publicDir, background.replace(/^\/+/, ''));
             if (!existsSync(absolute)) {
               throw new Error(
-                `@gravitysupport/astro-og-image: templates["${name}"].bgImage not found: ${background}.`,
+                `@siteonce/astro-og-image: templates["${name}"].bgImage not found: ${background}.`,
               );
             }
             addWatchFile(absolute);
@@ -189,7 +185,7 @@ export default function astroOgImage(options: AstroOgImageOptions): AstroIntegra
         try {
           assertFontFiles(generationConfig.fonts, projectRoot);
         } catch (error) {
-          throw new Error(`@gravitysupport/astro-og-image: ${(error as Error).message}`);
+          throw new Error(`@siteonce/astro-og-image: ${(error as Error).message}`);
         }
         for (const font of generationConfig.fonts) {
           addWatchFile(resolveFontPath(font.path, projectRoot));
@@ -258,7 +254,7 @@ export default function astroOgImage(options: AstroOgImageOptions): AstroIntegra
         );
         if (collision) {
           throw new Error(
-            `@gravitysupport/astro-og-image: basePath "${basePath}" collides with route "${collision.pattern}" (${collision.entrypoint}).`,
+            `@siteonce/astro-og-image: basePath "${basePath}" collides with route "${collision.pattern}" (${collision.entrypoint}).`,
           );
         }
         publicRoutes.splice(0, publicRoutes.length, ...mapped);
@@ -267,8 +263,8 @@ export default function astroOgImage(options: AstroOgImageOptions): AstroIntegra
         injectTypes({
           filename: 'astro-og-image.d.ts',
           content: `declare module 'virtual:astro-og-image/config' {
-  export const generationConfig: import('@gravitysupport/astro-og-image/config').OgImageConfig;
-  export const templates: Record<string, import('@gravitysupport/astro-og-image/context').Template>;
+  export const generationConfig: import('@siteonce/astro-og-image/config').OgImageConfig;
+  export const templates: Record<string, import('@siteonce/astro-og-image/context').Template>;
   export const templateSources: Record<string, string>;
   export const projectRoot: string;
   export const publicDir: string;

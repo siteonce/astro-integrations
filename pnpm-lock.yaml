@@ -60,7 +60,7 @@ importers:
 
   packages/astro-netlify:
     dependencies:
-      '@gravitysupport/astro-lib':
+      '@siteonce/astro-lib':
         specifier: workspace:*
         version: link:../astro-lib
     devDependencies:
@@ -73,7 +73,7 @@ importers:
 
   packages/astro-og-image:
     dependencies:
-      '@gravitysupport/astro-lib':
+      '@siteonce/astro-lib':
         specifier: workspace:*
         version: link:../astro-lib
       devalue:
@@ -101,13 +101,13 @@ importers:
       '@fontsource/inter':
         specifier: ^5.2.8
         version: 5.2.8
-      '@gravitysupport/astro-lib':
+      '@siteonce/astro-lib':
         specifier: workspace:*
         version: link:../packages/astro-lib
-      '@gravitysupport/astro-netlify':
+      '@siteonce/astro-netlify':
         specifier: workspace:*
         version: link:../packages/astro-netlify
-      '@gravitysupport/astro-og-image':
+      '@siteonce/astro-og-image':
         specifier: workspace:*
         version: link:../packages/astro-og-image
       astro:

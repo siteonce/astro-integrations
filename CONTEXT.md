@@ -1,16 +1,16 @@
-# astro-stack
+# siteonce-stack
 
-The foundation for every Astro site built on this stack: the library `@gravitysupport/astro-lib` is the product, and `starter/` is a thin shell that wires it in. This glossary names the stack's components and modules.
+The foundation for every Astro site built on this stack: the library `@siteonce/astro-lib` is the product, and `starter/` is a thin shell that wires it in. This glossary names the stack's components and modules.
 
 ## Language
 
 ### Packages
 
-**`@gravitysupport/astro-lib`**: The core Astro-integration framework for the stack — reusable SCSS, components, utilities, schemas, OG metadata, and i18n. Optional generators and host wiring live in sibling packages.
+**`@siteonce/astro-lib`**: The core Astro-integration framework for the stack — reusable SCSS, components, utilities, schemas, OG metadata, and i18n. Optional generators and host wiring live in sibling packages.
 
-**`@gravitysupport/astro-og-image`**: The optional OG image generator — injected endpoint, Satori-to-Sharp renderer, template contract, fonts, and internal cache. Depends on `astro-lib`; core never depends on it.
+**`@siteonce/astro-og-image`**: The optional OG image generator — injected endpoint, Satori-to-Sharp renderer, template contract, fonts, and internal cache. Depends on `astro-lib`; core never depends on it.
 
-**`@gravitysupport/astro-netlify`**: The Netlify host adapter — `astroNetlify()` integration (bridges Netlify `CONTEXT` → lib `DEPLOY_CONTEXT`), staging-auth edge function, and Netlify context helpers. Optional sibling to the lib; install only when deploying on Netlify.
+**`@siteonce/astro-netlify`**: The Netlify host adapter — `astroNetlify()` integration (bridges Netlify `CONTEXT` → lib `DEPLOY_CONTEXT`), staging-auth edge function, and Netlify context helpers. Optional sibling to the lib; install only when deploying on Netlify.
 
 ### Lifecycle & head components
 
@@ -60,7 +60,7 @@ The foundation for every Astro site built on this stack: the library `@gravitysu
 
 **`astroNetlify()` integration**: The Netlify adapter's default export — registers Netlify `CONTEXT` and bridges it to `DEPLOY_CONTEXT`.
 
-**`edge/staging-auth`**: `createStagingAuth(authConfig)` in `@gravitysupport/astro-netlify` — the fail-closed basic-auth gate for non-production Netlify deploys, password from `STAGING_AUTH_PASSWORD`.
+**`edge/staging-auth`**: `createStagingAuth(authConfig)` in `@siteonce/astro-netlify` — the fail-closed basic-auth gate for non-production Netlify deploys, password from `STAGING_AUTH_PASSWORD`.
 
 **`rehypeExternalLinks`**: The integration-wired rehype plugin that adds `target="_blank" rel="noopener noreferrer"` to outbound prose links not listed in `siteConfig.externalLink.exceptions`.
 

@@ -1,10 +1,10 @@
-# astro-stack
+# siteonce-stack
 
 Monorepo for Astro deliverables consumed together:
 
-- **`packages/astro-lib/`** — the host-agnostic integration, published as `@gravitysupport/astro-lib`. SCSS foundation + parameterized Sass mixins. See [`packages/astro-lib/AGENTS.md`](packages/astro-lib/AGENTS.md).
-- **`packages/astro-og-image/`** — optional OG image generator (`@gravitysupport/astro-og-image`): injected endpoints, Satori template rendering, consumer font loading, and cache. See [`packages/astro-og-image/AGENTS.md`](packages/astro-og-image/AGENTS.md).
-- **`packages/astro-netlify/`** — optional Netlify host adapter (`@gravitysupport/astro-netlify`): deploy-context bridge, staging-auth edge function. See [`packages/astro-netlify/AGENTS.md`](packages/astro-netlify/AGENTS.md).
+- **`packages/astro-lib/`** — the host-agnostic integration, published as `@siteonce/astro-lib`. SCSS foundation + parameterized Sass mixins. See [`packages/astro-lib/AGENTS.md`](packages/astro-lib/AGENTS.md).
+- **`packages/astro-og-image/`** — optional OG image generator (`@siteonce/astro-og-image`): injected endpoints, Satori template rendering, consumer font loading, and cache. See [`packages/astro-og-image/AGENTS.md`](packages/astro-og-image/AGENTS.md).
+- **`packages/astro-netlify/`** — optional Netlify host adapter (`@siteonce/astro-netlify`): deploy-context bridge, staging-auth edge function. See [`packages/astro-netlify/AGENTS.md`](packages/astro-netlify/AGENTS.md).
 - **`starter/`** — a blank Astro project that wires core, OG generation, and the Netlify adapter together. Intended to be cloned via `degit` as the starting point for new sites.
 
 ## Cloning the starter
@@ -12,7 +12,7 @@ Monorepo for Astro deliverables consumed together:
 The starter lives at a subdirectory of this repo. Use `degit` (via `tiged`, its maintained fork) to pull just that subdirectory into a new project:
 
 ```bash
-npx tiged <owner>/astro-stack/starter my-project
+npx tiged <owner>/siteonce-stack/starter my-project
 cd my-project
 pnpm install
 pnpm dev
@@ -27,7 +27,7 @@ This is the one piece of monorepo plumbing that does **not** transparently survi
 `starter/package.json` currently references the lib as:
 
 ```json
-"@gravitysupport/astro-lib": "workspace:*"
+"@siteonce/astro-lib": "workspace:*"
 ```
 
 Inside this monorepo, pnpm resolves `workspace:*` to the local `packages/astro-lib` via a symlink — fast iteration, no publish step required. **But the `workspace:` protocol is a pnpm-specific extension. Outside the monorepo, npm and yarn don't understand it, and `pnpm install` from a degit'd starter will fail too** (no workspace context to resolve against).
@@ -61,7 +61,7 @@ Changes to packages under `packages/` are picked up live in `starter/` via pnpm'
 
 ## OG images
 
-The optional `@gravitysupport/astro-og-image` integration reads generation settings from [`starter/src/config/ogConfig.ts`](starter/src/config/ogConfig.ts). The route registry requires a `"*"` default, lets project pages override or opt out, and uses an explicit collection for dynamic routes:
+The optional `@siteonce/astro-og-image` integration reads generation settings from [`starter/src/config/ogConfig.ts`](starter/src/config/ogConfig.ts). The route registry requires a `"*"` default, lets project pages override or opt out, and uses an explicit collection for dynamic routes:
 
 ```ts
 export const ogConfig = {
