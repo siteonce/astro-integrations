@@ -6,8 +6,6 @@ allowBuilds:
   esbuild: true
   sharp: true
   # Permits the lib's postinstall (sync-rules.mjs) to run on consumer install.
-  '@siteonce/astro-lib': true
+  '@repo/astro': true
 minimumReleaseAgeExclude:
   - astro@7.0.9
-  - '@netlify/edge-functions@3.0.8'
-  - '@netlify/types@2.8.0'

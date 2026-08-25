@@ -3,9 +3,10 @@
 A snapshot monorepo for Astro content sites. Copy the repo; every file is yours. There are no promised upgrades.
 
 - **`apps/marketing/`** — the public marketing app. Root `pnpm dev` / `pnpm build` / `pnpm preview` run this app.
-- **`packages/astro-lib/`** — the host-agnostic integration (`@siteonce/astro-lib`). SCSS foundation + parameterized Sass mixins. See [`packages/astro-lib/AGENTS.md`](packages/astro-lib/AGENTS.md).
-- **`packages/astro-og-image/`** — optional OG image generator (`@siteonce/astro-og-image`): injected endpoints, Satori template rendering, consumer font loading, and cache. See [`packages/astro-og-image/AGENTS.md`](packages/astro-og-image/AGENTS.md).
-- **`packages/astro-netlify/`** — optional Netlify host adapter (`@siteonce/astro-netlify`): deploy-context bridge, staging-auth edge function. See [`packages/astro-netlify/AGENTS.md`](packages/astro-netlify/AGENTS.md).
+- **`packages/components/`** — primitives, blocks, and head components (`@repo/components`).
+- **`packages/astro/`** — `siteonce()` integration, Astro-coupled runtime, config schemas, SCSS (`@repo/astro`).
+- **`packages/utils/`** — pure helpers (`@repo/utils`): taxonomy, related-content picker, deploy-class predicates.
+- **`packages/og-image/`** — optional OG image generator (`@repo/og-image`). Default export `ogImage()`.
 - **`packages/core/`** — framework-agnostic Panda recipes and pure helpers (`@siteonce/core`).
 
 ## Development
@@ -21,7 +22,7 @@ Changes to packages under `packages/` are picked up live in `apps/marketing` via
 
 ## OG images
 
-The optional `@siteonce/astro-og-image` integration reads generation settings from [`apps/marketing/src/config/ogConfig.ts`](apps/marketing/src/config/ogConfig.ts). The route registry requires a `"*"` default, lets project pages override or opt out, and uses an explicit collection for dynamic routes:
+The optional `@repo/og-image` integration reads generation settings from [`apps/marketing/src/config/ogConfig.ts`](apps/marketing/src/config/ogConfig.ts). The route registry requires a `"*"` default, lets project pages override or opt out, and uses an explicit collection for dynamic routes:
 
 ```ts
 export const ogConfig = {

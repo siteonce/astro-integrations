@@ -35,15 +35,18 @@ importers:
       '@fontsource/inter':
         specifier: ^5.2.8
         version: 5.2.8
-      '@siteonce/astro-lib':
+      '@repo/astro':
         specifier: workspace:*
-        version: link:../../packages/astro-lib
-      '@siteonce/astro-netlify':
+        version: link:../../packages/astro
+      '@repo/components':
         specifier: workspace:*
-        version: link:../../packages/astro-netlify
-      '@siteonce/astro-og-image':
+        version: link:../../packages/components
+      '@repo/og-image':
         specifier: workspace:*
-        version: link:../../packages/astro-og-image
+        version: link:../../packages/og-image
+      '@repo/utils':
+        specifier: workspace:*
+        version: link:../../packages/utils
       '@siteonce/core':
         specifier: workspace:*
         version: link:../../packages/core
@@ -70,7 +73,7 @@ importers:
         specifier: 6.0.3
         version: 6.0.3
 
-  packages/astro-lib:
+  packages/astro:
     dependencies:
       '@astrojs/markdown-remark':
         specifier: 7.2.1
@@ -84,6 +87,9 @@ importers:
       '@astrojs/sitemap':
         specifier: 3.7.3
         version: 3.7.3
+      '@repo/utils':
+        specifier: workspace:*
+        version: link:../utils
       '@siteonce/core':
         specifier: workspace:*
         version: link:../core
@@ -104,24 +110,42 @@ importers:
         specifier: 5.55.10
         version: 5.55.10
 
-  packages/astro-netlify:
+  packages/components:
     dependencies:
-      '@siteonce/astro-lib':
+      '@repo/astro':
         specifier: workspace:*
-        version: link:../astro-lib
+        version: link:../astro
+      '@siteonce/core':
+        specifier: workspace:*
+        version: link:../core
     devDependencies:
-      '@netlify/edge-functions':
-        specifier: 3.0.8
-        version: 3.0.8
+      '@pandacss/dev':
+        specifier: 1.11.4
+        version: 1.11.4(typescript@6.0.3)
+      '@types/node':
+        specifier: 22.13.16
+        version: 22.13.16
       astro:
         specifier: 7.0.9
-        version: 7.0.9(@astrojs/markdown-remark@7.2.1)(@emnapi/core@1.11.1)(@emnapi/runtime@1.11.1)(@types/node@24.12.4)(sass@1.99.0)(yaml@2.9.0)
+        version: 7.0.9(@astrojs/markdown-remark@7.2.1)(@emnapi/core@1.11.1)(@emnapi/runtime@1.11.1)(@types/node@22.13.16)(sass@1.99.0)(yaml@2.9.0)
+      svelte:
+        specifier: 5.55.10
+        version: 5.55.10
 
-  packages/astro-og-image:
+  packages/core:
+    devDependencies:
+      '@pandacss/dev':
+        specifier: 1.11.4
+        version: 1.11.4(typescript@6.0.3)
+      '@types/node':
+        specifier: 22.13.16
+        version: 22.13.16
+
+  packages/og-image:
     dependencies:
-      '@siteonce/astro-lib':
+      '@repo/astro':
         specifier: workspace:*
-        version: link:../astro-lib
+        version: link:../astro
       devalue:
         specifier: 5.8.1
         version: 5.8.1
@@ -139,14 +163,7 @@ importers:
         specifier: 0.34.5
         version: 0.34.5
 
-  packages/core:
-    devDependencies:
-      '@pandacss/dev':
-        specifier: 1.11.4
-        version: 1.11.4(typescript@6.0.3)
-      '@types/node':
-        specifier: 22.13.16
-        version: 22.13.16
+  packages/utils: {}
 
 packages:
 
@@ -970,14 +987,6 @@ packages:
     peerDependencies:
       '@emnapi/core': ^1.7.1
       '@emnapi/runtime': ^1.7.1
-
-  '@netlify/edge-functions@3.0.8':
-    resolution: {integrity: sha512-ml1oCDsRTTRmZS2nUj8XRD1b6+foEiZT3lPk7qQ4nv/jnxylHJ20ooPzPDH+cJmGjXFrMeR14/91W1o6D2ftBg==}
-    engines: {node: '>=18.0.0'}
-
-  '@netlify/types@2.8.0':
-    resolution: {integrity: sha512-8/g0Pt6y6wXj5Ia5eeYLiXhRfWeqZXGXpGFeCiiQdUOem+FPtXdA4+YdGxqzWc7D0AvptKSO01KGeeVWHSu8Kg==}
-    engines: {node: ^18.14.0 || >=20}
 
   '@nodable/entities@2.1.1':
     resolution: {integrity: sha512-Pig3HxDIoMgjdEH8OCf/dkcTmLFjJRjWuq8jSnklu284/TKOPibSRERmOykiwmyXTtv61mP+44f3GMx0tLAyjg==}
@@ -3080,10 +3089,6 @@ packages:
     resolution: {integrity: sha512-dAqSqE/RabpBKI8+h26GfLq6Vb3JVXs30XYQjdMjaj/c2tS8IYYMbIzP599KtRj7c57/wYApb3QjgRgXmrCukA==}
     engines: {node: '>=18'}
 
-  tinyglobby@0.2.16:
-    resolution: {integrity: sha512-pn99VhoACYR8nFHhxqix+uvsbXineAasWm5ojXoN8xEwK5Kd3/TrhNn1wByuD52UxWRLy8pu+kRMniEi6Eq9Zg==}
-    engines: {node: '>=12.0.0'}
-
   tinyglobby@0.2.17:
     resolution: {integrity: sha512-wXR/dYpcqKmfWpEdZjiKJOwCNFndD0DMnrW/cYjVGttEkBfVgcLFHoNrlj47mjOVic9yyNu65alsgF4NQyTa2g==}
     engines: {node: '>=12.0.0'}
@@ -3586,7 +3591,7 @@ snapshots:
       '@types/hast': 3.0.4
       '@types/mdast': 4.0.4
       js-yaml: 4.1.1
-      picomatch: 4.0.4
+      picomatch: 4.0.5
       retext-smartypants: 6.2.0
       shiki: 4.1.0
       smol-toml: 1.6.1
@@ -4120,7 +4125,7 @@ snapshots:
 
   '@img/sharp-wasm32@0.34.5':
     dependencies:
-      '@emnapi/runtime': 1.10.0
+      '@emnapi/runtime': 1.11.1
     optional: true
 
   '@img/sharp-win32-arm64@0.34.5':
@@ -4186,12 +4191,6 @@ snapshots:
       '@emnapi/runtime': 1.11.1
       '@tybys/wasm-util': 0.10.3
     optional: true
-
-  '@netlify/edge-functions@3.0.8':
-    dependencies:
-      '@netlify/types': 2.8.0
-
-  '@netlify/types@2.8.0': {}
 
   '@nodable/entities@2.1.1': {}
 
@@ -4536,7 +4535,7 @@ snapshots:
     dependencies:
       '@types/estree': 1.0.9
       estree-walker: 2.0.2
-      picomatch: 4.0.4
+      picomatch: 4.0.5
 
   '@shikijs/core@4.1.0':
     dependencies:
@@ -4643,7 +4642,7 @@ snapshots:
 
   '@types/sax@1.2.7':
     dependencies:
-      '@types/node': 24.12.4
+      '@types/node': 22.13.16
 
   '@types/trusted-types@2.0.7': {}
 
@@ -4792,6 +4791,99 @@ snapshots:
 
   astral-regex@2.0.0: {}
 
+  astro@7.0.9(@astrojs/markdown-remark@7.2.1)(@emnapi/core@1.11.1)(@emnapi/runtime@1.11.1)(@types/node@22.13.16)(sass@1.99.0)(yaml@2.9.0):
+    dependencies:
+      '@astrojs/compiler-rs': 0.3.1(@emnapi/core@1.11.1)(@emnapi/runtime@1.11.1)
+      '@astrojs/internal-helpers': 0.10.1
+      '@astrojs/markdown-satteri': 0.3.4
+      '@astrojs/telemetry': 3.3.3
+      '@capsizecss/unpack': 4.0.0
+      '@clack/prompts': 1.4.0
+      '@oslojs/encoding': 1.1.0
+      '@rollup/pluginutils': 5.3.0
+      am-i-vibing: 0.4.0
+      aria-query: 5.3.2
+      axobject-query: 4.1.0
+      ci-info: 4.4.0
+      clsx: 2.1.1
+      common-ancestor-path: 2.0.0
+      cookie: 1.1.1
+      devalue: 5.8.1
+      diff: 8.0.4
+      dset: 3.1.4
+      es-module-lexer: 2.1.0
+      esbuild: 0.28.1
+      flattie: 1.1.1
+      fontace: 0.4.1
+      get-tsconfig: 5.0.0-beta.4
+      github-slugger: 2.0.0
+      html-escaper: 3.0.3
+      http-cache-semantics: 4.2.0
+      js-yaml: 4.1.1
+      jsonc-parser: 3.3.1
+      magic-string: 0.30.21
+      magicast: 0.5.3
+      mrmime: 2.0.1
+      neotraverse: 0.6.18
+      obug: 2.1.1
+      p-limit: 7.3.0
+      p-queue: 9.3.0
+      package-manager-detector: 1.6.0
+      piccolore: 0.1.3
+      picomatch: 4.0.5
+      semver: 7.8.0
+      shiki: 4.1.0
+      smol-toml: 1.6.1
+      svgo: 4.0.1
+      tinyclip: 0.1.12
+      tinyexec: 1.1.2
+      tinyglobby: 0.2.17
+      ultrahtml: 1.6.0
+      unifont: 0.7.4
+      unstorage: 1.17.5
+      vite: 8.0.16(@types/node@22.13.16)(esbuild@0.28.1)(sass@1.99.0)(yaml@2.9.0)
+      vitefu: 1.1.3(vite@8.0.16(@types/node@22.13.16)(esbuild@0.28.1)(sass@1.99.0)(yaml@2.9.0))
+      xxhash-wasm: 1.1.0
+      yargs-parser: 22.0.0
+      zod: 4.4.3
+    optionalDependencies:
+      '@astrojs/markdown-remark': 7.2.1
+      sharp: 0.34.5
+    transitivePeerDependencies:
+      - '@azure/app-configuration'
+      - '@azure/cosmos'
+      - '@azure/data-tables'
+      - '@azure/identity'
+      - '@azure/keyvault-secrets'
+      - '@azure/storage-blob'
+      - '@capacitor/preferences'
+      - '@deno/kv'
+      - '@emnapi/core'
+      - '@emnapi/runtime'
+      - '@netlify/blobs'
+      - '@planetscale/database'
+      - '@types/node'
+      - '@upstash/redis'
+      - '@vercel/blob'
+      - '@vercel/functions'
+      - '@vercel/kv'
+      - '@vitejs/devtools'
+      - aws4fetch
+      - db0
+      - idb-keyval
+      - ioredis
+      - jiti
+      - less
+      - rollup
+      - sass
+      - sass-embedded
+      - stylus
+      - sugarss
+      - terser
+      - tsx
+      - uploadthing
+      - yaml
+
   astro@7.0.9(@astrojs/markdown-remark@7.2.1)(@emnapi/core@1.11.1)(@emnapi/runtime@1.11.1)(@types/node@24.12.4)(sass@1.99.0)(yaml@2.9.0):
     dependencies:
       '@astrojs/compiler-rs': 0.3.1(@emnapi/core@1.11.1)(@emnapi/runtime@1.11.1)
@@ -4831,14 +4923,14 @@ snapshots:
       p-queue: 9.3.0
       package-manager-detector: 1.6.0
       piccolore: 0.1.3
-      picomatch: 4.0.4
+      picomatch: 4.0.5
       semver: 7.8.0
       shiki: 4.1.0
       smol-toml: 1.6.1
       svgo: 4.0.1
       tinyclip: 0.1.12
       tinyexec: 1.1.2
-      tinyglobby: 0.2.16
+      tinyglobby: 0.2.17
       ultrahtml: 1.6.0
       unifont: 0.7.4
       unstorage: 1.17.5
@@ -5322,10 +5414,6 @@ snapshots:
   fastq@1.20.1:
     dependencies:
       reusify: 1.1.0
-
-  fdir@6.5.0(picomatch@4.0.4):
-    optionalDependencies:
-      picomatch: 4.0.4
 
   fdir@6.5.0(picomatch@4.0.5):
     optionalDependencies:
@@ -6753,11 +6841,6 @@ snapshots:
 
   tinyexec@1.1.2: {}
 
-  tinyglobby@0.2.16:
-    dependencies:
-      fdir: 6.5.0(picomatch@4.0.4)
-      picomatch: 4.0.4
-
   tinyglobby@0.2.17:
     dependencies:
       fdir: 6.5.0(picomatch@4.0.5)
@@ -6919,6 +7002,20 @@ snapshots:
       '@types/unist': 3.0.3
       vfile-message: 4.0.3
 
+  vite@8.0.16(@types/node@22.13.16)(esbuild@0.28.1)(sass@1.99.0)(yaml@2.9.0):
+    dependencies:
+      lightningcss: 1.32.0
+      picomatch: 4.0.5
+      postcss: 8.5.19
+      rolldown: 1.0.3
+      tinyglobby: 0.2.17
+    optionalDependencies:
+      '@types/node': 22.13.16
+      esbuild: 0.28.1
+      fsevents: 2.3.3
+      sass: 1.99.0
+      yaml: 2.9.0
+
   vite@8.0.16(@types/node@24.12.4)(esbuild@0.28.1)(sass@1.99.0)(yaml@2.9.0):
     dependencies:
       lightningcss: 1.32.0
@@ -6932,6 +7029,10 @@ snapshots:
       fsevents: 2.3.3
       sass: 1.99.0
       yaml: 2.9.0
+
+  vitefu@1.1.3(vite@8.0.16(@types/node@22.13.16)(esbuild@0.28.1)(sass@1.99.0)(yaml@2.9.0)):
+    optionalDependencies:
+      vite: 8.0.16(@types/node@22.13.16)(esbuild@0.28.1)(sass@1.99.0)(yaml@2.9.0)
 
   vitefu@1.1.3(vite@8.0.16(@types/node@24.12.4)(esbuild@0.28.1)(sass@1.99.0)(yaml@2.9.0)):
     optionalDependencies:

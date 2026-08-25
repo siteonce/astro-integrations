@@ -8,7 +8,7 @@
     "dev": "pnpm --filter marketing dev",
     "build": "pnpm --filter marketing build",
     "preview": "pnpm --filter marketing preview",
-    "sync-rules": "ASTRO_LIB_RULES_CONSUMER_ROOT=apps/marketing node packages/astro-lib/scripts/sync-rules.mjs",
+    "sync-rules": "ASTRO_LIB_RULES_CONSUMER_ROOT=apps/marketing node packages/astro/scripts/sync-rules.mjs",
     "format": "biome format --write . && prettier --write \"**/*.{astro,md}\"",
     "format:check": "biome format . && prettier --check \"**/*.{astro,md}\"",
     "lint": "biome lint .",
