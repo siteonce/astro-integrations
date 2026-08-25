@@ -4,10 +4,9 @@ A snapshot monorepo for Astro content sites. Copy the repo; every file is yours.
 
 - **`apps/marketing/`** — the public marketing app. Root `pnpm dev` / `pnpm build` / `pnpm preview` run this app.
 - **`packages/components/`** — primitives, blocks, and head components (`@repo/components`).
-- **`packages/astro/`** — `siteonce()` integration, Astro-coupled runtime, config schemas, SCSS (`@repo/astro`).
+- **`packages/astro/`** — `siteonce()` integration, Astro-coupled runtime, config schemas (`@repo/astro`).
 - **`packages/utils/`** — pure helpers (`@repo/utils`): taxonomy, related-content picker, deploy-class predicates.
 - **`packages/og-image/`** — optional OG image generator (`@repo/og-image`). Default export `ogImage()`.
-- **`packages/core/`** — framework-agnostic Panda recipes and pure helpers (`@siteonce/core`).
 
 ## Development
 

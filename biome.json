@@ -6,16 +6,7 @@
     "useIgnoreFile": true
   },
   "files": {
-    "includes": [
-      "**",
-      "!**/dist",
-      "!**/.astro",
-      "!**/node_modules",
-      "!**/styled-system",
-      "!**/styled-system-static",
-      "!**/*.astro",
-      "!**/*.svelte"
-    ]
+    "includes": ["**", "!**/dist", "!**/.astro", "!**/node_modules", "!**/*.astro", "!**/*.svelte"]
   },
   "formatter": {
     "enabled": true,
