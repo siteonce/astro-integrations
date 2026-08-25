@@ -11,3 +11,17 @@
 - **AGENTS.md pairing.** Every `AGENTS.md` MUST have a sibling `CLAUDE.md` whose content is exactly `@AGENTS.md`. Architecture: `docs/spec/agents-architecture.md`.
 - **Capture buffers.** Treat `brief-log.md`, `spec-log.md`, and `build-log.md` as skill-owned capture buffers: open or write them only when a skill procedure requires it; never hand-edit them.
 - **Spec as target.** When `docs/spec/` exists, treat it as present-tense **target** intent for the system. During active work under `docs/plans/`, code may lag the corpus — implement toward the spec; do not reconcile the corpus to incomplete shipping code.
+
+## Agent skills
+
+### Issue tracker
+
+Issues live as markdown files under `.scratch/<feature>/`. See `docs/agents/issue-tracker.md`.
+
+### Triage labels
+
+Five canonical roles, each label string equal to its name. See `docs/agents/triage-labels.md`.
+
+### Domain docs
+
+single-context. See `docs/agents/domain.md`.
