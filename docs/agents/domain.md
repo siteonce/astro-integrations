@@ -19,8 +19,7 @@ Single-context repo (this repo):
 ├── CONTEXT.md
 ├── docs/adr/
 ├── packages/
-├── starter/
-└── sites/
+└── apps/marketing/
 ```
 
 Multi-context repo (presence of `CONTEXT-MAP.md` at the root): not in use here.
