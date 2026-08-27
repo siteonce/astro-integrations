@@ -1,4 +1,4 @@
-# siteonce-stack
+# astro-base
 
 - **Vocabulary** — use terms from `CONTEXT.md`; respect its _Avoid_ entries.
 - **docs/** — a `docs/` tree exists; folder orientations live in `docs/AGENTS.md`.

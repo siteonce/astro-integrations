@@ -1,4 +1,4 @@
-# siteonce-stack
+# astro-base
 
 A snapshot monorepo for Astro content sites. Copy the repo; every file is yours. There are no promised upgrades.
 
