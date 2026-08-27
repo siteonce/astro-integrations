@@ -1,5 +1,5 @@
 {
-  "name": "astro-base",
+  "name": "astro-stack",
   "version": "0.0.0",
   "private": true,
   "description": "Snapshot monorepo for Astro content sites.",
