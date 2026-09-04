@@ -50,18 +50,6 @@ A snapshot monorepo that is the foundation for every Astro **content site** buil
 
 **blog**: The composed collection schema for a blog: **seo** + **media** plus posting fields (pubDate, status, tags, excerpt, optional og). Lives in **astro** so a second site can import it. A directory composes fragments instead. _Avoid_: prose (for this schema)
 
-### Packages
-
-**`@siteonce/core`**: Framework-agnostic Panda recipes and pure helpers (resolveOpenState) for portable UI primitives. Imported by both `@siteonce/react` and `@siteonce/astro-lib`.
-
-**`@siteonce/react`**: React implementations of SiteOnce UI primitives (Container, Flow, SiteFrame) — RSC-friendly where applicable. Imports recipes from `@siteonce/core`.
-
-**`@siteonce/astro-lib`**: The core Astro-integration framework for the stack — reusable SCSS, Svelte components, utilities, schemas, OG metadata, and i18n. Svelte components now import recipes from `@siteonce/core` for portability. Optional generators and host wiring live in sibling packages.
-
-**`@siteonce/astro-og-image`**: The optional OG image generator — injected endpoint, Satori-to-Sharp renderer, template contract, fonts, and internal cache. Depends on `astro-lib`; core never depends on it.
-
-**`@siteonce/astro-netlify`**: The Netlify host adapter — `astroNetlify()` integration (bridges Netlify `CONTEXT` → lib `DEPLOY_CONTEXT`), staging-auth edge function, and Netlify context helpers. Optional sibling to the lib; install only when deploying on Netlify.
-
 ### Lifecycle & head components
 
 **`BaseLayout`**: The bare HTML skeleton component — `<html lang>` plus a `<head>` slot and a `<body>` slot.
@@ -70,9 +58,9 @@ A snapshot monorepo that is the foundation for every Astro **content site** buil
 
 **`Schema`**: The JSON-LD emitter component (Article, BreadcrumbList, Organization, WebSite).
 
-**`Analytics`**: The starter-owned analytics tag component (GA4 via Partytown). Project concern, not a lib export; the lib only registers Partytown when `siteConfig.analytics` is set.
+**`Analytics`**: The marketing-app analytics tag component (GA4 via Partytown). App concern, not a package export; `@repo/astro` only registers Partytown when `siteConfig.analytics` is set.
 
-**`Favicon`**: The lib component that emits the standard favicon tag block; agnostic to how the icon files are generated (files live in the consumer’s `public/`).
+**`Favicon`**: The head component that emits the standard favicon tag block; agnostic to how the icon files are generated (files live in the app’s `public/`).
 
 ### Styling
 
@@ -96,10 +84,6 @@ A snapshot monorepo that is the foundation for every Astro **content site** buil
 
 ### Integration & environment
 
-**`astroLib()` integration**: The lib's default export — the Astro integration that wires rehype, Partytown, sitemap, i18n, core config validation, and OG metadata support.
-
-**`astroOgImage()` integration**: The optional generator integration — validates generation config and injects the prerendered OG image endpoint.
-
 **`deployConfig`**: App-owned mapping of host environment onto one exclusive class (`production` | `preview` | `local`). The values file lives in the app; the customer writes the host check (Netlify `CONTEXT` today). Schema lives in **astro**; `siteonce()` exposes it on `virtual:app/config`. _Avoid_: DEPLOY_CONTEXT, packages/netlify, authConfig, three independent booleans
 
 **`deployEnv`**: Helpers `isProd` / `isPreview` / `isLocal` that read `deployConfig.class` from `virtual:app/config` for SSR/build product code. _Avoid_: netlifyEnv, astro:env (for this fill), deployContext
@@ -108,7 +92,7 @@ A snapshot monorepo that is the foundation for every Astro **content site** buil
 
 ### OG images
 
-**OG image endpoint**: The configurable raw-PNG namespace injected by `astroOgImage()`, defaulting to `/_og`; the page path determines the image path. _Avoid_: build hook, manifest.
+**OG image endpoint**: The configurable raw-PNG namespace injected by `ogImage()`, defaulting to `/_og`; the page path determines the image path. _Avoid_: build hook, manifest.
 
 **`OgContext`**: The complete per-render data contract passed to project-authored Satori JSX templates.
 
