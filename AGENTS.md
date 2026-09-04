@@ -12,7 +12,6 @@
 - **Config vs env.** Secrets and environment-dependent values go in `.env` (typed via `astro:env`). Structured static values go in the app’s `src/config/*.ts`. Never inline either in components or pages; never put secrets in config files.
 - **Error policy.** If a problem can be known without rendering a particular request, fail loudly at startup (or build start) and abort — schema parse failure, missing required config, unknown route/collection that config can name up front, missing required env. Prefer pushing checks to startup. If the same class of condition can only be detected while rendering a specific response, skip or no-op and log at that path so one bad optional resolution does not take down the page.
 - **AGENTS.md pairing.** Every `AGENTS.md` MUST have a sibling `CLAUDE.md` whose content is exactly `@AGENTS.md`. Architecture: `docs/agents/architecture.md`. Nested files stay self-contained — do not import a shared rule file from another directory.
-- **Capture buffers.** Treat `brief-log.md`, `spec-log.md`, and `build-log.md` as skill-owned capture buffers: open or write them only when a skill procedure requires it; never hand-edit them.
 
 ## Agent skills
 
