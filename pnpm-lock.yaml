@@ -87,9 +87,6 @@ importers:
       '@astrojs/sitemap':
         specifier: 3.7.3
         version: 3.7.3
-      '@repo/utils':
-        specifier: workspace:*
-        version: link:../utils
       zod:
         specifier: 4.4.3
         version: 4.4.3

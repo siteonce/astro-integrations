@@ -102,9 +102,7 @@ A snapshot monorepo that is the foundation for every Astro **content site** buil
 
 **`deployConfig`**: App-owned mapping of host environment onto one exclusive class (`production` | `preview` | `local`). The values file lives in the app; the customer writes the host check (Netlify `CONTEXT` today). Schema lives in **astro**; `siteonce()` exposes it on `virtual:app/config`. _Avoid_: DEPLOY_CONTEXT, packages/netlify, authConfig, three independent booleans
 
-**`deployEnv`**: Helpers `isProd` / `isPreview` / `isLocal` that read `deployConfig.class` from `virtual:app/config` for SSR/build product code. _Avoid_: netlifyEnv, astro:env (for this fill)
-
-**`deployContext`**: Pure predicates on the three deploy classes, for runtimes that cannot import `virtual:`.
+**`deployEnv`**: Helpers `isProd` / `isPreview` / `isLocal` that read `deployConfig.class` from `virtual:app/config` for SSR/build product code. _Avoid_: netlifyEnv, astro:env (for this fill), deployContext
 
 **`rehypeExternalLinks`**: The integration-wired rehype plugin that adds `target="_blank" rel="noopener noreferrer"` to outbound prose links not listed in `siteConfig.externalLink.exceptions`.
 
