@@ -1,5 +1,6 @@
-# Prettier owns .astro and .md here (Biome owns the rest; it can't parse either).
-# Keep it off generated/vendored trees.
+# Prettier owns .astro, .md, and .mdx; Biome owns the rest including CSS and
+# Svelte. Biome's Astro formatter stays off (overrides in biome.json).
+# Keep Prettier off generated/vendored trees.
 **/node_modules
 **/dist
 **/.astro

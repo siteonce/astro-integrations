@@ -14,6 +14,10 @@
     {
       "files": "*.md",
       "options": { "parser": "markdown", "proseWrap": "never" }
+    },
+    {
+      "files": "*.mdx",
+      "options": { "parser": "mdx" }
     }
   ]
 }
