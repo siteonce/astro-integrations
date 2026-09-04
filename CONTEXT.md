@@ -78,9 +78,11 @@ A snapshot monorepo that is the foundation for every Astro **content site** buil
 
 **`Container`**: The width-constraint component — horizontal gutter and alignment. Value props `size` / `gutter` (open CSS lengths) become component-scoped CSS vars (e.g. `--container-size`); `align` is the only closed variant (start | center | end). Vertical rhythm moved to `Flow.Item`.
 
-**`SiteFrameProvider`**: The top-level positioning context for the site frame; isolates a stacking context and hosts panels.
+**`SiteFrame`**: The compound site frame (`SiteFrame.Provider` + `SiteFrame.Panel`). Compose header, flow, and panels as children (panels last so they layer). Named aliases `SiteFrameProvider` / `SiteFramePanel` sit next to the namespace.
 
-**`SiteFramePanel`**: An off-canvas panel anchored to a frame edge (start/end/top/bottom), with open/closed state.
+**`SiteFrameProvider`**: Part of **SiteFrame** — the top-level positioning context; isolates a stacking context and hosts panels.
+
+**`SiteFramePanel`**: Part of **SiteFrame** — an off-canvas panel anchored to a frame edge (start/end/top/bottom), with open/closed `state`.
 
 ### Integration & environment
 
