@@ -78,7 +78,7 @@ A snapshot monorepo that is the foundation for every Astro **content site** buil
 
 **`Container`**: Width-constraint primitive — a standard max width and a side inset (`gutter`) so contents do not touch the viewport edge. _Avoid_: treating it as a site section; putting full-bleed background on it; Tailwind’s `container`; `px-*` as the gutter.
 
-**`SiteFrame`**: The compound site frame (`SiteFrame.Provider` + `SiteFrame.Panel`). Compose page content and panels as children (panels last so they layer). Named aliases `SiteFrameProvider` / `SiteFramePanel` sit next to the namespace.
+**`SiteFrame`**: The compound site frame (`SiteFrame.Provider` + `SiteFrame.Panel`). Compose page content and panels as children. Named aliases `SiteFrameProvider` / `SiteFramePanel` sit next to the namespace.
 
 **`SiteFrameProvider`**: Part of **SiteFrame** — the top-level positioning context; isolates a stacking context and hosts panels.
 
