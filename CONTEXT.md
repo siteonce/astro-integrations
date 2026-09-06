@@ -74,9 +74,9 @@ A snapshot monorepo that is the foundation for every Astro **content site** buil
 
 ### Layout
 
-**`Flow`**: Collapse boundary for a stack of blocks. _Avoid_: Region; `space-y` for this job.
+**`Flow`**: Collapse boundary for a stack of blocks, including the stack’s block spacing. _Avoid_: Region; `space-y` for this job.
 
-**`Container`**: Width-constraint primitive — a standard max width and a side inset (`gutter`) so contents do not touch the viewport edge. _Avoid_: treating it as a site section; putting full-bleed background on it; Tailwind’s `container`; `px-*` as the gutter.
+**`Container`**: Width-constraint primitive (class `measure`) — a centered max width and a side inset (`gutter`) so contents do not touch the viewport edge. _Avoid_: treating it as a site section; putting full-bleed background on it; Tailwind’s `container`; `px-*` as the gutter.
 
 **`SiteFrame`**: The compound site frame (`SiteFrame.Provider` + `SiteFrame.Panel`). Compose page content and panels as children. Named aliases `SiteFrameProvider` / `SiteFramePanel` sit next to the namespace.
 
