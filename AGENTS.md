@@ -5,6 +5,7 @@
 
 ## Standing constraints
 
+- **Primary builders.** Agents are the primary builders of this snapshot and of content sites built from it. Prefer well-supported tools with small setup and low lookup over human-authoring comfort; the right tool still wins. Follow a human’s setup; say so if it’s a bad choice.
 - **Tooling.** The pre-commit gate must pass — never bypass it.
 - **Version policy.** Never infer package/framework versions from training data. Framework and dependency majors are whatever the installed lockfile pins. Resolve via an MCP docs server or the installed `package.json` / `pnpm-lock.yaml` before generating code that names a version, API surface, or feature.
 - **Authoring language.** Svelte for UI. Astro only when forced — `<head>` injection or other Astro-only lifecycle.
