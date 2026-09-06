@@ -72,13 +72,13 @@ A snapshot monorepo that is the foundation for every Astro **content site** buil
 
 **call-site `class`**: Extra classes on a component instance, merged after CVA so the caller wins. Deep customization is editing the component file. _Avoid_: css prop, value prop (outgoing public API)
 
-### Layout components
+### Layout
 
-**`Flow`**: The vertical rhythm stack (Root + Item) used inside a section to space bands. `Flow.Root` establishes a BFC boundary; `Flow.Item` carries block margin via `blockMargin` prop → `--flow-item-block-margin` CSS var. Replaces `Region`. _Avoid_: Region (deprecated; use Flow instead); wrapping **Container** in Flow to constrain width.
+**`Flow`**: Collapse boundary for a stack of blocks. _Avoid_: Region; `space-y` for this job.
 
-**`Container`**: A site section — one area of the page, typically a direct child of **SiteFrameProvider** or **SiteFramePanel**. It owns that area's background (call-site `class`), width, and horizontal gap. Value props `size` / `gutter` (open CSS lengths) become instance CSS vars; `align` is the only closed variant (start | center | end). _Avoid_: using Container as a nested width wrapper inside Flow.
+**`Container`**: Width-constraint primitive — a standard max width and a side inset (`gutter`) so contents do not touch the viewport edge. _Avoid_: treating it as a site section; putting full-bleed background on it; Tailwind’s `container`; `px-*` as the gutter.
 
-**`SiteFrame`**: The compound site frame (`SiteFrame.Provider` + `SiteFrame.Panel`). Compose **Container** sections and panels as children (panels last so they layer). Named aliases `SiteFrameProvider` / `SiteFramePanel` sit next to the namespace.
+**`SiteFrame`**: The compound site frame (`SiteFrame.Provider` + `SiteFrame.Panel`). Compose page content and panels as children (panels last so they layer). Named aliases `SiteFrameProvider` / `SiteFramePanel` sit next to the namespace.
 
 **`SiteFrameProvider`**: Part of **SiteFrame** — the top-level positioning context; isolates a stacking context and hosts panels.
 
