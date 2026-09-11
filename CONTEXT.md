@@ -20,11 +20,11 @@ A snapshot monorepo that is the foundation for every Astro **content site** buil
 
 **marketing app**: The public site application at `apps/marketing` (today's `starter/`). _Avoid_: starter (for this meaning)
 
-**components**: The workspace package of primitives, blocks, and head components (`BaseLayout`, `Seo`, `Schema`, `Favicon`). _Avoid_: ui (for this package)
+**astro**: The workspace package that is the Astro integration, Astro-coupled runtime (virtual modules, i18n, rehype, robots), config schemas, reusable content-collection schema fragments, the component catalog, and helpers (`cn`, taxonomy machinery, related-content picker). _Avoid_: site (for this package), packages/schemas
 
-**astro**: The workspace package that is the Astro integration, Astro-coupled runtime (virtual modules, i18n, rehype, robots), config schemas, and reusable content-collection schema fragments. _Avoid_: site (for this package), packages/schemas
+**ui**: Small primitives in the catalog. Today: Measure and Flow CSS. Future CVA/Svelte primitives land here, one folder per component.
 
-**utils**: The workspace package of pure helpers (`cn`, taxonomy machinery, related-content picker). No Astro imports — those stay in **astro**.
+**blocks**: Composed page sections (Hero, PostList, …) built from **ui**.
 
 **`@repo/*`**: Workspace package scope inside the snapshot. Not a registry; the customer owns these folders. _Avoid_: `@siteonce/*` (for workspace names)
 
