@@ -20,7 +20,7 @@ A snapshot monorepo that is the foundation for every Astro **content site** buil
 
 **marketing app**: The public site application at `apps/marketing` (today's `starter/`). _Avoid_: starter (for this meaning)
 
-**astro**: The workspace package that is the Astro integration, Astro-coupled runtime (virtual modules, i18n, rehype, robots), config schemas, reusable content-collection schema fragments, the component catalog, and helpers (`cn`, taxonomy machinery, related-content picker). _Avoid_: site (for this package), packages/schemas
+**astro**: The workspace package that is the Astro integration, Astro-coupled runtime (virtual modules, i18n, rehype, robots), config schemas, reusable content-collection schema fragments, the component catalog, and helpers (`cn`, **taxonomy** manager, related-content picker). _Avoid_: site (for this package), packages/schemas
 
 **ui**: Small primitives in the catalog. Today: Measure and Flow CSS. Future CVA/Svelte primitives land here, one folder per component.
 
@@ -49,6 +49,10 @@ A snapshot monorepo that is the foundation for every Astro **content site** buil
 **media** (fragment): Shared Zod fragment for an entry’s editorial image: `featImage` (URL) and `featImageAlt`. Pairs with **editorial media**. _Avoid_: featImagePath
 
 **blog**: The composed collection schema for a blog: **seo** + **media** plus posting fields (pubDate, status, tags, excerpt, optional og). Lives in **astro** so a second site can import it. A directory composes fragments instead. _Avoid_: prose (for this schema)
+
+**term**: An item in a **taxonomy**: locale-free slug, optional custom fields, display label via `t()`. _Avoid_: tag (for this unit)
+
+**taxonomy**: A named vocabulary of **terms**. Site-owned values; generic manager in **astro**. _Avoid_: tag registry, TaxonomyType
 
 ### Lifecycle & head components
 
