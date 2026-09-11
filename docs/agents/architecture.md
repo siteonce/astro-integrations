@@ -10,7 +10,7 @@ Enforcement is manual today — see `docs/out-of-scope.md`.
 
 ## Placement
 
-- **Root `AGENTS.md`** — vocabulary, origin pointer (`docs/from-packages.md`), and standing constraints that apply repo-wide (pre-commit gate, version policy, pairing, authoring language, interactivity ladder, config vs env, error policy).
+- **Root `AGENTS.md`** — vocabulary, and standing constraints that apply repo-wide (pre-commit gate, version policy, pairing, authoring language, interactivity ladder, config vs env, error policy).
 - **Nested `AGENTS.md`** — local rules for that subtree. Self-contained: do not import a shared rule file from another directory. A path pointer to a sibling `AGENTS.md` is fine.
 
 Package files (`packages/*/AGENTS.md`) cover how to edit the package. App files (`apps/marketing/**/AGENTS.md`) cover how to use it in the site.
@@ -23,7 +23,7 @@ Every nested `AGENTS.md` in this monorepo uses these sections as needed:
 - **Conventions** — local rules agents follow while editing (directives, dependency direction, file-local bans).
 - **Out of scope** — hard-stop agent boundaries only when a one-line stop is load-bearing; not product-boundary essays.
 
-Nested files hold **agent rules only** — terse directives and pointers. Live product rules live in nested `AGENTS.md` and `docs/adr/`. Glossary: `CONTEXT.md`. Origin of the snapshot: `docs/from-packages.md`.
+Nested files hold **agent rules only** — terse directives and pointers. Live product rules live in nested `AGENTS.md` and `docs/adr/`. Glossary: `CONTEXT.md`.
 
 ## Self-describing files
 

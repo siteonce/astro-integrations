@@ -1,7 +1,6 @@
 # astro-stack
 
 - **Vocabulary** — use terms from `CONTEXT.md`; respect its _Avoid_ entries.
-- **Product shape** — `docs/from-packages.md`.
 
 ## Standing constraints
 
