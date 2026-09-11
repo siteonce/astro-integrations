@@ -60,7 +60,7 @@ A snapshot monorepo that is the foundation for every Astro **content site** buil
 
 **`Analytics`**: The marketing-app analytics tag component (GA4 via Partytown). App concern, not a package export; `@repo/astro` only registers Partytown when `siteConfig.analytics` is set.
 
-**`Favicon`**: The head component that emits the standard favicon tag block; agnostic to how the icon files are generated (files live in the app’s `public/`).
+**`Favicon`**: The marketing-app head component that emits the standard favicon tag block. App concern, not a package export; icon files live in the app’s `public/`.
 
 ### Styling
 
