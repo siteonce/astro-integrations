@@ -78,12 +78,6 @@ A snapshot monorepo that is the foundation for every Astro **content site** buil
 
 **`Measure`**: Width-constraint primitive (class `measure`) — a centered max width and a side inset (`gutter`) so contents do not touch the viewport edge. _Avoid_: Container (the old name); treating it as a site section; putting full-bleed background on it; Tailwind’s `container`; `px-*` as the gutter.
 
-**`SiteFrame`**: The compound site frame (`SiteFrame.Provider` + `SiteFrame.Panel`). Compose page content and panels as children. Named aliases `SiteFrameProvider` / `SiteFramePanel` sit next to the namespace.
-
-**`SiteFrameProvider`**: Part of **SiteFrame** — the top-level positioning context; isolates a stacking context and hosts panels.
-
-**`SiteFramePanel`**: Part of **SiteFrame** — an off-canvas panel anchored to a frame edge (start/end/top/bottom), with open/closed `state`.
-
 ### Integration & environment
 
 **`deployConfig`**: App-owned mapping of host environment onto one exclusive class (`production` | `preview` | `local`). The values file lives in the app; the customer writes the host check (Netlify `CONTEXT` today). Schema lives in **astro**; `siteonce()` exposes it on `virtual:app/config`. _Avoid_: DEPLOY_CONTEXT, packages/netlify, authConfig, three independent booleans

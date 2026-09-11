@@ -106,12 +106,6 @@ importers:
       '@repo/astro':
         specifier: workspace:*
         version: link:../astro
-      '@repo/utils':
-        specifier: workspace:*
-        version: link:../utils
-      class-variance-authority:
-        specifier: 0.7.1
-        version: 0.7.1
     devDependencies:
       '@types/node':
         specifier: 22.13.16
@@ -119,9 +113,6 @@ importers:
       astro:
         specifier: 7.0.9
         version: 7.0.9(@astrojs/markdown-remark@7.2.1)(@emnapi/core@1.11.1)(@emnapi/runtime@1.11.1)(@types/node@22.13.16)(jiti@2.7.0)(yaml@2.9.0)
-      svelte:
-        specifier: 5.55.10
-        version: 5.55.10
 
   packages/og-image:
     dependencies:
@@ -1235,9 +1226,6 @@ packages:
   ci-info@4.4.0:
     resolution: {integrity: sha512-77PSwercCZU2Fc4sX94eF8k8Pxte6JAwL4/ICZLFjJLqegs7kCuAsqqj/70NQF6TvDpgFjkubQB2FW2ZZddvQg==}
     engines: {node: '>=8'}
-
-  class-variance-authority@0.7.1:
-    resolution: {integrity: sha512-Ka+9Trutv7G8M6WT6SeiRWz792K5qEqIGEGzXKhAE6xOWAY6pPH8U+9IY3oCMv6kqTmLsv7Xh/2w2RigkePMsg==}
 
   cli-cursor@5.0.0:
     resolution: {integrity: sha512-aCj4O5wKyszjMmDT4tZj93kxyydN/K5zPWSCe6/0AV/AA1pqe5ZBIw0a2ZfPQV7lL5/yb5HsUreJ6UFAF1tEQw==}
@@ -3667,10 +3655,6 @@ snapshots:
       readdirp: 5.0.0
 
   ci-info@4.4.0: {}
-
-  class-variance-authority@0.7.1:
-    dependencies:
-      clsx: 2.1.1
 
   cli-cursor@5.0.0:
     dependencies:
