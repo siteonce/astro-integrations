@@ -62,7 +62,7 @@ A snapshot monorepo that is the foundation for every Astro **content site** buil
 
 **`Schema`**: The JSON-LD emitter component (Article, BreadcrumbList, Organization, WebSite).
 
-**`Analytics`**: The marketing-app analytics tag component (GA4 via Partytown). App concern, not a package export; `@repo/astro` only registers Partytown when `siteConfig.analytics` is set.
+**`Analytics`**: The marketing-app head component that emits the analytics tag block (GA4 via Partytown). App concern, not a package export; the customer edits the file.
 
 **`Favicon`**: The marketing-app head component that emits the standard favicon tag block. App concern, not a package export; icon files live in the app’s `public/`.
 
