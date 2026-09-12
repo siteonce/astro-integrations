@@ -23,7 +23,7 @@ Every nested `AGENTS.md` in this monorepo uses these sections as needed:
 - **Conventions** — local rules agents follow while editing (directives, dependency direction, file-local bans).
 - **Out of scope** — hard-stop agent boundaries only when a one-line stop is load-bearing; not product-boundary essays.
 
-Nested files hold **agent rules only** — terse directives and pointers. Live product rules live in nested `AGENTS.md` and `docs/adr/`. Glossary: `CONTEXT.md`.
+Nested files hold **agent rules only** — terse directives and pointers. Live product rules live in nested `AGENTS.md`. Do not cite `docs/adr/` from an agent file — ADRs record the trade-off; they are not a rule home. Glossary: `CONTEXT.md`.
 
 ## Self-describing files
 
