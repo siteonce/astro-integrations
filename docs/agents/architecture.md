@@ -10,7 +10,7 @@ Enforcement is manual today — see `docs/out-of-scope.md`.
 
 ## Placement
 
-- **Root `AGENTS.md`** — vocabulary, and standing constraints that apply repo-wide (pre-commit gate, version policy, pairing, authoring language, interactivity ladder, config vs env, error policy).
+- **Root `AGENTS.md`** — vocabulary, and standing constraints that apply repo-wide (pre-commit gate, version policy, pairing, authoring language, interactivity ladder, config vs env, error policy, source comments).
 - **Nested `AGENTS.md`** — local rules for that subtree. Self-contained: do not import a shared rule file from another directory. A path pointer to a sibling `AGENTS.md` is fine.
 
 Package files (`packages/*/AGENTS.md`) cover how to edit the package. App files (`apps/marketing/**/AGENTS.md`) cover how to use it in the site.
