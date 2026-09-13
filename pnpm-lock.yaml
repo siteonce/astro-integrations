@@ -41,9 +41,6 @@ importers:
       '@repo/og-image':
         specifier: workspace:*
         version: link:../../packages/og-image
-      '@repo/tailwind-config':
-        specifier: workspace:*
-        version: link:../../tooling/tailwind
       astro:
         specifier: ^7.0.9
         version: 7.0.9(@astrojs/markdown-remark@7.2.1)(@emnapi/core@1.11.1)(@emnapi/runtime@1.11.1)(@types/node@24.12.4)(jiti@2.7.0)(yaml@2.9.0)
@@ -125,8 +122,6 @@ importers:
       sharp:
         specifier: 0.34.5
         version: 0.34.5
-
-  tooling/tailwind: {}
 
 packages:
 

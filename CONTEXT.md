@@ -14,7 +14,7 @@ A snapshot monorepo that is the foundation for every Astro **content site** buil
 
 **content site**: The kind of site this snapshot is for — directory, magazine, or blog. Not an application (auth, dashboards, APIs). _Avoid_: app (for the customer’s site)
 
-**starter monorepo**: The workspace inside the snapshot — apps, packages, and tooling — structured like an end-user project. _Avoid_: starter (alone)
+**starter monorepo**: The workspace inside the snapshot — apps and packages — structured like an end-user project. _Avoid_: starter (alone)
 
 **starter theme**: The visual token layer inside the starter monorepo (CSS variables and Tailwind theme). Not a second product. _Avoid_: starter (for this meaning)
 
