@@ -8,9 +8,12 @@ A minimal, appearance-only token system. These tokens define how things **look a
 
 - Product token names stay on `:root`.
 - `@theme inline` maps those tokens onto Tailwind namespaces. Tailwind's default scales are a reference, not the token set.
-- Shape colors map to `--color-*` (`bg-body`). Paired text maps to `--text-color-*` (`text-body`). Do not put `--color-{name}-text` into `--color-*`.
-- **Appearance only.** Color, shadow, radius, motion. Structural concerns (z-index, layout, stacking) stay out.
-- **Start with the base token.** Add variations only when the UI needs them.
+- **Pairs** (body, selection, muted): the unnumbered color is a surface that is a bad ink color. Map ink to `--text-color-*` so `text-body` is never the canvas. Product names keep the `-text` suffix (`--color-body-text`); do not put those into `--color-*`.
+- **Brand:** the default shade is usable as fill and ink. Map only `--color-brand`. `text-brand` is brand itself, not ink on brand. Do not add `--color-brand-text` / `--text-color-brand`. Contrast on a filled brand shape uses a shade (`text-brand-50`) or white.
+- **Shades** are physical lightness (50 light … 950 dark), same as Tailwind. They do not flip in dark mode. Semantic defaults remap which rung they stand on (`light-dark()`, `.dark`, or `prefers-color-scheme`).
+- Prefer aliasing a Tailwind palette (`--color-brand-500: var(--color-blue-500)`) over authoring a custom ramp. Swap the hue in the aliases and in `--color-brand`.
+- **Appearance only.** Color and type stacks. Structural concerns (z-index, layout, stacking) stay out. Radius, shadow, and motion use Tailwind's defaults until a site needs a product token.
+- **Start with the base token.** Add a ladder or a new role when the UI needs it.
 - **Component defaults stay local.** Global tokens are not a registry of every component's possible appearance.
 
 ### Typography
@@ -22,7 +25,7 @@ A minimal, appearance-only token system. These tokens define how things **look a
 
 ### Colors
 
-Colors are theme-dependent and should start from the smallest useful set. Base HTML color tokens:
+Colors are theme-dependent and should start from the smallest useful set. HTML primitives:
 
 ```css
 --color-body
@@ -31,62 +34,40 @@ Colors are theme-dependent and should start from the smallest useful set. Base H
 --color-selection-text
 ```
 
-Other base HTML elements can initially use these values until the project reveals a real need for additional tokens.
+Muted is a derived surface (and paired ink):
+
+```css
+--color-muted
+--color-muted-text
+```
+
+Brand is a remapped default plus a 50–950 ladder aliased to a Tailwind palette:
+
+```css
+--color-brand: light-dark(var(--color-blue-600), var(--color-blue-400));
+```
+
+```css
+--color-brand-50: var(--color-blue-50);
+/* … */
+--color-brand-950: var(--color-blue-950);
+```
+
+`@theme` maps pairs to `--color-*` plus `--text-color-*`, and brand to `--color-*` only:
+
+```css
+--color-body: var(--color-body); /* bg-body, border-body, … */
+--text-color-body: var(--color-body-text); /* text-body */
+--color-brand: var(--color-brand); /* bg-brand, text-brand, border-brand */
+```
 
 Color tokens describe visible shape colors by default. Do not add a `bg` suffix.
 
-```css
---color-brand: /* base brand shape color */;
---color-accent: /* supporting shape color */;
-```
+Accent, status, and extra roles copy brand's pattern (singleton or aliased scale, remap the unnumbered default per scheme) when the site has that UI.
 
-Use purpose suffixes only for dependent color uses:
+### Not in this file
 
-```css
---color-brand-text: /* text on the base brand color */;
---color-brand-border: /* border paired with the base brand color */;
-```
-
-`@theme` maps the shape to `--color-*` and each purpose suffix to that utility's namespace:
-
-```css
---color-brand: var(--color-brand); /* bg-brand, border-brand, … */
---text-color-brand: var(--color-brand-text); /* text-brand */
---border-color-brand: var(--color-brand-border); /* only when border must differ from the shape */
-```
-
-Naming pattern:
-
-```css
---color-{name}
---color-{name}-{prominence}
---color-{name}-{purpose}
---color-{name}-{prominence}-{purpose}
-```
-
-Prominence means visual strength in the current theme, not absolute lightness or darkness. Create prominence variations only when the UI needs another visible shape color in the same family. Prefer sparse numeric steps (`10`, `20`, `40`, `60`, `80`, `90`) so new values can be inserted later without renaming. Higher numbers mean more visual strength. Add a short code comment to each numbered color token explaining why it exists. Do not rename existing color tokens to rebalance the scale unless explicitly instructed.
-
-### Radius
-
-```css
---radius
-```
-
-The base radius token may be enough for an entire project. Add variants only when needed, using the clearest modifier name for the project (`--radius-small`, `--radius-large`).
-
-### Shadow
-
-```css
---shadow
-```
-
-The base shadow token may be enough. When variants are needed, prefer context names over abstract scale names (`--shadow-card`, `--shadow-header`, `--shadow-popover`). Different context tokens may share the same value.
-
-### Transitions
-
-```css
---duration
---ease
-```
-
-The base duration token may be enough. Add variants only when needed (`--duration-fast`, `--duration-slow`).
+- Radius: Tailwind `rounded-*`
+- Shadow, duration, ease: Tailwind defaults
+- Spacing and fluid type: Leibniz / Tailwind
+- Component chrome (`card`, `popover`, `input`, `ring`)
