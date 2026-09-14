@@ -32,7 +32,7 @@ A snapshot monorepo that is the foundation for every Astro **content site** buil
 
 **`ogImage()`**: Default export of `@repo/og-image`. _Avoid_: astroOgImage()
 
-**`virtual:app/*`**: Vite modules the current app’s `siteonce()` registration fills (`config`, `i18n`). Same ids in every app; each build supplies that app’s values. Head and `t()` import these, never `apps/<name>/src/config`. _Avoid_: `virtual:astro-lib/*`, `virtual:siteonce/*`, `virtual:<app-folder>/*` (for the id)
+**`virtual:app/*`**: Vite modules the current app’s `siteonce()` registration fills (`config`, `i18n`). Same ids in every app; each build supplies that app’s values. Head and `t()` import these, never `apps/<name>/src/*-config.ts`. _Avoid_: `virtual:astro-lib/*`, `virtual:siteonce/*`, `virtual:<app-folder>/*` (for the id)
 
 **`virtual:og-image/config`**: Vite module `ogImage()` fills with generation config.
 
