@@ -58,7 +58,7 @@ A snapshot monorepo that is the foundation for every Astro **content site** buil
 
 **`BaseLayout`**: The bare HTML skeleton component — `<html lang>` plus a `<head>` slot and a `<body>` slot.
 
-**`Seo`**: The component that owns `<head>` tag emission (title, meta, Open Graph, Twitter), driven by `seoConfig`.
+**`Seo`**: The component that owns `<head>` tag emission (title, meta, Open Graph, Twitter), driven by `siteConfig` plus per-page props.
 
 **`Schema`**: The JSON-LD emitter component (Article, BreadcrumbList, Organization, WebSite).
 
