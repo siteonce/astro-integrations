@@ -2,10 +2,12 @@
   "name": "@repo/astro-intl",
   "version": "0.0.1",
   "private": true,
-  "description": "Astro integration for catalogs and locale policy from intl.config.ts.",
+  "description": "Astro integration for catalogs, collection pairing, query helpers, and Hreflang.",
   "type": "module",
   "exports": {
     ".": "./src/integration.ts",
+    "./components": "./src/components.ts",
+    "./hreflang": "./src/hreflang.astro",
     "./package.json": "./package.json"
   },
   "files": [

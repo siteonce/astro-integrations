@@ -226,4 +226,9 @@ export default { integrations: [sitemap({ i18n: { defaultLocale: 'en', locales: 
     const { t } = createT({ en: { label: 'Ready' } });
     assert.equal(t('en', 'label'), 'Ready');
   });
+
+  it('records reserved tails from astro:routes:resolved', () => {
+    const resolved = astroIntl().hooks['astro:routes:resolved'];
+    assert.equal(typeof resolved, 'function');
+  });
 });

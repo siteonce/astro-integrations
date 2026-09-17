@@ -2,6 +2,34 @@ import * as z from 'zod';
 
 const DEFAULT_MESSAGES_DIR = 'messages';
 
+export type EntryIdContext = {
+  id: string;
+  slug: string | undefined;
+  locale: string;
+  filePath: string | undefined;
+  data: Record<string, unknown>;
+};
+
+export type EntryIdStrategy = 'frontmatter' | 'slug' | 'astroId' | 'fileStem' | 'parentDir';
+
+export type EntryIdResolver = EntryIdStrategy | ((ctx: EntryIdContext) => string);
+
+const entryIdStrategySchema = z.enum(['frontmatter', 'slug', 'astroId', 'fileStem', 'parentDir']);
+
+const entryIdResolverSchema: z.ZodType<EntryIdResolver> = z.union([
+  entryIdStrategySchema,
+  z.custom<(ctx: EntryIdContext) => string>((value) => typeof value === 'function'),
+]);
+
+export const collectionConfigSchema = z.strictObject({
+  entryId: entryIdResolverSchema.optional(),
+  entryIdField: z.string().min(1).optional(),
+  slugField: z.string().min(1).optional(),
+  pathPrefix: z.union([z.string().min(1), z.record(z.string(), z.string().min(1))]).optional(),
+});
+
+export type CollectionConfig = z.infer<typeof collectionConfigSchema>;
+
 export const intlConfigSchema = z
   .strictObject({
     locales: z.array(z.string().min(1)).min(1),
@@ -15,12 +43,30 @@ export const intlConfigSchema = z
         dir: z.string().min(1),
       })
       .optional(),
+    entryId: entryIdResolverSchema.optional(),
+    collections: z.record(z.string(), collectionConfigSchema).optional(),
+    reservedPaths: z.array(z.string().min(1)).optional(),
   })
   .refine((config) => config.locales.includes(config.defaultLocale), {
     error: 'defaultLocale must be one of locales',
   })
   .refine((config) => new Set(config.locales).size === config.locales.length, {
     error: 'locales values must be unique',
+  })
+  .superRefine((config, ctx) => {
+    for (const [name, collection] of Object.entries(config.collections ?? {})) {
+      const prefix = collection.pathPrefix;
+      if (prefix && typeof prefix === 'object') {
+        for (const locale of config.locales) {
+          if (!(locale in prefix)) {
+            ctx.addIssue({
+              code: 'custom',
+              message: `collections.${name}.pathPrefix missing locale "${locale}"`,
+            });
+          }
+        }
+      }
+    }
   });
 
 export type IntlConfig = z.infer<typeof intlConfigSchema>;

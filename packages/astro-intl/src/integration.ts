@@ -1,8 +1,9 @@
 /**
  * Astro integration entry — named (and default) export `astroIntl()`.
  * Loads `src/intl.config.ts`, writes locale list and prefix policy through to
- * Astro `i18n`, and checks that each configured locale has a catalog file.
- * Does not load catalog JSON and does not create a virtual module.
+ * Astro `i18n`, checks catalog files, and records reserved file-route tails
+ * for pairing collisions. Does not load catalog JSON and does not create a
+ * virtual module.
  */
 
 import { existsSync } from 'node:fs';
@@ -11,10 +12,23 @@ import type { AstroIntegration } from 'astro';
 import { createJiti } from 'jiti';
 import * as z from 'zod';
 import { type IntlConfig, intlConfigSchema, messagesDir } from './define-intl.ts';
+import { reservedTailsFromRoutes } from './reserved-paths.ts';
+import { setIntlConfig, setRouteTails } from './runtime.ts';
 import { sitemapI18nIsSet } from './sitemap-i18n.ts';
 
 export { createT } from './create-t.ts';
-export { defineIntl, type IntlConfig } from './define-intl.ts';
+export { type CollectionConfig, defineIntl, type IntlConfig } from './define-intl.ts';
+export { id, locale, slug } from './fragments.ts';
+export type { DocumentHead, RoutedStaticPath, SitemapEntry } from './helpers.ts';
+export {
+  getAlternatePaths,
+  getContentById,
+  getContentByPath,
+  getDocumentHead,
+  getRoutedStaticPaths,
+  getSitemapEntries,
+  hreflangLinks,
+} from './helpers.ts';
 
 const CONFIG_FILENAME = 'intl.config.ts';
 
@@ -112,6 +126,8 @@ export function astroIntl(): AstroIntegration {
           addWatchFile(catalogPath);
         }
 
+        setIntlConfig(intlConfig);
+
         updateConfig({
           i18n: {
             defaultLocale: intlConfig.defaultLocale,
@@ -123,6 +139,9 @@ export function astroIntl(): AstroIntegration {
             },
           },
         });
+      },
+      'astro:routes:resolved': ({ routes }) => {
+        setRouteTails(reservedTailsFromRoutes(routes));
       },
     },
   };
