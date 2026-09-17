@@ -1,0 +1,25 @@
+name: SiteOnce milestone sweep
+
+on:
+  workflow_dispatch:
+  issues:
+    types: [opened, reopened, labeled, unlabeled, milestoned, demilestoned, closed]
+  milestone:
+    types: [created, opened, edited, closed]
+
+jobs:
+  fire:
+    runs-on: ubuntu-latest
+    steps:
+      - name: POST CoS webhook
+        env:
+          WEBHOOK_URL: ${{ secrets.SITEONCE_SWEEP_WEBHOOK_URL }}
+          WEBHOOK_AUTH: ${{ secrets.SITEONCE_SWEEP_WEBHOOK_AUTH }}
+        run: |
+          set -euo pipefail
+          test -n "$WEBHOOK_URL"
+          test -n "$WEBHOOK_AUTH"
+          curl -fsS -X POST "$WEBHOOK_URL" \
+            -H "Authorization: ${WEBHOOK_AUTH}" \
+            -H "Content-Type: application/json" \
+            -d "{\"source\":\"github-actions\",\"event\":\"${GITHUB_EVENT_NAME}\",\"repo\":\"${GITHUB_REPOSITORY}\"}"
