@@ -29,6 +29,21 @@ describe('starter config', () => {
     assert.equal(intlConfig.collections?.blog?.pathPrefix, 'blog');
   });
 
+  it('lists routed pages, blog, tags, and unrouted authors without page types', () => {
+    assert.equal(intlConfig.collections?.pages?.slugField, 'slug');
+    assert.equal(intlConfig.collections?.pages?.pathPrefix, undefined);
+    assert.equal(intlConfig.collections?.blog?.pathPrefix, 'blog');
+    assert.equal(intlConfig.collections?.tags?.pathPrefix, 'tags');
+    assert.equal(intlConfig.collections?.authors?.slugField, undefined);
+    assert.equal(intlConfig.collections?.authors?.pathPrefix, undefined);
+
+    const source = readFileSync(
+      fileURLToPath(new URL('./intl.config.ts', import.meta.url)),
+      'utf8',
+    );
+    assert.doesNotMatch(source, /pageType/);
+  });
+
   it('registers astroIntl, ogImage, MDX, Svelte, sitemap, and rehypeExternalLinks', () => {
     const names = (config.integrations ?? [])
       .flat()

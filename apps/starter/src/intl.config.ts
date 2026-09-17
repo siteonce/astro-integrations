@@ -8,8 +8,15 @@ export default defineIntl({
   },
   messages: { dir: 'messages' },
   collections: {
+    pages: {
+      slugField: 'slug',
+    },
     blog: {
       pathPrefix: 'blog',
     },
+    tags: {
+      pathPrefix: 'tags',
+    },
+    authors: {},
   },
 });
