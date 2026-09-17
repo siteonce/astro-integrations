@@ -20,6 +20,19 @@ const { transform } = (await import(astroRequire.resolve('@astrojs/compiler-rs')
 
 const compileCache = path.join(appRoot, 'node_modules', '.cache', 'starter-layouts');
 
+const sharedLayoutFiles = [
+  path.join(srcDir, 'layouts/site-layout.astro'),
+  path.join(srcDir, 'components/favicon.astro'),
+  path.join(repoRoot, 'packages/astro-site/src/components/astro/base-layout.astro'),
+  path.join(repoRoot, 'packages/astro-site/src/components/astro/seo.astro'),
+  path.join(repoRoot, 'packages/astro-site/src/components/astro/schema.astro'),
+  path.join(repoRoot, 'packages/astro-site/src/components/blocks/hero.astro'),
+  path.join(repoRoot, 'packages/astro-site/src/components/blocks/post-list.astro'),
+  path.join(repoRoot, 'packages/astro-site/src/components/blocks/article.astro'),
+  path.join(repoRoot, 'packages/astro-site/src/components/blocks/related-posts.astro'),
+  path.join(repoRoot, 'packages/astro-intl/src/hreflang.astro'),
+];
+
 function toRunnableModule(code: string): string {
   return code
     .replace(/\s*,\s*createMetadata as \$\$createMetadata/, '')
@@ -32,7 +45,7 @@ function resolveSpecifier(fromFile: string, specifier: string): string {
   return specifier;
 }
 
-async function compileGraph(files: string[]) {
+async function compileGraph(files: string[], collections: Record<string, unknown[]> = {}) {
   await mkdir(compileCache, { recursive: true });
   const dir = await mkdtemp(path.join(compileCache, 'run-'));
   const compiled = new Map<string, string>();
@@ -55,22 +68,44 @@ export function getAbsoluteLocaleUrl(locale, path = '') {
 }
 `,
   );
+  const collectionsJson = JSON.stringify(collections);
   const contentMock = path.join(dir, 'astro-content.mjs');
   await writeFile(
     contentMock,
-    `export async function render() {
+    `const collections = ${collectionsJson};
+function revive(value, key) {
+  if (Array.isArray(value)) return value.map((item) => revive(item));
+  if (value && typeof value === 'object') {
+    const out = {};
+    for (const [k, v] of Object.entries(value)) out[k] = revive(v, k);
+    return out;
+  }
+  if (key === 'pubDate' && typeof value === 'string') return new Date(value);
+  return value;
+}
+export async function getCollection(name) {
+  return revive(collections[name] ?? []);
+}
+export async function render() {
   throw new Error('astro:content render() is not available in this fixture');
 }
 `,
   );
 
+  function compiledHref(file: string): string {
+    return pathToFileURL(compiled.get(file) ?? '').href;
+  }
+
   const siteBarrel = path.join(dir, 'astro-site-components.mjs');
   await writeFile(
     siteBarrel,
-    `export { default as BaseLayout } from ${JSON.stringify(pathToFileURL(compiled.get(path.join(repoRoot, 'packages/astro-site/src/components/astro/base-layout.astro')) ?? '').href)};
-export { default as Seo } from ${JSON.stringify(pathToFileURL(compiled.get(path.join(repoRoot, 'packages/astro-site/src/components/astro/seo.astro')) ?? '').href)};
-export { default as Schema } from ${JSON.stringify(pathToFileURL(compiled.get(path.join(repoRoot, 'packages/astro-site/src/components/astro/schema.astro')) ?? '').href)};
-export { default as Hero } from ${JSON.stringify(pathToFileURL(compiled.get(path.join(repoRoot, 'packages/astro-site/src/components/blocks/hero.astro')) ?? '').href)};
+    `export { default as BaseLayout } from ${JSON.stringify(compiledHref(path.join(repoRoot, 'packages/astro-site/src/components/astro/base-layout.astro')))};
+export { default as Seo } from ${JSON.stringify(compiledHref(path.join(repoRoot, 'packages/astro-site/src/components/astro/seo.astro')))};
+export { default as Schema } from ${JSON.stringify(compiledHref(path.join(repoRoot, 'packages/astro-site/src/components/astro/schema.astro')))};
+export { default as Hero } from ${JSON.stringify(compiledHref(path.join(repoRoot, 'packages/astro-site/src/components/blocks/hero.astro')))};
+export { default as PostList } from ${JSON.stringify(compiledHref(path.join(repoRoot, 'packages/astro-site/src/components/blocks/post-list.astro')))};
+export { default as Article } from ${JSON.stringify(compiledHref(path.join(repoRoot, 'packages/astro-site/src/components/blocks/article.astro')))};
+export { default as RelatedPosts } from ${JSON.stringify(compiledHref(path.join(repoRoot, 'packages/astro-site/src/components/blocks/related-posts.astro')))};
 `,
   );
   const intlBarrel = path.join(dir, 'astro-intl-components.mjs');
@@ -137,8 +172,12 @@ describe('layout source', () => {
     assert.doesNotMatch(siteLayout, /<main\b/);
   });
 
+  function typeLayoutSource(name: string) {
+    return readFileSync(new URL(`./layouts/${name}.astro`, import.meta.url), 'utf8');
+  }
+
   it('home type layout owns head, landmark frame, t(), and blocks', () => {
-    const home = readFileSync(new URL('./layouts/home.astro', import.meta.url), 'utf8');
+    const home = typeLayoutSource('home');
     assert.match(home, /from ['"]astro:content['"]/);
     assert.match(home, /\brender\s*\(/);
     assert.match(home, /useTranslations/);
@@ -152,6 +191,52 @@ describe('layout source', () => {
     assert.doesNotMatch(home, /from ['"]@repo\/astro['"/]/);
     assert.doesNotMatch(home, /<section\b/);
     assert.doesNotMatch(home, /<h1\b/);
+  });
+
+  it('listing, post, and term type layouts own extra queries, head, and blocks', () => {
+    const listing = typeLayoutSource('listing');
+    const post = typeLayoutSource('post');
+    const term = typeLayoutSource('term');
+
+    for (const [name, source] of [
+      ['listing', listing],
+      ['post', post],
+      ['term', term],
+    ] as const) {
+      assert.match(source, /from ['"]astro:content['"]/, name);
+      assert.match(source, /\brender\s*\(/, name);
+      assert.match(source, /getCollection/, name);
+      assert.match(source, /useTranslations/, name);
+      assert.match(source, /<Seo\b/, name);
+      assert.match(source, /<Hreflang\b/, name);
+      assert.match(source, /<Schema\b/, name);
+      assert.match(source, /slot="head"/, name);
+      assert.match(source, /<main class="[^"]*\bmeasure\b[^"]*\bflow\b/, name);
+      assert.match(source, /SiteLayout/, name);
+      assert.doesNotMatch(source, /from ['"]@repo\/astro['"/]/, name);
+      assert.doesNotMatch(source, /<section\b/, name);
+      assert.doesNotMatch(source, /<h1\b/, name);
+      assert.doesNotMatch(source, /<article\b/, name);
+      assert.doesNotMatch(source, /<aside\b/, name);
+      assert.doesNotMatch(source, /pagination/, name);
+      assert.doesNotMatch(source, /search-results/, name);
+    }
+
+    assert.match(listing, /<Hero\b/);
+    assert.match(listing, /<PostList\b/);
+    assert.match(post, /<Article\b/);
+    assert.match(post, /<RelatedPosts\b/);
+    assert.match(post, /getRelatedContent/);
+    assert.match(term, /<Hero\b/);
+    assert.match(term, /<PostList\b/);
+
+    const blocksDir = path.join(repoRoot, 'packages/astro-site/src/components/blocks');
+    for (const name of readdirSync(blocksDir).filter((file) => file.endsWith('.astro'))) {
+      const source = readFileSync(path.join(blocksDir, name), 'utf8');
+      assert.doesNotMatch(source, /getCollection/, `${name} must not query collections`);
+      assert.doesNotMatch(source, /getEntry\b/, `${name} must not query collections`);
+      assert.doesNotMatch(source, /astro:content/, `${name} must not query collections`);
+    }
   });
 });
 
@@ -215,13 +300,7 @@ describe('render home type layout', () => {
 
       const compiled = await compileGraph([
         path.join(srcDir, 'layouts/home.astro'),
-        path.join(srcDir, 'layouts/site-layout.astro'),
-        path.join(srcDir, 'components/favicon.astro'),
-        path.join(repoRoot, 'packages/astro-site/src/components/astro/base-layout.astro'),
-        path.join(repoRoot, 'packages/astro-site/src/components/astro/seo.astro'),
-        path.join(repoRoot, 'packages/astro-site/src/components/astro/schema.astro'),
-        path.join(repoRoot, 'packages/astro-site/src/components/blocks/hero.astro'),
-        path.join(repoRoot, 'packages/astro-intl/src/hreflang.astro'),
+        ...sharedLayoutFiles,
       ]);
 
       const homeMod = await import(
@@ -265,5 +344,342 @@ describe('render home type layout', () => {
       setIntlConfig(undefined);
       resetIntlQuery();
     }
+  });
+});
+
+const listingPages = [
+  {
+    id: 'pages/blog/en',
+    data: {
+      id: 'blog',
+      locale: 'en',
+      slug: 'blog',
+      pageType: 'listing',
+      seoTitle: 'Blog',
+      seoDesc: 'Latest posts from this site.',
+    },
+  },
+  {
+    id: 'pages/blog/de',
+    data: {
+      id: 'blog',
+      locale: 'de',
+      slug: 'blog',
+      pageType: 'listing',
+      seoTitle: 'Blog',
+      seoDesc: 'Aktuelle Beiträge dieser Site.',
+    },
+  },
+];
+
+const blogPosts = [
+  {
+    id: 'blog/hello-world/en',
+    data: {
+      id: 'hello-world',
+      locale: 'en',
+      slug: 'hello-world',
+      seoTitle: 'Hello world',
+      seoDesc: 'The first post on a site built with Site Once.',
+      excerpt: 'This sample post ships with the starter.',
+      pubDate: new Date('2026-01-01T00:00:00.000Z'),
+      status: 'published',
+      tags: ['announcements'],
+      featImage: './feat.png',
+      featImageAlt: 'Placeholder feature image',
+    },
+  },
+  {
+    id: 'blog/hello-world/de',
+    data: {
+      id: 'hello-world',
+      locale: 'de',
+      slug: 'hallo-welt',
+      seoTitle: 'Hallo Welt',
+      seoDesc: 'Der erste Beitrag auf einer Site, gebaut mit Site Once.',
+      excerpt: 'Dieser Beispielbeitrag liegt im Starter.',
+      pubDate: new Date('2026-01-01T00:00:00.000Z'),
+      status: 'published',
+      tags: ['announcements'],
+      featImage: './feat.png',
+      featImageAlt: 'Platzhalter-Beitragsbild',
+    },
+  },
+  {
+    id: 'blog/overwrite-container/en',
+    data: {
+      id: 'overwrite-container',
+      locale: 'en',
+      slug: 'overwrite-container',
+      seoTitle: 'Overwrite Measure',
+      seoDesc: 'Tune a Measure with static measure classes.',
+      excerpt: 'Put measure classes on the landmark.',
+      pubDate: new Date('2026-01-15T00:00:00.000Z'),
+      status: 'published',
+      tags: ['engineering'],
+      featImage: './feat.png',
+      featImageAlt: 'Placeholder feature image',
+    },
+  },
+  {
+    id: 'blog/overwrite-container/de',
+    data: {
+      id: 'overwrite-container',
+      locale: 'de',
+      slug: 'overwrite-container',
+      seoTitle: 'Measure überschreiben',
+      seoDesc: 'Measure mit statischen Klassen anpassen.',
+      excerpt: 'Measure-Klassen ans Landmark.',
+      pubDate: new Date('2026-01-15T00:00:00.000Z'),
+      status: 'published',
+      tags: ['engineering'],
+      featImage: './feat.png',
+      featImageAlt: 'Platzhalter-Beitragsbild',
+    },
+  },
+];
+
+const termPages = [
+  {
+    id: 'tags/announcements/en',
+    data: {
+      id: 'announcements',
+      locale: 'en',
+      slug: 'announcements',
+      seoTitle: 'Announcements',
+      seoDesc: 'Posts tagged announcements.',
+    },
+  },
+  {
+    id: 'tags/announcements/de',
+    data: {
+      id: 'announcements',
+      locale: 'de',
+      slug: 'ankuendigungen',
+      seoTitle: 'Ankündigungen',
+      seoDesc: 'Beiträge zu Ankündigungen.',
+    },
+  },
+  {
+    id: 'tags/engineering/en',
+    data: {
+      id: 'engineering',
+      locale: 'en',
+      slug: 'engineering',
+      seoTitle: 'Engineering',
+      seoDesc: 'Posts tagged engineering.',
+    },
+  },
+  {
+    id: 'tags/engineering/de',
+    data: {
+      id: 'engineering',
+      locale: 'de',
+      slug: 'technik',
+      seoTitle: 'Technik',
+      seoDesc: 'Beiträge zu Technik.',
+    },
+  },
+];
+
+const intlCollections = {
+  pages: listingPages,
+  blog: blogPosts,
+  tags: termPages,
+  authors: [],
+};
+
+function starterIntlConfig() {
+  return defineIntl({
+    locales: ['en', 'de'],
+    defaultLocale: 'en',
+    routing: { prefixDefaultLocale: true },
+    collections: {
+      pages: { slugField: 'slug' },
+      blog: { pathPrefix: 'blog' },
+      tags: { pathPrefix: 'tags' },
+      authors: {},
+    },
+  });
+}
+
+async function withIntl<T>(run: () => Promise<T>): Promise<T> {
+  const { resetIntlQuery, setIntlLoaders } = await import(
+    '../../../packages/astro-intl/src/helpers.ts'
+  );
+  const { setIntlConfig } = await import('../../../packages/astro-intl/src/runtime.ts');
+  setIntlConfig(starterIntlConfig());
+  setIntlLoaders({
+    getCollection: async (name) =>
+      (intlCollections[name as keyof typeof intlCollections] ?? []) as never,
+    getAbsoluteLocaleUrl: (locale, path = '') =>
+      `https://example.com/${locale}${path ? `/${path}` : ''}`,
+  });
+  try {
+    return await run();
+  } finally {
+    setIntlLoaders(undefined);
+    setIntlConfig(undefined);
+    resetIntlQuery();
+  }
+}
+
+function assertHeadAndLandmark(html: string, locale: string) {
+  assert.match(html, new RegExp(`<html[^>]*lang="${locale}"`));
+  assert.match(html, /rel="canonical"/);
+  assert.match(html, new RegExp(`rel="alternate"[^>]*hreflang="${locale}"`));
+  assert.match(html, /rel="alternate"[^>]*hreflang="x-default"/);
+  assert.match(html, /application\/ld\+json/);
+  assert.match(html, /"@type":"WebSite"/);
+  assert.match(html, /<main class="[^"]*\bmeasure\b[^"]*\bflow\b/);
+  assert.match(html, /rel="icon"/);
+  assert.match(html, /aria-label="(?:Language|Sprache)"/);
+  assert.match(html, /aria-current="page"/);
+}
+
+describe('render listing, post, and term type layouts', () => {
+  it('renders fixture en/de entries: listing queries posts, post may query related, term renders the term page', async () => {
+    await withIntl(async () => {
+      assert.deepEqual(await getAlternatePaths('blog'), { en: 'blog', de: 'blog' });
+      assert.deepEqual(await getAlternatePaths('hello-world'), {
+        en: 'blog/hello-world',
+        de: 'blog/hallo-welt',
+      });
+      assert.deepEqual(await getAlternatePaths('announcements'), {
+        en: 'tags/announcements',
+        de: 'tags/ankuendigungen',
+      });
+
+      const compiled = await compileGraph(
+        [
+          path.join(srcDir, 'layouts/listing.astro'),
+          path.join(srcDir, 'layouts/post.astro'),
+          path.join(srcDir, 'layouts/term.astro'),
+          ...sharedLayoutFiles,
+        ],
+        { blog: blogPosts, tags: termPages },
+      );
+      const container = await AstroContainer.create();
+
+      async function renderLayout(
+        file: string,
+        locale: string,
+        entry: unknown,
+        url: string,
+      ): Promise<string> {
+        const mod = await import(pathToFileURL(compiled.get(file) ?? '').href);
+        return container.renderToString(mod.default, {
+          props: { locale, entry },
+          request: new Request(url),
+        });
+      }
+
+      const listingEn = await renderLayout(
+        path.join(srcDir, 'layouts/listing.astro'),
+        'en',
+        listingPages[0],
+        'https://example.com/en/blog/',
+      );
+      assertHeadAndLandmark(listingEn, 'en');
+      assert.match(listingEn, /<title>Blog \| Astro Stack<\/title>/);
+      assert.match(listingEn, /name="description"[^>]*content="Latest posts from this site."/);
+      assert.match(listingEn, /<h1[^>]*>Blog<\/h1>/);
+      assert.match(listingEn, /Hello world/);
+      assert.match(listingEn, /href="\/en\/blog\/hello-world\/"/);
+      assert.match(listingEn, /This sample post ships with the starter/);
+      assert.match(listingEn, /Overwrite Measure/);
+      assert.match(listingEn, /href="\/en\/blog\/overwrite-container\/"/);
+      assert.match(listingEn, /Announcements/);
+      assert.match(listingEn, /href="\/en\/tags\/announcements\/"/);
+      assert.match(listingEn, /Engineering/);
+      assert.match(listingEn, /href="\/en\/tags\/engineering\/"/);
+      assert.doesNotMatch(listingEn, /Hallo Welt/);
+      assert.match(listingEn, /href="\/de\/blog\/"/);
+      assert.match(listingEn, /rel="alternate"[^>]*hreflang="de"/);
+
+      const listingDe = await renderLayout(
+        path.join(srcDir, 'layouts/listing.astro'),
+        'de',
+        listingPages[1],
+        'https://example.com/de/blog/',
+      );
+      assertHeadAndLandmark(listingDe, 'de');
+      assert.match(listingDe, /<h1[^>]*>Blog<\/h1>/);
+      assert.match(listingDe, /Hallo Welt/);
+      assert.match(listingDe, /href="\/de\/blog\/hallo-welt\/"/);
+      assert.match(listingDe, /Measure überschreiben/);
+      assert.match(listingDe, /Ankündigungen/);
+      assert.match(listingDe, /href="\/de\/tags\/ankuendigungen\/"/);
+      assert.match(listingDe, /Technik/);
+      assert.match(listingDe, /href="\/de\/tags\/technik\/"/);
+      assert.doesNotMatch(listingDe, /Hello world/);
+      assert.match(listingDe, /href="\/en\/blog\/"/);
+
+      const postEn = await renderLayout(
+        path.join(srcDir, 'layouts/post.astro'),
+        'en',
+        blogPosts[0],
+        'https://example.com/en/blog/hello-world/',
+      );
+      assertHeadAndLandmark(postEn, 'en');
+      assert.match(postEn, /<title>Hello world \| Astro Stack<\/title>/);
+      assert.match(postEn, /property="og:type"[^>]*content="article"/);
+      assert.match(postEn, /<article\b/);
+      assert.match(postEn, /<h1[^>]*>Hello world<\/h1>/);
+      assert.match(postEn, /datetime="2026-01-01T00:00:00.000Z"/);
+      assert.match(postEn, /Announcements/);
+      assert.match(postEn, /href="\/en\/tags\/announcements\/"/);
+      assert.match(postEn, /"@type":"Article"/);
+      assert.match(postEn, /<aside\b/);
+      assert.match(postEn, /<h2[^>]*>Related<\/h2>/);
+      assert.match(postEn, /Overwrite Measure/);
+      assert.match(postEn, /href="\/en\/blog\/overwrite-container\/"/);
+      assert.doesNotMatch(postEn, /Measure überschreiben/);
+      assert.match(postEn, /href="\/de\/blog\/hallo-welt\/"/);
+
+      const postDe = await renderLayout(
+        path.join(srcDir, 'layouts/post.astro'),
+        'de',
+        blogPosts[1],
+        'https://example.com/de/blog/hallo-welt/',
+      );
+      assertHeadAndLandmark(postDe, 'de');
+      assert.match(postDe, /<h1[^>]*>Hallo Welt<\/h1>/);
+      assert.match(postDe, /Ankündigungen/);
+      assert.match(postDe, /href="\/de\/tags\/ankuendigungen\/"/);
+      assert.match(postDe, /<h2[^>]*>Ähnlich<\/h2>/);
+      assert.match(postDe, /Measure überschreiben/);
+      assert.match(postDe, /href="\/de\/blog\/overwrite-container\/"/);
+      assert.match(postDe, /href="\/en\/blog\/hello-world\/"/);
+
+      const termEn = await renderLayout(
+        path.join(srcDir, 'layouts/term.astro'),
+        'en',
+        termPages[0],
+        'https://example.com/en/tags/announcements/',
+      );
+      assertHeadAndLandmark(termEn, 'en');
+      assert.match(termEn, /<title>Announcements \| Astro Stack<\/title>/);
+      assert.match(termEn, /<h1[^>]*>Announcements<\/h1>/);
+      assert.match(termEn, /Posts tagged announcements/);
+      assert.match(termEn, /Hello world/);
+      assert.match(termEn, /href="\/en\/blog\/hello-world\/"/);
+      assert.doesNotMatch(termEn, /Overwrite Measure/);
+      assert.match(termEn, /href="\/de\/tags\/ankuendigungen\/"/);
+
+      const termDe = await renderLayout(
+        path.join(srcDir, 'layouts/term.astro'),
+        'de',
+        termPages[1],
+        'https://example.com/de/tags/ankuendigungen/',
+      );
+      assertHeadAndLandmark(termDe, 'de');
+      assert.match(termDe, /<h1[^>]*>Ankündigungen<\/h1>/);
+      assert.match(termDe, /Beiträge zu Ankündigungen/);
+      assert.match(termDe, /Hallo Welt/);
+      assert.match(termDe, /href="\/de\/blog\/hallo-welt\/"/);
+      assert.doesNotMatch(termDe, /Measure überschreiben/);
+      assert.match(termDe, /href="\/en\/tags\/announcements\/"/);
+    });
   });
 });
