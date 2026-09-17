@@ -1,0 +1,36 @@
+// =============================================================================
+// Textarea
+// =============================================================================
+//
+// Default styling for `<textarea>`. Same border + background API as `input`,
+// plus a `$resize` parameter (defaults to `vertical` so users can grow the
+// textarea but not horizontally, which usually breaks layout).
+//
+// Project usage:
+//
+//   @use 'astro-lib/scss/mixins/form/textarea';
+//
+//   textarea { @include textarea.base(); }
+//
+// =============================================================================
+
+@mixin base(
+  $border-width: 1px,
+  $border-color: currentColor,
+  $border-radius: 0,
+  $background: null,
+  $placeholder-opacity: null,
+  $resize: vertical,
+) {
+  border: $border-width solid $border-color;
+  border-radius: $border-radius;
+  @if $background { background: $background; }
+
+  @if $placeholder-opacity {
+    &::placeholder {
+      opacity: $placeholder-opacity;
+    }
+  }
+
+  resize: $resize;
+}

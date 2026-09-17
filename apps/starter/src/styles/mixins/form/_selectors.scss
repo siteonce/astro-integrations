@@ -1,0 +1,94 @@
+// =============================================================================
+// Form selector groups
+// =============================================================================
+//
+// Reusable `@content` mixins that wrap complex form-control selector groups.
+// Use these to apply rules to a group of form controls without restating the
+// full `:not()` chain every time. Centralizing the selector logic here means
+// new input types can't slip through the cracks when rules are added.
+//
+// Every group is wrapped in `:where()` so emitted rules have zero specificity.
+// Projects override using any selector without specificity battles.
+//
+// Project usage:
+//
+//   @use 'astro-lib/scss/mixins/form/selectors' as form;
+//
+//   @include form.text-controls {
+//     border: 2px solid var(--color-brand);
+//   }
+//
+//   @include form.button-likes {
+//     background: var(--color-brand);
+//   }
+//
+// =============================================================================
+
+// All form controls foundation strips (everything except native-UI inputs).
+// Use this when you want to apply a rule to every styleable form control
+// at once.
+@mixin all-styleable {
+  :where(
+    input:not([type="file" i], [type="range" i], [type="color" i], [type="image" i]),
+    textarea,
+    select,
+    button
+  ) {
+    @content;
+  }
+}
+
+// Text-style data-entry controls: text-style inputs, timestamps, textarea,
+// select. Excludes button-likes, checkable, and native-UI inputs.
+@mixin text-controls {
+  :where(
+    input:not(
+      [type="file" i],
+      [type="range" i],
+      [type="color" i],
+      [type="image" i],
+      [type="checkbox" i],
+      [type="radio" i],
+      [type="button" i],
+      [type="submit" i],
+      [type="reset" i],
+      [type="hidden" i]
+    ),
+    textarea,
+    select
+  ) {
+    @content;
+  }
+}
+
+// Button-style controls: <button> + input[type=button|submit|reset].
+@mixin button-likes {
+  :where(
+    button,
+    input:is([type="button" i], [type="submit" i], [type="reset" i])
+  ) {
+    @content;
+  }
+}
+
+// Checkable inputs: checkbox + radio.
+@mixin checkable {
+  :where(input:is([type="checkbox" i], [type="radio" i])) {
+    @content;
+  }
+}
+
+// Native-UI inputs (file, range, color, image). Excluded from foundation
+// reset because their native chrome is impractical to replace in CSS.
+@mixin native-ui {
+  :where(input:is([type="file" i], [type="range" i], [type="color" i], [type="image" i])) {
+    @content;
+  }
+}
+
+// Date- and time-style inputs.
+@mixin timestamp {
+  :where(input:is([type="date" i], [type="datetime-local" i], [type="month" i], [type="time" i], [type="week" i])) {
+    @content;
+  }
+}

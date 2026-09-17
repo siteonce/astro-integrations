@@ -1,0 +1,17 @@
+// =============================================================================
+// Range input (placeholder)
+// =============================================================================
+//
+// Styling for `<input type="range">` is intentionally not provided here. The
+// foundation reset deliberately leaves `file/range/color/image` inputs alone
+// because their native UI (slider track and thumb) is platform-specific and
+// hard to replicate consistently across browsers in CSS alone. Projects that
+// want fully custom sliders take a UI component approach, not styling.
+//
+// This file exists as a placeholder so future small tweaks (e.g. matching
+// `::-webkit-slider-thumb` color to a theme) can land here without
+// restructuring the mixin tree.
+//
+// =============================================================================
+
+// Intentionally empty.

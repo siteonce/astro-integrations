@@ -1,0 +1,24 @@
+// =============================================================================
+// Label
+// =============================================================================
+//
+// Default styling for `<label>`. Block display so labels stack above their
+// controls by default; `user-select: none` so clicking the label to focus
+// the control doesn't accidentally select the label text. Font weight
+// defaults to `bolder` (one weight heavier than the surrounding text).
+//
+// Project usage:
+//
+//   @use 'astro-lib/scss/mixins/form/label';
+//
+//   label { @include label.base(); }
+//
+// =============================================================================
+
+@mixin base(
+  $font-weight: bolder,
+) {
+  display: block;
+  font-weight: $font-weight;
+  user-select: none;
+}

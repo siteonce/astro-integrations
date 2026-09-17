@@ -1,0 +1,52 @@
+/* biome-ignore-all lint/complexity/noImportantStyles: reduced-motion must beat component animations */
+@layer a11y {
+  /* Honor user system preferences for reduced motion.
+     Doesn't kill animation entirely (state-change animations may be load-bearing
+     for comprehension); just makes them effectively instant. */
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    ::before,
+    ::after {
+      animation-duration: 1ms !important;
+      animation-delay: -1ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0s !important;
+      transition-delay: 0s !important;
+      scroll-behavior: auto !important;
+      background-attachment: initial !important;
+    }
+  }
+
+  /* Counterpart to the reduce block: for users who haven't requested reduced
+     motion, let size keywords (auto, min-content, …) participate in transitions
+     and animations — e.g. animating height from 0 to auto. No-op where
+     `interpolate-size` is unsupported (falls back to an instant change). */
+  @media (prefers-reduced-motion: no-preference) {
+    :root {
+      interpolate-size: allow-keywords;
+    }
+  }
+
+  /* Suppress focus ring for non-keyboard interactions (mouse clicks, touch).
+     Pairs with the `:focus-visible` style defined in `base.css`. */
+  :focus:not(:focus-visible) {
+    outline: none;
+  }
+
+  /* Visually hide content while keeping it available to assistive tech.
+     Use for skip links, screen-reader-only labels, etc. */
+  .visually-hidden:not(:focus):not(:active) {
+    clip-path: inset(50%);
+    height: 1px;
+    width: 1px;
+    overflow: hidden;
+    position: absolute;
+    white-space: nowrap;
+  }
+
+  /* Windows High Contrast Mode hook. Empty by default — define overrides here
+     (e.g., explicit borders on icon-only buttons) as components are built. */
+  @media (forced-colors: active) {
+    /* … */
+  }
+}

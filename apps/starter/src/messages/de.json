@@ -1,0 +1,27 @@
+{
+  "home": {
+    "description": "Eine neue Site, gebaut mit Site Once.",
+    "intro": "Dieser Platzhalter liegt im Starter. Ersetze ihn durch die Startseite.",
+    "muted": {
+      "title": "Gedämpfte Fläche",
+      "body": "Vollflächige gedämpfte Farbe auf dem Landmark; Measure begrenzt den Text."
+    }
+  },
+  "blog": {
+    "title": "Blog",
+    "description": "Aktuelle Beiträge dieser Site.",
+    "related": "Ähnlich"
+  },
+  "taxonomy": {
+    "blogTags": {
+      "announcements": "Ankündigungen",
+      "engineering": "Technik",
+      "design": "Design"
+    }
+  },
+  "notFound": {
+    "title": "Seite nicht gefunden",
+    "body": "Die gesuchte Seite existiert nicht oder wurde verschoben.",
+    "backHome": "Zur Startseite"
+  }
+}

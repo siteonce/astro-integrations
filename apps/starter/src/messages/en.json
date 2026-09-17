@@ -1,0 +1,27 @@
+{
+  "home": {
+    "description": "A new site built with Site Once.",
+    "intro": "This placeholder ships with the starter. Replace it with your homepage.",
+    "muted": {
+      "title": "Muted surface",
+      "body": "Full-bleed muted paint on the landmark; measure constrains the copy."
+    }
+  },
+  "blog": {
+    "title": "Blog",
+    "description": "Latest posts from this site.",
+    "related": "Related"
+  },
+  "taxonomy": {
+    "blogTags": {
+      "announcements": "Announcements",
+      "engineering": "Engineering",
+      "design": "Design"
+    }
+  },
+  "notFound": {
+    "title": "Page not found",
+    "body": "The page you're looking for doesn't exist or has moved.",
+    "backHome": "Back to home"
+  }
+}
