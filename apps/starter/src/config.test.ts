@@ -64,7 +64,7 @@ describe('starter config', () => {
       'utf8',
     );
     assert.match(source, /rehypeExternalLinks/);
-    assert.match(source, /sitemap\(\)/);
+    assert.match(source, /\bsitemap\(/);
     assert.doesNotMatch(source, /sitemap\([^)]*i18n\s*:/);
     assert.doesNotMatch(source, /\bsiteonce\s*\(/);
     assert.doesNotMatch(source, /\bastroSite\s*\(/);

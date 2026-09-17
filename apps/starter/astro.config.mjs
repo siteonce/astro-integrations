@@ -9,6 +9,12 @@ import tailwindcss from '@tailwindcss/vite';
 import { defineConfig } from 'astro/config';
 import { ogConfig } from './src/og-config.ts';
 import { siteConfig } from './src/site-config.ts';
+import {
+  collectIntlSitemapPages,
+  intlSitemapPages,
+  serializeSitemap,
+  sitemapFilter,
+} from './src/sitemap.ts';
 
 // Allow the editorial-media host when MEDIA_BASE_URL is a valid origin.
 function mediaRemotePatterns() {
@@ -44,5 +50,16 @@ export default defineConfig({
       ],
     }),
   },
-  integrations: [astroIntl(), ogImage({ config: ogConfig }), mdx(), svelte(), sitemap()],
+  integrations: [
+    astroIntl(),
+    ogImage({ config: ogConfig }),
+    mdx(),
+    svelte(),
+    collectIntlSitemapPages,
+    sitemap({
+      customPages: intlSitemapPages,
+      filter: sitemapFilter,
+      serialize: serializeSitemap,
+    }),
+  ],
 });
