@@ -1,0 +1,28 @@
+/*
+ * Minimal, generic print baseline. Sets paper margins, neutralizes the page
+ * background, ensures readable foreground color, and reveals destinations of
+ * external links in printed copy.
+ *
+ * Does not hide app chrome (headers, footers, forms, iframes, videos). The
+ * stack cannot know what a project considers chrome; projects opt in by adding
+ * their own print rules. Component- or page-specific print adjustments live
+ * with the component or page.
+ */
+
+@layer print {
+  @media print {
+    @page {
+      margin: 1in;
+    }
+
+    body {
+      background-color: #fff;
+      color: #000;
+    }
+
+    /* Reveal destinations of external links in printed copy. */
+    a[href^="http"]::after {
+      content: " (" attr(href) ")";
+    }
+  }
+}

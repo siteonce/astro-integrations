@@ -1,0 +1,7 @@
+{
+  "$schema": "https://json.schemastore.org/tsconfig",
+  // Astro idioms (jsx: preserve, .astro/types.d.ts include) first, then the
+  // monorepo strict baseline on top. Lib resolves via the pnpm workspace
+  // symlink + the lib's exports/types — no `paths` alias needed for the lib.
+  "extends": ["astro/tsconfigs/strict", "../../tsconfig.json"]
+}

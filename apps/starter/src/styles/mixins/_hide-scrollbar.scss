@@ -1,0 +1,26 @@
+// =============================================================================
+// Hide scrollbar
+// =============================================================================
+//
+// Hides the scrollbar on a scrollable element while keeping the scroll
+// behavior intact. Useful for horizontally-scrolling carousels and similar
+// UI where the scrollbar adds visual noise.
+//
+// Project usage:
+//
+//   @use 'astro-lib/scss/mixins/hide-scrollbar';
+//
+//   .carousel { @include hide-scrollbar.base(); }
+//
+// =============================================================================
+
+@mixin base {
+  // Chrome, Safari, Opera.
+  &::-webkit-scrollbar {
+    display: none;
+  }
+  // Firefox.
+  scrollbar-width: none;
+  // Legacy IE / pre-Chromium Edge.
+  -ms-overflow-style: none;
+}

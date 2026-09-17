@@ -1,0 +1,45 @@
+// Parked and unwired. Fate is not decided in this ticket.
+// Do not @use / @import this tree from the live stylesheet.
+//
+// =============================================================================
+// Mixins barrel
+// =============================================================================
+//
+// Pull every mixin module through one entry:
+//
+//   @use './mixins' as m;
+//   .cta   { @include m.button-base($background: var(--color-brand)); }
+//   .quote { @include m.blockquote-base(); }
+//   @include m.breakpoint-above(md) { ... }
+//
+// Each module is forwarded under its own name as a prefix (`as <name>-*`)
+// because nearly every element-styling module exports a `base()` mixin —
+// forwarding them flat would collide. The prefix mirrors the namespace you'd
+// get importing a single file directly
+// (`@use './mixins/form/button';` → `button.base()` ↔
+//  barrel → `m.button-base()`), so the two import styles read consistently.
+//
+// Consumers who want just one module still import it directly; this barrel is
+// the "give me all of them" entry, per the public API surface.
+//
+// `form/file` and `form/range` are intentionally omitted — they are
+// placeholders (native UI is not styled) and export no members.
+// =============================================================================
+
+@forward 'blockquote' as blockquote-*;
+@forward 'breakpoint' as breakpoint-*;
+@forward 'focus' as focus-*;
+@forward 'hide-scrollbar' as hide-scrollbar-*;
+@forward 'highlight' as highlight-*;
+@forward 'keycap' as keycap-*;
+@forward 'link' as link-*;
+@forward 'overlay' as overlay-*;
+
+@forward 'form/button' as button-*;
+@forward 'form/checkable' as checkable-*;
+@forward 'form/fieldset' as fieldset-*;
+@forward 'form/input' as input-*;
+@forward 'form/label' as label-*;
+@forward 'form/select' as select-*;
+@forward 'form/selectors' as selectors-*;
+@forward 'form/textarea' as textarea-*;

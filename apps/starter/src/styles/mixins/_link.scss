@@ -1,0 +1,18 @@
+// =============================================================================
+// Link
+// =============================================================================
+//
+// Sets the color on links. Underline behavior is left to the browser default
+// (the foundation reset preserves it).
+//
+// Project usage:
+//
+//   @use 'astro-lib/scss/mixins/link';
+//
+//   a       { @include link.base($color: var(--color-brand)); }
+//
+// =============================================================================
+
+@mixin base($color: currentColor) {
+  color: $color;
+}

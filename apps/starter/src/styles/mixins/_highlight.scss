@@ -1,0 +1,45 @@
+// =============================================================================
+// Highlight
+// =============================================================================
+//
+// Two mixins, one per use case:
+//
+//   - `mark()`      — styling for `<mark>`. Browser default is yellow
+//                     background; pass `$bg`/`$color` to theme. Adds inline
+//                     padding and `box-decoration-break: clone` so multi-line
+//                     marks render cleanly.
+//   - `selection()` — styling for `::selection`. Resets `text-shadow` (which
+//                     looks bad under selection); pass `$bg`/`$color` to theme.
+//
+// Both default to `null` for color-related properties so the integration ships
+// no color opinions. Pass project values to apply them.
+//
+// Project usage:
+//
+//   @use 'astro-lib/scss/mixins/highlight';
+//
+//   mark        { @include highlight.mark($background: var(--color-mark)); }
+//   ::selection { @include highlight.selection($background: var(--color-selection)); }
+//
+// =============================================================================
+
+@mixin mark(
+  $background: null,
+  $color: null,
+  $padding: 0 0.2em,
+) {
+  @if $background { background: $background; }
+  @if $color { color: $color; }
+  padding: $padding;
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
+}
+
+@mixin selection(
+  $background: null,
+  $color: null,
+) {
+  @if $background { background: $background; }
+  @if $color { color: $color; }
+  text-shadow: none;
+}

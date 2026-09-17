@@ -1,0 +1,32 @@
+// =============================================================================
+// Select
+// =============================================================================
+//
+// Default styling for `<select>`. Foundation reset has stripped the native
+// chevron via `appearance: none`; this mixin adds back configurable border +
+// radius. The chevron itself is intentionally NOT drawn here — replicating a
+// platform-appropriate dropdown indicator without colors or images is
+// awkward, and projects that style select usually have a specific design
+// (often via a wrapper element with a custom indicator).
+//
+// Project usage:
+//
+//   @use 'astro-lib/scss/mixins/form/select';
+//
+//   select { @include select.base(); }
+//
+// =============================================================================
+
+@mixin base(
+  $border-width: 1px,
+  $border-color: currentColor,
+  $border-radius: 0,
+  $background: null,
+) {
+  border: $border-width solid $border-color;
+  border-radius: $border-radius;
+  @if $background { background: $background; }
+
+  line-height: 1;
+  text-transform: none;
+}

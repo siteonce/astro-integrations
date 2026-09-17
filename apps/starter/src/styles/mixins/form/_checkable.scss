@@ -1,0 +1,78 @@
+// =============================================================================
+// Checkable (checkbox + radio)
+// =============================================================================
+//
+// `checkbox()` and `radio()` mixins for custom-rendered checkable inputs.
+// Port-and-simplification of the gooddaytheme `checkable` mixin — the
+// gooddaytheme version drew SVG markers via inline icons; this version uses
+// CSS-only `::after` shapes (square fill for checkbox, dot for radio) so
+// there are no asset dependencies.
+//
+// Foundation reset stripped these inputs (appearance: none); the
+// `elements/_form.scss` bare-bones layer restored native rendering via
+// `appearance: revert`. These mixins reapply `appearance: none` and provide
+// the custom rendering.
+//
+// Project usage:
+//
+//   @use 'astro-lib/scss/mixins/form/checkable';
+//
+//   [type="checkbox"] { @include checkable.checkbox(); }
+//   [type="radio"]    { @include checkable.radio(); }
+//
+// =============================================================================
+
+@mixin _shared(
+  $size,
+  $border-width,
+  $border-color,
+  $background,
+) {
+  appearance: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  vertical-align: middle;
+  width: $size;
+  height: $size;
+  border: $border-width solid $border-color;
+  @if $background { background: $background; }
+}
+
+@mixin checkbox(
+  $size: 1em,
+  $border-width: 1px,
+  $border-color: currentColor,
+  $background: null,
+  $marker-color: currentColor,
+  $marker-size: 60%,
+) {
+  @include _shared($size, $border-width, $border-color, $background);
+
+  &:checked::after {
+    content: '';
+    width: $marker-size;
+    height: $marker-size;
+    background: $marker-color;
+  }
+}
+
+@mixin radio(
+  $size: 1em,
+  $border-width: 1px,
+  $border-color: currentColor,
+  $background: null,
+  $marker-color: currentColor,
+  $marker-size: 60%,
+) {
+  @include _shared($size, $border-width, $border-color, $background);
+  border-radius: 50%;
+
+  &:checked::after {
+    content: '';
+    width: $marker-size;
+    height: $marker-size;
+    background: $marker-color;
+    border-radius: 50%;
+  }
+}

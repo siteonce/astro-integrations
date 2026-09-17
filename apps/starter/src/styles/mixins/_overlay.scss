@@ -1,0 +1,75 @@
+// =============================================================================
+// Overlay
+// =============================================================================
+//
+// Opt-in fade transitions for top-layer overlays — `<dialog>`, `[popover]`,
+// and the dialog `::backdrop`. Animates both entry and exit by transitioning
+// `opacity` alongside the discrete `display` and `overlay` properties
+// (`allow-discrete`), with `@starting-style` supplying the entry-from state.
+// Without `allow-discrete` the element would pop out instantly on close.
+//
+// This is decorative + selector-spanning, so it lives here as an opt-in mixin
+// rather than in the foundation layer. Include it once at the top level:
+//
+//   @use 'astro-lib/scss/mixins/overlay';
+//
+//   @include overlay.transitions();
+//   // or tune it:
+//   @include overlay.transitions($duration: 200ms, $backdrop-color: null);
+//
+// `$backdrop-color` defaults to a 30%-black scrim (conventional in both light
+// and dark themes). Pass `null` to keep the transitions but style the backdrop
+// yourself; pass any color to override.
+//
+// -----------------------------------------------------------------------------
+// Positioning (iOS 26+ Safari)
+// -----------------------------------------------------------------------------
+//
+// This mixin only owns fade transitions + optional backdrop color — not
+// geometry. When you author a custom full-viewport backdrop (dialog scrim,
+// modal overlay, etc.), use `position: absolute` with full inset coverage
+// rather than `position: fixed`. iOS 26+ Safari lets content paint under the
+// UI chrome; fixed layers often fail to cover the visual viewport. Absolute
+// backdrops need a positioned ancestor: foundation `_base.scss` sets
+// `body { position: relative; }` for that purpose.
+//
+// =============================================================================
+
+@mixin transitions(
+  $duration: 300ms,
+  $easing: ease-out,
+  $backdrop-color: oklch(0% 0 0 / 0.3),
+) {
+  @if $backdrop-color {
+    dialog::backdrop {
+      background: $backdrop-color;
+    }
+  }
+
+  // Resting (closed / not-yet-shown) state + the transition definition.
+  dialog,
+  [popover],
+  dialog::backdrop {
+    opacity: 0;
+    transition:
+      opacity $duration $easing,
+      display $duration allow-discrete,
+      overlay $duration allow-discrete;
+  }
+
+  // Open state.
+  dialog[open],
+  :popover-open,
+  dialog[open]::backdrop {
+    opacity: 1;
+  }
+
+  // Entry-from state: animate up from transparent when first shown.
+  @starting-style {
+    dialog[open],
+    :popover-open,
+    dialog[open]::backdrop {
+      opacity: 0;
+    }
+  }
+}
