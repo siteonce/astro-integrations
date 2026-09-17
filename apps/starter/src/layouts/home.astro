@@ -1,0 +1,64 @@
+---
+// Home type layout. Receives locale + the pages-collection entry. Owns
+// remaining data, head, landmark frame, and block composition. Wraps
+// SiteLayout. No section UI beyond Measure / Flow on <main>.
+import { render } from 'astro:content';
+import { getRelativeLocaleUrl } from 'astro:i18n';
+import { getAlternatePaths } from '@repo/astro-intl';
+import { Hreflang } from '@repo/astro-intl/components';
+import { Hero, Schema, Seo } from '@repo/astro-site/components';
+import { ogImageFor } from '@repo/og-image/utils/og-image-for';
+import intlConfig from '../intl.config.ts';
+import { localeSwitcherLinks } from '../locale-switcher.ts';
+import { ogConfig } from '../og-config.ts';
+import { siteConfig } from '../site-config.ts';
+import { useTranslations } from '../t.ts';
+import SiteLayout from './site-layout.astro';
+
+interface Props {
+  locale: string;
+  entry: {
+    body?: string;
+    data: {
+      id: string;
+      slug?: string;
+      seoTitle?: string;
+      seoDesc?: string;
+    };
+  };
+}
+
+const { locale, entry } = Astro.props;
+const t = useTranslations(locale);
+const path = entry.data.slug ?? '/';
+const alternates = await getAlternatePaths(entry.data.id);
+const switcher = localeSwitcherLinks(intlConfig.locales, locale, alternates, (code, tail) =>
+  tail ? getRelativeLocaleUrl(code, tail) : getRelativeLocaleUrl(code),
+);
+
+const description = entry.data.seoDesc ?? t('home.description');
+const ogImage = ogImageFor(Astro.url.pathname, ogConfig);
+
+const hasBody = typeof entry.body === 'string' && entry.body.length > 0;
+const Content = hasBody ? (await render(entry as never)).Content : undefined;
+---
+
+<SiteLayout locale={locale} switcher={switcher}>
+  <Fragment slot="head">
+    <Seo
+      siteConfig={siteConfig}
+      lang={locale}
+      description={description}
+      {...ogImage}
+      imageAlt={siteConfig.siteName}
+    />
+    <Hreflang locale={locale} path={path} />
+    <Schema siteConfig={siteConfig} lang={locale} description={description} />
+  </Fragment>
+
+  <main class="measure measure-size-wide mx-auto flow flow-4">
+    <Hero title={siteConfig.siteName}>
+      {Content ? <Content /> : <p>{t('home.intro')}</p>}
+    </Hero>
+  </main>
+</SiteLayout>

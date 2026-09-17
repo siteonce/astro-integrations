@@ -1,4 +1,11 @@
 {
+  "chrome": {
+    "localeSwitcher": "Sprache"
+  },
+  "locale": {
+    "en": "Englisch",
+    "de": "Deutsch"
+  },
   "home": {
     "description": "Eine neue Site, gebaut mit Site Once.",
     "intro": "Dieser Platzhalter liegt im Starter. Ersetze ihn durch die Startseite.",

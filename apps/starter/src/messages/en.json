@@ -1,4 +1,11 @@
 {
+  "chrome": {
+    "localeSwitcher": "Language"
+  },
+  "locale": {
+    "en": "English",
+    "de": "Deutsch"
+  },
   "home": {
     "description": "A new site built with Site Once.",
     "intro": "This placeholder ships with the starter. Replace it with your homepage.",

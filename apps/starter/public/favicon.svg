@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Astro Stack">
+  <rect width="512" height="512" rx="112" fill="#0f172a" />
+  <!-- Layered "stack" mark: three offset plates, lightest on top. Bold enough
+       to stay legible at 16px. -->
+  <path d="M256 116 L396 196 L256 276 L116 196 Z" fill="#e2e8f0" />
+  <path d="M116 256 L256 336 L396 256" fill="none" stroke="#94a3b8" stroke-width="38" stroke-linecap="round" stroke-linejoin="round" />
+  <path d="M116 326 L256 406 L396 326" fill="none" stroke="#64748b" stroke-width="38" stroke-linecap="round" stroke-linejoin="round" />
+</svg>

@@ -1,0 +1,58 @@
+---
+// Site chrome around BaseLayout: styles, Favicon, locale switcher, and a head
+// pass-through. Type layouts drop Seo/Hreflang/Schema into the head slot and
+// own their landmarks. This file does not compose blocks.
+import type { HTMLAttributes } from 'astro/types';
+import { BaseLayout } from '@repo/astro-site/components';
+import { cn } from '@repo/astro-site/utils/cn';
+import Favicon from '../components/favicon.astro';
+import { useTranslations } from '../t.ts';
+import '../styles';
+
+interface Props {
+  /** Document language. Forwarded to BaseLayout as `<html lang>`. */
+  locale: string;
+  /** Per-locale hrefs for the chrome switcher (sibling or homepage fallback). */
+  switcher: { locale: string; href: string }[];
+  /** Attrs on `<html>` except `lang`. Forwarded to BaseLayout. */
+  html?: Omit<HTMLAttributes<'html'>, 'lang'>;
+  /** Attrs on `<body>`. Forwarded to BaseLayout. */
+  body?: HTMLAttributes<'body'>;
+}
+
+const { locale, switcher, html, body } = Astro.props;
+const t = useTranslations(locale);
+const { class: htmlClass, 'class:list': htmlClassList, ...htmlRest } = html ?? {};
+const { class: bodyClass, 'class:list': bodyClassList, ...bodyRest } = body ?? {};
+---
+
+<BaseLayout
+  lang={locale}
+  html={{ ...htmlRest, class: cn('font-sans', htmlClass, htmlClassList) }}
+  body={{ ...bodyRest, class: cn('bg-body text-body', bodyClass, bodyClassList) }}
+>
+  <Fragment slot="head">
+    <Favicon />
+    <slot name="head" />
+  </Fragment>
+  <header>
+    <nav class="measure measure-size-wide mx-auto" aria-label={t('chrome.localeSwitcher')}>
+      <ul>
+        {
+          switcher.map((item) => (
+            <li>
+              {item.locale === locale ? (
+                <span aria-current="page">{t(`locale.${item.locale}`)}</span>
+              ) : (
+                <a href={item.href} hreflang={item.locale} lang={item.locale}>
+                  {t(`locale.${item.locale}`)}
+                </a>
+              )}
+            </li>
+          ))
+        }
+      </ul>
+    </nav>
+  </header>
+  <slot />
+</BaseLayout>
