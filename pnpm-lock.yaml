@@ -126,6 +126,25 @@ importers:
         specifier: 7.0.9
         version: 7.0.9(@astrojs/markdown-remark@7.2.1)(@emnapi/core@1.11.1)(@emnapi/runtime@1.11.1)(@types/node@22.13.16)(jiti@2.7.0)(yaml@2.9.0)
 
+  packages/astro-site:
+    dependencies:
+      clsx:
+        specifier: 2.1.1
+        version: 2.1.1
+      tailwind-merge:
+        specifier: 3.6.0
+        version: 3.6.0
+      zod:
+        specifier: 4.4.3
+        version: 4.4.3
+    devDependencies:
+      '@types/node':
+        specifier: 22.13.16
+        version: 22.13.16
+      astro:
+        specifier: 7.0.9
+        version: 7.0.9(@astrojs/markdown-remark@7.2.1)(@emnapi/core@1.11.1)(@emnapi/runtime@1.11.1)(@types/node@22.13.16)(jiti@2.7.0)(yaml@2.9.0)
+
   packages/og-image:
     dependencies:
       '@repo/astro':
