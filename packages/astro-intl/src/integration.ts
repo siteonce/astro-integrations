@@ -29,6 +29,7 @@ export {
   getSitemapEntries,
   hreflangLinks,
 } from './helpers.ts';
+export { setIntlConfig };
 
 const CONFIG_FILENAME = 'intl.config.ts';
 
