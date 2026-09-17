@@ -1,0 +1,30 @@
+{
+  "name": "@repo/astro-intl",
+  "version": "0.0.1",
+  "private": true,
+  "description": "Astro integration for catalogs and locale policy from intl.config.ts.",
+  "type": "module",
+  "exports": {
+    ".": "./src/integration.ts",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "src"
+  ],
+  "dependencies": {
+    "intl-messageformat": "11.2.14",
+    "jiti": "2.7.0",
+    "zod": "4.4.3"
+  },
+  "peerDependencies": {
+    "astro": "^7.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "22.13.16",
+    "astro": "7.0.9"
+  },
+  "scripts": {
+    "test": "node --test src/*.test.ts",
+    "typecheck": "tsc --noEmit"
+  }
+}
