@@ -27,3 +27,7 @@
 ### Domain docs
 
 `docs/agents/domain.md`
+
+### Sit on Astro
+
+`docs/agents/sit-on-astro.md`

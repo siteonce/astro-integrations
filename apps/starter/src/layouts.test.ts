@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { existsSync, readdirSync, readFileSync } from 'node:fs';
+import { readdirSync, readFileSync } from 'node:fs';
 import { mkdir, mkdtemp, writeFile } from 'node:fs/promises';
 import { createRequire } from 'node:module';
 import path from 'node:path';
@@ -155,9 +155,8 @@ export { default as RelatedPosts } from ${JSON.stringify(compiledHref(path.join(
   return compiled;
 }
 
-describe('layout source', () => {
-  it('does not add src/views or inline section UI in SiteLayout', () => {
-    assert.equal(existsSync(path.join(srcDir, 'views')), false);
+describe('SiteLayout and `_pages` source', () => {
+  it('SiteLayout is chrome only', () => {
     const siteLayout = readFileSync(
       new URL('./layouts/site-layout.astro', import.meta.url),
       'utf8',
@@ -172,12 +171,12 @@ describe('layout source', () => {
     assert.doesNotMatch(siteLayout, /<main\b/);
   });
 
-  function typeLayoutSource(name: string) {
-    return readFileSync(new URL(`./layouts/${name}.astro`, import.meta.url), 'utf8');
+  function documentPageSource(name: string) {
+    return readFileSync(new URL(`./pages/_pages/${name}.astro`, import.meta.url), 'utf8');
   }
 
-  it('home type layout owns head, landmark frame, t(), and blocks', () => {
-    const home = typeLayoutSource('home');
+  it('home page owns head, landmark frame, t(), and blocks', () => {
+    const home = documentPageSource('home');
     assert.match(home, /from ['"]astro:content['"]/);
     assert.match(home, /\brender\s*\(/);
     assert.match(home, /useTranslations/);
@@ -193,10 +192,10 @@ describe('layout source', () => {
     assert.doesNotMatch(home, /<h1\b/);
   });
 
-  it('listing, post, and term type layouts own extra queries, head, and blocks', () => {
-    const listing = typeLayoutSource('listing');
-    const post = typeLayoutSource('post');
-    const term = typeLayoutSource('term');
+  it('listing, post, and term pages own extra queries, head, and blocks', () => {
+    const listing = documentPageSource('listing');
+    const post = documentPageSource('post');
+    const term = documentPageSource('term');
 
     for (const [name, source] of [
       ['listing', listing],
@@ -260,7 +259,7 @@ describe('locale switcher', () => {
   });
 });
 
-describe('render home type layout', () => {
+describe('render home page', () => {
   it('renders a fixture en entry with missing de sibling', async () => {
     const { resetIntlQuery, setIntlLoaders } = await import(
       '../../../packages/astro-intl/src/helpers.ts'
@@ -301,12 +300,12 @@ describe('render home type layout', () => {
       assert.deepEqual(await getAlternatePaths('pages/home'), { en: '/' });
 
       const compiled = await compileGraph([
-        path.join(srcDir, 'layouts/home.astro'),
+        path.join(srcDir, 'pages/_pages/home.astro'),
         ...sharedLayoutFiles,
       ]);
 
       const homeMod = await import(
-        pathToFileURL(compiled.get(path.join(srcDir, 'layouts/home.astro')) ?? '').href
+        pathToFileURL(compiled.get(path.join(srcDir, 'pages/_pages/home.astro')) ?? '').href
       );
       const container = await AstroContainer.create();
       const html = await container.renderToString(homeMod.default, {
@@ -550,7 +549,7 @@ function assertHeadAndLandmark(html: string, locale: string) {
   assert.match(html, /aria-current="page"/);
 }
 
-describe('render listing, post, and term type layouts', () => {
+describe('render listing, post, and term pages', () => {
   it('renders fixture en/de entries: listing queries posts, post may query related, term renders the term page', async () => {
     await withIntl(async () => {
       assert.deepEqual(await getAlternatePaths('pages/blog'), { en: 'blog', de: 'artikel' });
@@ -565,16 +564,16 @@ describe('render listing, post, and term type layouts', () => {
 
       const compiled = await compileGraph(
         [
-          path.join(srcDir, 'layouts/listing.astro'),
-          path.join(srcDir, 'layouts/post.astro'),
-          path.join(srcDir, 'layouts/term.astro'),
+          path.join(srcDir, 'pages/_pages/listing.astro'),
+          path.join(srcDir, 'pages/_pages/post.astro'),
+          path.join(srcDir, 'pages/_pages/term.astro'),
           ...sharedLayoutFiles,
         ],
         { blog: blogPosts, tags: termPages },
       );
       const container = await AstroContainer.create();
 
-      async function renderLayout(
+      async function renderPage(
         file: string,
         locale: string,
         entry: unknown,
@@ -587,8 +586,8 @@ describe('render listing, post, and term type layouts', () => {
         });
       }
 
-      const listingEn = await renderLayout(
-        path.join(srcDir, 'layouts/listing.astro'),
+      const listingEn = await renderPage(
+        path.join(srcDir, 'pages/_pages/listing.astro'),
         'en',
         listingPages[0],
         'https://example.com/en/blog/',
@@ -610,8 +609,8 @@ describe('render listing, post, and term type layouts', () => {
       assert.match(listingEn, /href="\/de\/artikel\/"/);
       assert.match(listingEn, /rel="alternate"[^>]*hreflang="de"/);
 
-      const listingDe = await renderLayout(
-        path.join(srcDir, 'layouts/listing.astro'),
+      const listingDe = await renderPage(
+        path.join(srcDir, 'pages/_pages/listing.astro'),
         'de',
         listingPages[1],
         'https://example.com/de/artikel/',
@@ -628,8 +627,8 @@ describe('render listing, post, and term type layouts', () => {
       assert.doesNotMatch(listingDe, /Hello world/);
       assert.match(listingDe, /href="\/en\/blog\/"/);
 
-      const postEn = await renderLayout(
-        path.join(srcDir, 'layouts/post.astro'),
+      const postEn = await renderPage(
+        path.join(srcDir, 'pages/_pages/post.astro'),
         'en',
         blogPosts[0],
         'https://example.com/en/blog/hello-world/',
@@ -650,8 +649,8 @@ describe('render listing, post, and term type layouts', () => {
       assert.doesNotMatch(postEn, /Measure überschreiben/);
       assert.match(postEn, /href="\/de\/artikel\/hallo-welt\/"/);
 
-      const postDe = await renderLayout(
-        path.join(srcDir, 'layouts/post.astro'),
+      const postDe = await renderPage(
+        path.join(srcDir, 'pages/_pages/post.astro'),
         'de',
         blogPosts[1],
         'https://example.com/de/artikel/hallo-welt/',
@@ -665,8 +664,8 @@ describe('render listing, post, and term type layouts', () => {
       assert.match(postDe, /href="\/de\/artikel\/overwrite-container\/"/);
       assert.match(postDe, /href="\/en\/blog\/hello-world\/"/);
 
-      const termEn = await renderLayout(
-        path.join(srcDir, 'layouts/term.astro'),
+      const termEn = await renderPage(
+        path.join(srcDir, 'pages/_pages/term.astro'),
         'en',
         termPages[0],
         'https://example.com/en/tags/announcements/',
@@ -680,8 +679,8 @@ describe('render listing, post, and term type layouts', () => {
       assert.doesNotMatch(termEn, /Overwrite Measure/);
       assert.match(termEn, /href="\/de\/schlagworte\/ankuendigungen\/"/);
 
-      const termDe = await renderLayout(
-        path.join(srcDir, 'layouts/term.astro'),
+      const termDe = await renderPage(
+        path.join(srcDir, 'pages/_pages/term.astro'),
         'de',
         termPages[1],
         'https://example.com/de/schlagworte/ankuendigungen/',

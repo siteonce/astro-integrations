@@ -1,5 +1,5 @@
 ---
-// Post type layout. Receives locale + the blog-collection entry. Owns render(),
+// Post page. Receives locale + the blog-collection entry. Owns render(),
 // related-post query, and Article + RelatedPosts composition. Wraps SiteLayout.
 // No section UI beyond Measure / Flow on <main>.
 import { getCollection, render } from 'astro:content';
@@ -10,14 +10,14 @@ import { Article, RelatedPosts, Schema, Seo } from '@repo/astro-site/components'
 import { isLocal, isPreview } from '@repo/astro-site/utils/deploy-env';
 import { getRelatedContent } from '@repo/astro-site/utils/related-content';
 import { ogImageFor } from '@repo/og-image/utils/og-image-for';
-import { deployConfig } from '../deploy-config.ts';
-import intlConfig from '../intl.config.ts';
-import { localeFolder } from '../locale-folder.ts';
-import { localeSwitcherLinks } from '../locale-switcher.ts';
-import { ogConfig } from '../og-config.ts';
-import { siteConfig } from '../site-config.ts';
-import { useTranslations } from '../t.ts';
-import SiteLayout from './site-layout.astro';
+import { deployConfig } from '../../deploy-config.ts';
+import intlConfig from '../../intl.config.ts';
+import { localeFolder } from '../../locale-folder.ts';
+import { localeSwitcherLinks } from '../../locale-switcher.ts';
+import { ogConfig } from '../../og-config.ts';
+import { siteConfig } from '../../site-config.ts';
+import { useTranslations } from '../../t.ts';
+import SiteLayout from '../../layouts/site-layout.astro';
 
 interface Props {
   locale: string;

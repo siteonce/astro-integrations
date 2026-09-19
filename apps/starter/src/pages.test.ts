@@ -8,7 +8,7 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 import { defineIntl, getRoutedStaticPaths } from '@repo/astro-intl';
 import { experimental_AstroContainer as AstroContainer } from 'astro/container';
 import { missingLocaleChain } from './missing-locale.ts';
-import { typeLayoutName } from './type-layout.ts';
+import { pageName } from './page-name.ts';
 
 const srcDir = fileURLToPath(new URL('.', import.meta.url));
 const appRoot = path.join(srcDir, '..');
@@ -116,14 +116,14 @@ describe('root index', () => {
 describe('404 template', () => {
   const source = readFileSync(new URL('./pages/404.astro', import.meta.url), 'utf8');
 
-  it('uses catalog chrome, copied Seo, and blocks without a type layout', () => {
+  it('uses catalog chrome, copied Seo, and blocks without a `_pages` file', () => {
     assert.match(source, /useTranslations/);
     assert.match(source, /<Seo\b/);
     assert.match(source, /siteConfig=\{siteConfig\}/);
     assert.match(source, /<NotFound\b/);
     assert.match(source, /from ['"]@repo\/astro-site\/components['"]/);
     assert.match(source, /from ['"]\.\.\/layouts\/site-layout\.astro['"]/);
-    assert.doesNotMatch(source, /from ['"]\.\.\/layouts\/(?:home|listing|post|term)\.astro['"]/);
+    assert.doesNotMatch(source, /from ['"]\.\.\/_pages\//);
     assert.doesNotMatch(source, /from ['"]@repo\/astro['"/]/);
   });
 });
@@ -173,6 +173,7 @@ const pagesDir = path.join(srcDir, 'pages');
 function listPageFiles(dir: string, prefix = ''): string[] {
   const out: string[] = [];
   for (const name of readdirSync(dir, { withFileTypes: true })) {
+    if (name.name.startsWith('_')) continue;
     const rel = prefix ? `${prefix}/${name.name}` : name.name;
     if (name.isDirectory()) {
       out.push(...listPageFiles(path.join(dir, name.name), rel));
@@ -186,18 +187,18 @@ function listPageFiles(dir: string, prefix = ''): string[] {
 describe('catch-all source', () => {
   const source = readFileSync(catchAllUrl, 'utf8');
 
-  it('is the CMS router: getStaticPaths, lookup, missing-locale, type layout', () => {
+  it('is the CMS router: getStaticPaths, lookup, missing-locale, `_pages`', () => {
     assert.equal(existsSync(catchAllFile), true);
     assert.match(source, /export function getStaticPaths/);
     assert.match(source, /getRoutedStaticPaths/);
     assert.match(source, /getContentByPath/);
     assert.match(source, /setIntlConfig/);
     assert.match(source, /missingLocaleChain/);
-    assert.match(source, /typeLayoutName/);
-    assert.match(source, /from ['"]\.\.\/\.\.\/layouts\/home\.astro['"]/);
-    assert.match(source, /from ['"]\.\.\/\.\.\/layouts\/listing\.astro['"]/);
-    assert.match(source, /from ['"]\.\.\/\.\.\/layouts\/post\.astro['"]/);
-    assert.match(source, /from ['"]\.\.\/\.\.\/layouts\/term\.astro['"]/);
+    assert.match(source, /pageName/);
+    assert.match(source, /from ['"]\.\.\/_pages\/home\.astro['"]/);
+    assert.match(source, /from ['"]\.\.\/_pages\/listing\.astro['"]/);
+    assert.match(source, /from ['"]\.\.\/_pages\/post\.astro['"]/);
+    assert.match(source, /from ['"]\.\.\/_pages\/term\.astro['"]/);
     assert.match(source, /locale=\{locale\}/);
     assert.match(source, /entry=\{entry/);
     assert.match(source, /Astro\.redirect/);
@@ -233,16 +234,27 @@ describe('pages file routes', () => {
       assert.doesNotMatch(file, /(^|\/)about\.astro$/);
     }
   });
+
+  it('keeps document pages in `_pages`', () => {
+    const dir = path.join(pagesDir, '_pages');
+    assert.equal(existsSync(dir), true);
+    assert.deepEqual(readdirSync(dir).sort(), [
+      'home.astro',
+      'listing.astro',
+      'post.astro',
+      'term.astro',
+    ]);
+  });
 });
 
-describe('type layout map', () => {
+describe('page name map', () => {
   it('picks from collection / page type', () => {
-    assert.equal(typeLayoutName({ collection: 'pages', data: { pageType: 'home' } }), 'home');
-    assert.equal(typeLayoutName({ collection: 'pages', data: { pageType: 'listing' } }), 'listing');
-    assert.equal(typeLayoutName({ collection: 'blog', data: {} }), 'post');
-    assert.equal(typeLayoutName({ collection: 'tags', data: {} }), 'term');
-    assert.throws(() => typeLayoutName({ collection: 'authors', data: {} }));
-    assert.throws(() => typeLayoutName({ collection: 'pages', data: { pageType: 'contact' } }));
+    assert.equal(pageName({ collection: 'pages', data: { pageType: 'home' } }), 'home');
+    assert.equal(pageName({ collection: 'pages', data: { pageType: 'listing' } }), 'listing');
+    assert.equal(pageName({ collection: 'blog', data: {} }), 'post');
+    assert.equal(pageName({ collection: 'tags', data: {} }), 'term');
+    assert.throws(() => pageName({ collection: 'authors', data: {} }));
+    assert.throws(() => pageName({ collection: 'pages', data: { pageType: 'contact' } }));
   });
 });
 
@@ -428,15 +440,15 @@ describe('catch-all getStaticPaths', () => {
   });
 });
 
-const typeLayouts = ['home', 'listing', 'post', 'term'] as const;
+const documentPages = ['home', 'listing', 'post', 'term'] as const;
 
 async function compileCatchAll() {
   await mkdir(compileCache, { recursive: true });
   const dir = await mkdtemp(path.join(compileCache, 'catchall-'));
   const compiled = new Map<string, string>();
   compiled.set(catchAllFile, path.join(dir, 'path.mjs'));
-  for (const name of typeLayouts) {
-    compiled.set(path.join(srcDir, `layouts/${name}.astro`), path.join(dir, `${name}.mjs`));
+  for (const name of documentPages) {
+    compiled.set(path.join(srcDir, `pages/_pages/${name}.astro`), path.join(dir, `${name}.mjs`));
   }
 
   const i18nMock = path.join(dir, 'astro-i18n.mjs');
@@ -462,12 +474,12 @@ async function compileCatchAll() {
     return undefined;
   }
 
-  for (const name of typeLayouts) {
-    const file = path.join(srcDir, `layouts/${name}.astro`);
+  for (const name of documentPages) {
+    const file = path.join(srcDir, `pages/_pages/${name}.astro`);
     const source = `---
 const { locale, entry } = Astro.props;
 ---
-<div data-type-layout="${name}" data-locale={locale} data-entry-id={entry.id}></div>
+<div data-page="${name}" data-locale={locale} data-entry-id={entry.id}></div>
 `;
     const result = transform(source, {
       filename: `${name}.astro`,
@@ -497,7 +509,7 @@ const { locale, entry } = Astro.props;
 }
 
 describe('render catch-all', () => {
-  it('picks the matching type layout and passes locale + entry', async () => {
+  it('picks the matching `_pages` file and passes locale + entry', async () => {
     await withIntl(async () => {
       const compiled = await compileCatchAll();
       const mod = await import(pathToFileURL(compiled.get(catchAllFile) ?? '').href);
@@ -521,12 +533,12 @@ describe('render catch-all', () => {
       }
 
       const home = await renderPath('en', undefined, 'https://example.com/en/');
-      assert.match(home, /data-type-layout="home"/);
+      assert.match(home, /data-page="home"/);
       assert.match(home, /data-locale="en"/);
       assert.match(home, /data-entry-id="home\/en"/);
 
       const listing = await renderPath('de', 'artikel', 'https://example.com/de/artikel/');
-      assert.match(listing, /data-type-layout="listing"/);
+      assert.match(listing, /data-page="listing"/);
       assert.match(listing, /data-locale="de"/);
       assert.match(listing, /data-entry-id="blog\/de"/);
 
@@ -535,7 +547,7 @@ describe('render catch-all', () => {
         'artikel/hallo-welt',
         'https://example.com/de/artikel/hallo-welt/',
       );
-      assert.match(post, /data-type-layout="post"/);
+      assert.match(post, /data-page="post"/);
       assert.match(post, /data-locale="de"/);
       assert.match(post, /data-entry-id="hello-world\/de"/);
 
@@ -544,7 +556,7 @@ describe('render catch-all', () => {
         'tags/announcements',
         'https://example.com/en/tags/announcements/',
       );
-      assert.match(term, /data-type-layout="term"/);
+      assert.match(term, /data-page="term"/);
       assert.match(term, /data-locale="en"/);
       assert.match(term, /data-entry-id="announcements\/en"/);
     });
