@@ -22,6 +22,7 @@ export { id, locale, slug } from './fragments.ts';
 export type { DocumentHead, RoutedStaticPath, SitemapEntry } from './helpers.ts';
 export {
   getAlternatePaths,
+  getAlternatePathsForPath,
   getContentById,
   getContentByPath,
   getDocumentHead,

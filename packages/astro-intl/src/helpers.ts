@@ -85,6 +85,13 @@ export async function getAlternatePaths(entryId: string): Promise<Record<string,
   return (await loadQuery()).getAlternatePaths(entryId);
 }
 
+export async function getAlternatePathsForPath(
+  locale: string,
+  path: string,
+): Promise<Record<string, string>> {
+  return (await loadQuery()).getAlternatePathsForPath(locale, path);
+}
+
 export async function getRoutedStaticPaths(): Promise<RoutedStaticPath[]> {
   return (await loadQuery()).getRoutedStaticPaths();
 }

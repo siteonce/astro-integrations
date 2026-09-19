@@ -4,12 +4,7 @@
 // chain, and picks a type layout from collection / page type. Does not
 // compose blocks.
 import { getRelativeLocaleUrl } from 'astro:i18n';
-import {
-  getAlternatePaths,
-  getContentByPath,
-  getRoutedStaticPaths,
-  setIntlConfig,
-} from '@repo/astro-intl';
+import { getContentByPath, getRoutedStaticPaths, setIntlConfig } from '@repo/astro-intl';
 import intlConfig from '../../intl.config.ts';
 import Home from '../../layouts/home.astro';
 import Listing from '../../layouts/listing.astro';
@@ -42,7 +37,6 @@ if (!entry) {
     path,
     defaultLocale: intlConfig.defaultLocale,
     getContentByPath,
-    getAlternatePaths,
     hrefFor: (code, tail) => (tail ? getRelativeLocaleUrl(code, tail) : getRelativeLocaleUrl(code)),
   });
   if (result.kind === 'redirect') return Astro.redirect(result.href);

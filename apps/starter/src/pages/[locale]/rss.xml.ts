@@ -1,7 +1,7 @@
 import { getCollection } from 'astro:content';
 import { getAbsoluteLocaleUrl } from 'astro:i18n';
 import rss from '@astrojs/rss';
-import { getAlternatePaths, getSitemapEntries, setIntlConfig } from '@repo/astro-intl';
+import { getAlternatePathsForPath, getSitemapEntries, setIntlConfig } from '@repo/astro-intl';
 import type { APIRoute } from 'astro';
 import intlConfig from '../../intl.config.ts';
 import { siteConfig } from '../../site-config.ts';
@@ -23,10 +23,8 @@ export const GET: APIRoute = async (context) => {
   const entries = await getSitemapEntries();
   persistIntlSitemapEntries(entries);
 
-  const byEntryId = new Map(
-    entries
-      .filter((entry) => entry.locale === locale && entry.entryId)
-      .map((entry) => [entry.entryId, entry]),
+  const byPath = new Map(
+    entries.filter((entry) => entry.locale === locale).map((entry) => [entry.path, entry]),
   );
 
   const posts = (await getCollection('blog'))
@@ -35,9 +33,9 @@ export const GET: APIRoute = async (context) => {
 
   const items = await Promise.all(
     posts.map(async (post) => {
-      const tails = await getAlternatePaths(post.data.id);
+      const tails = await getAlternatePathsForPath(locale, post.data.slug);
       const tail = tails[locale];
-      const loc = byEntryId.get(post.data.id)?.loc;
+      const loc = byPath.get(post.data.slug)?.loc;
       return {
         title: post.data.seoTitle,
         description: post.data.excerpt,

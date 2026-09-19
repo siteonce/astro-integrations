@@ -253,10 +253,10 @@ describe('locale switcher', () => {
     const withSibling = localeSwitcherLinks(
       ['en', 'de'],
       'en',
-      { en: 'blog/hello-world', de: 'blog/hallo-welt' },
+      { en: 'blog/hello-world', de: 'artikel/hallo-welt' },
       hrefFor,
     );
-    assert.equal(withSibling[1]?.href, '/de/blog/hallo-welt/');
+    assert.equal(withSibling[1]?.href, '/de/artikel/hallo-welt/');
   });
 });
 
@@ -271,6 +271,7 @@ describe('render home type layout', () => {
       locales: ['en', 'de'],
       defaultLocale: 'en',
       routing: { prefixDefaultLocale: true },
+      entryId: 'collectionFolder',
       collections: {
         pages: { slugField: 'slug' },
       },
@@ -278,9 +279,10 @@ describe('render home type layout', () => {
     const collections = {
       pages: [
         {
-          id: 'home-en',
+          id: 'home/en',
+          collection: 'pages',
+          filePath: 'home/en.mdx',
           data: {
-            id: 'home',
             locale: 'en',
             slug: '/',
             seoDesc: 'A new site built with Site Once.',
@@ -296,7 +298,7 @@ describe('render home type layout', () => {
     });
 
     try {
-      assert.deepEqual(await getAlternatePaths('home'), { en: '/' });
+      assert.deepEqual(await getAlternatePaths('pages/home'), { en: '/' });
 
       const compiled = await compileGraph([
         path.join(srcDir, 'layouts/home.astro'),
@@ -349,9 +351,10 @@ describe('render home type layout', () => {
 
 const listingPages = [
   {
-    id: 'pages/blog/en',
+    id: 'blog/en',
+    collection: 'pages',
+    filePath: 'blog/en.mdx',
     data: {
-      id: 'blog',
       locale: 'en',
       slug: 'blog',
       pageType: 'listing',
@@ -360,11 +363,12 @@ const listingPages = [
     },
   },
   {
-    id: 'pages/blog/de',
+    id: 'blog/de',
+    collection: 'pages',
+    filePath: 'blog/de.mdx',
     data: {
-      id: 'blog',
       locale: 'de',
-      slug: 'blog',
+      slug: 'artikel',
       pageType: 'listing',
       seoTitle: 'Blog',
       seoDesc: 'Aktuelle Beiträge dieser Site.',
@@ -374,11 +378,12 @@ const listingPages = [
 
 const blogPosts = [
   {
-    id: 'blog/hello-world/en',
+    id: 'hello-world/en',
+    collection: 'blog',
+    filePath: 'hello-world/en.mdx',
     data: {
-      id: 'hello-world',
       locale: 'en',
-      slug: 'hello-world',
+      slug: 'blog/hello-world',
       seoTitle: 'Hello world',
       seoDesc: 'The first post on a site built with Site Once.',
       excerpt: 'This sample post ships with the starter.',
@@ -390,11 +395,12 @@ const blogPosts = [
     },
   },
   {
-    id: 'blog/hello-world/de',
+    id: 'hello-world/de',
+    collection: 'blog',
+    filePath: 'hello-world/de.mdx',
     data: {
-      id: 'hello-world',
       locale: 'de',
-      slug: 'hallo-welt',
+      slug: 'artikel/hallo-welt',
       seoTitle: 'Hallo Welt',
       seoDesc: 'Der erste Beitrag auf einer Site, gebaut mit Site Once.',
       excerpt: 'Dieser Beispielbeitrag liegt im Starter.',
@@ -406,11 +412,12 @@ const blogPosts = [
     },
   },
   {
-    id: 'blog/overwrite-container/en',
+    id: 'overwrite-container/en',
+    collection: 'blog',
+    filePath: 'overwrite-container/en.mdx',
     data: {
-      id: 'overwrite-container',
       locale: 'en',
-      slug: 'overwrite-container',
+      slug: 'blog/overwrite-container',
       seoTitle: 'Overwrite Measure',
       seoDesc: 'Tune a Measure with static measure classes.',
       excerpt: 'Put measure classes on the landmark.',
@@ -422,11 +429,12 @@ const blogPosts = [
     },
   },
   {
-    id: 'blog/overwrite-container/de',
+    id: 'overwrite-container/de',
+    collection: 'blog',
+    filePath: 'overwrite-container/de.mdx',
     data: {
-      id: 'overwrite-container',
       locale: 'de',
-      slug: 'overwrite-container',
+      slug: 'artikel/overwrite-container',
       seoTitle: 'Measure überschreiben',
       seoDesc: 'Measure mit statischen Klassen anpassen.',
       excerpt: 'Measure-Klassen ans Landmark.',
@@ -441,41 +449,45 @@ const blogPosts = [
 
 const termPages = [
   {
-    id: 'tags/announcements/en',
+    id: 'announcements/en',
+    collection: 'tags',
+    filePath: 'announcements/en.mdx',
     data: {
-      id: 'announcements',
       locale: 'en',
-      slug: 'announcements',
+      slug: 'tags/announcements',
       seoTitle: 'Announcements',
       seoDesc: 'Posts tagged announcements.',
     },
   },
   {
-    id: 'tags/announcements/de',
+    id: 'announcements/de',
+    collection: 'tags',
+    filePath: 'announcements/de.mdx',
     data: {
-      id: 'announcements',
       locale: 'de',
-      slug: 'ankuendigungen',
+      slug: 'schlagworte/ankuendigungen',
       seoTitle: 'Ankündigungen',
       seoDesc: 'Beiträge zu Ankündigungen.',
     },
   },
   {
-    id: 'tags/engineering/en',
+    id: 'engineering/en',
+    collection: 'tags',
+    filePath: 'engineering/en.mdx',
     data: {
-      id: 'engineering',
       locale: 'en',
-      slug: 'engineering',
+      slug: 'tags/engineering',
       seoTitle: 'Engineering',
       seoDesc: 'Posts tagged engineering.',
     },
   },
   {
-    id: 'tags/engineering/de',
+    id: 'engineering/de',
+    collection: 'tags',
+    filePath: 'engineering/de.mdx',
     data: {
-      id: 'engineering',
       locale: 'de',
-      slug: 'technik',
+      slug: 'schlagworte/technik',
       seoTitle: 'Technik',
       seoDesc: 'Beiträge zu Technik.',
     },
@@ -494,10 +506,11 @@ function starterIntlConfig() {
     locales: ['en', 'de'],
     defaultLocale: 'en',
     routing: { prefixDefaultLocale: true },
+    entryId: 'collectionFolder',
     collections: {
       pages: { slugField: 'slug' },
-      blog: { pathPrefix: 'blog' },
-      tags: { pathPrefix: 'tags' },
+      blog: { slugField: 'slug' },
+      tags: { slugField: 'slug' },
       authors: {},
     },
   });
@@ -540,14 +553,14 @@ function assertHeadAndLandmark(html: string, locale: string) {
 describe('render listing, post, and term type layouts', () => {
   it('renders fixture en/de entries: listing queries posts, post may query related, term renders the term page', async () => {
     await withIntl(async () => {
-      assert.deepEqual(await getAlternatePaths('blog'), { en: 'blog', de: 'blog' });
-      assert.deepEqual(await getAlternatePaths('hello-world'), {
+      assert.deepEqual(await getAlternatePaths('pages/blog'), { en: 'blog', de: 'artikel' });
+      assert.deepEqual(await getAlternatePaths('blog/hello-world'), {
         en: 'blog/hello-world',
-        de: 'blog/hallo-welt',
+        de: 'artikel/hallo-welt',
       });
-      assert.deepEqual(await getAlternatePaths('announcements'), {
+      assert.deepEqual(await getAlternatePaths('tags/announcements'), {
         en: 'tags/announcements',
-        de: 'tags/ankuendigungen',
+        de: 'schlagworte/ankuendigungen',
       });
 
       const compiled = await compileGraph(
@@ -594,24 +607,24 @@ describe('render listing, post, and term type layouts', () => {
       assert.match(listingEn, /Engineering/);
       assert.match(listingEn, /href="\/en\/tags\/engineering\/"/);
       assert.doesNotMatch(listingEn, /Hallo Welt/);
-      assert.match(listingEn, /href="\/de\/blog\/"/);
+      assert.match(listingEn, /href="\/de\/artikel\/"/);
       assert.match(listingEn, /rel="alternate"[^>]*hreflang="de"/);
 
       const listingDe = await renderLayout(
         path.join(srcDir, 'layouts/listing.astro'),
         'de',
         listingPages[1],
-        'https://example.com/de/blog/',
+        'https://example.com/de/artikel/',
       );
       assertHeadAndLandmark(listingDe, 'de');
       assert.match(listingDe, /<h1[^>]*>Blog<\/h1>/);
       assert.match(listingDe, /Hallo Welt/);
-      assert.match(listingDe, /href="\/de\/blog\/hallo-welt\/"/);
+      assert.match(listingDe, /href="\/de\/artikel\/hallo-welt\/"/);
       assert.match(listingDe, /Measure überschreiben/);
       assert.match(listingDe, /Ankündigungen/);
-      assert.match(listingDe, /href="\/de\/tags\/ankuendigungen\/"/);
+      assert.match(listingDe, /href="\/de\/schlagworte\/ankuendigungen\/"/);
       assert.match(listingDe, /Technik/);
-      assert.match(listingDe, /href="\/de\/tags\/technik\/"/);
+      assert.match(listingDe, /href="\/de\/schlagworte\/technik\/"/);
       assert.doesNotMatch(listingDe, /Hello world/);
       assert.match(listingDe, /href="\/en\/blog\/"/);
 
@@ -635,21 +648,21 @@ describe('render listing, post, and term type layouts', () => {
       assert.match(postEn, /Overwrite Measure/);
       assert.match(postEn, /href="\/en\/blog\/overwrite-container\/"/);
       assert.doesNotMatch(postEn, /Measure überschreiben/);
-      assert.match(postEn, /href="\/de\/blog\/hallo-welt\/"/);
+      assert.match(postEn, /href="\/de\/artikel\/hallo-welt\/"/);
 
       const postDe = await renderLayout(
         path.join(srcDir, 'layouts/post.astro'),
         'de',
         blogPosts[1],
-        'https://example.com/de/blog/hallo-welt/',
+        'https://example.com/de/artikel/hallo-welt/',
       );
       assertHeadAndLandmark(postDe, 'de');
       assert.match(postDe, /<h1[^>]*>Hallo Welt<\/h1>/);
       assert.match(postDe, /Ankündigungen/);
-      assert.match(postDe, /href="\/de\/tags\/ankuendigungen\/"/);
+      assert.match(postDe, /href="\/de\/schlagworte\/ankuendigungen\/"/);
       assert.match(postDe, /<h2[^>]*>Ähnlich<\/h2>/);
       assert.match(postDe, /Measure überschreiben/);
-      assert.match(postDe, /href="\/de\/blog\/overwrite-container\/"/);
+      assert.match(postDe, /href="\/de\/artikel\/overwrite-container\/"/);
       assert.match(postDe, /href="\/en\/blog\/hello-world\/"/);
 
       const termEn = await renderLayout(
@@ -665,19 +678,19 @@ describe('render listing, post, and term type layouts', () => {
       assert.match(termEn, /Hello world/);
       assert.match(termEn, /href="\/en\/blog\/hello-world\/"/);
       assert.doesNotMatch(termEn, /Overwrite Measure/);
-      assert.match(termEn, /href="\/de\/tags\/ankuendigungen\/"/);
+      assert.match(termEn, /href="\/de\/schlagworte\/ankuendigungen\/"/);
 
       const termDe = await renderLayout(
         path.join(srcDir, 'layouts/term.astro'),
         'de',
         termPages[1],
-        'https://example.com/de/tags/ankuendigungen/',
+        'https://example.com/de/schlagworte/ankuendigungen/',
       );
       assertHeadAndLandmark(termDe, 'de');
       assert.match(termDe, /<h1[^>]*>Ankündigungen<\/h1>/);
       assert.match(termDe, /Beiträge zu Ankündigungen/);
       assert.match(termDe, /Hallo Welt/);
-      assert.match(termDe, /href="\/de\/blog\/hallo-welt\/"/);
+      assert.match(termDe, /href="\/de\/artikel\/hallo-welt\/"/);
       assert.doesNotMatch(termDe, /Measure überschreiben/);
       assert.match(termDe, /href="\/en\/tags\/announcements\/"/);
     });

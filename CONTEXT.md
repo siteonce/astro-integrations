@@ -54,6 +54,12 @@ A snapshot monorepo that is the foundation for every Astro **content site** buil
 
 **taxonomy**: A named vocabulary of **terms**. Site-owned as a content collection when the site catalogs terms or those terms own URLs. _Avoid_: tag registry, TaxonomyType
 
+**slug** (entry field): The public tail after the locale prefix. Homepage is `/`. Not the pairing `id` and not Astro’s collection id. _Avoid_: authored path, per-entry pathPrefix
+
+**pairing `id`**: Shared key that joins locale siblings of one document. For Astro file collections it is generated from the collection and folder, not authored. Distinct from the public `slug` and from Astro’s per-file collection `id`. CMS entries bring their own document id. _Avoid_: using slug as the group key; treating `entry.id` as the pairing key
+
+**section**: A locale-specific prefix of a routed collection’s public tail (`blog` vs `artikel`, or a multi-segment prefix such as `about/history` vs `ueber-uns/geschichte`). Listing slug equals a section; an entry slug is that section plus one rest segment. _Avoid_: pathPrefix (as a document field), catalog key (for this)
+
 ### Lifecycle & head components
 
 **`BaseLayout`**: The bare HTML skeleton component — `<html lang>` plus a `<head>` slot and a `<body>` slot.

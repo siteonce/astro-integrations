@@ -58,17 +58,25 @@ function listEntries(collection: string): { filePath: string; data: Frontmatter 
   return out;
 }
 
-function pairKey(locale: string, id: string) {
-  return `${locale}:${id}`;
+function pairKey(locale: string, folder: string) {
+  return `${locale}:${folder}`;
 }
 
-function byIdLocale(entries: { data: Frontmatter }[]) {
+function localeFolderFromFile(filePath: string): string {
+  const parts = filePath.replaceAll('\\', '/').split('/').filter(Boolean);
+  const folder = parts.at(-2);
+  assert.ok(folder, `expected locale folder in ${filePath}`);
+  return folder;
+}
+
+function byFolderLocale(entries: { filePath: string; data: Frontmatter }[]) {
   const map = new Map<string, Frontmatter>();
   for (const entry of entries) {
-    const id = String(entry.data.id);
+    assert.equal(entry.data.id, undefined, `${entry.filePath} must not author pairing id`);
+    const folder = localeFolderFromFile(entry.filePath);
     const locale = String(entry.data.locale);
-    const key = pairKey(locale, id);
-    assert.equal(map.has(key), false, `duplicate (id, locale) ${key}`);
+    const key = pairKey(locale, folder);
+    assert.equal(map.has(key), false, `duplicate (folder, locale) ${key}`);
     map.set(key, entry.data);
   }
   return map;
@@ -89,10 +97,10 @@ describe('starter content', () => {
   const authors = listEntries('authors');
 
   it('pairs en/de home, listing, posts, term pages, and authors', () => {
-    const pageMap = byIdLocale(pages);
-    const postMap = byIdLocale(posts);
-    const tagMap = byIdLocale(tags);
-    const authorMap = byIdLocale(authors);
+    const pageMap = byFolderLocale(pages);
+    const postMap = byFolderLocale(posts);
+    const tagMap = byFolderLocale(tags);
+    const authorMap = byFolderLocale(authors);
 
     const homeEn = pageMap.get(pairKey('en', 'home'));
     const homeDe = pageMap.get(pairKey('de', 'home'));
@@ -105,20 +113,20 @@ describe('starter content', () => {
     const listingDe = pageMap.get(pairKey('de', 'blog'));
     assert.equal(listingEn?.slug, 'blog');
     assert.equal(listingEn?.pageType, 'listing');
-    assert.equal(listingDe?.slug, 'blog');
+    assert.equal(listingDe?.slug, 'artikel');
     assert.equal(listingDe?.pageType, 'listing');
 
     const helloEn = postMap.get(pairKey('en', 'hello-world'));
     const helloDe = postMap.get(pairKey('de', 'hello-world'));
-    assert.equal(helloEn?.slug, 'hello-world');
-    assert.equal(helloDe?.slug, 'hallo-welt');
+    assert.equal(helloEn?.slug, 'blog/hello-world');
+    assert.equal(helloDe?.slug, 'artikel/hallo-welt');
     assert.ok(postMap.get(pairKey('en', 'overwrite-container')));
     assert.ok(postMap.get(pairKey('de', 'overwrite-container')));
 
     const announcementsEn = tagMap.get(pairKey('en', 'announcements'));
     const announcementsDe = tagMap.get(pairKey('de', 'announcements'));
-    assert.equal(announcementsEn?.slug, 'announcements');
-    assert.equal(announcementsDe?.slug, 'ankuendigungen');
+    assert.equal(announcementsEn?.slug, 'tags/announcements');
+    assert.equal(announcementsDe?.slug, 'schlagworte/ankuendigungen');
     assert.ok(tagMap.get(pairKey('en', 'engineering')));
     assert.ok(tagMap.get(pairKey('de', 'engineering')));
     assert.ok(tagMap.get(pairKey('en', 'design')));
@@ -139,10 +147,24 @@ describe('starter content', () => {
     assert.equal(isRouted(intlConfig.collections?.authors), false);
 
     const helloDe = posts.find(
-      (entry) => entry.data.id === 'hello-world' && entry.data.locale === 'de',
+      (entry) =>
+        localeFolderFromFile(entry.filePath) === 'hello-world' && entry.data.locale === 'de',
     );
-    assert.equal(helloDe?.data.slug, 'hallo-welt');
-    assert.equal(`blog/${helloDe?.data.slug}`, 'blog/hallo-welt');
+    assert.equal(helloDe?.data.slug, 'artikel/hallo-welt');
+
+    for (const locale of ['en', 'de']) {
+      const listing = pages.find(
+        (entry) => localeFolderFromFile(entry.filePath) === 'blog' && entry.data.locale === locale,
+      );
+      assert.ok(listing, `listing for ${locale}`);
+      for (const post of posts.filter((entry) => entry.data.locale === locale)) {
+        assert.equal(
+          String(post.data.slug).split('/')[0],
+          listing.data.slug,
+          `${locale} post ${String(post.data.slug)} must start with listing ${String(listing.data.slug)}`,
+        );
+      }
+    }
   });
 
   it('does not keep a locale-free blog-tags term shape', () => {

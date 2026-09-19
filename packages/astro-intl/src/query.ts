@@ -35,6 +35,7 @@ export type IntlQuery = {
   getContentByPath: (locale: string, path: string) => CollectionEntryLike | undefined;
   getContentById: (locale: string, entryId: string) => CollectionEntryLike | undefined;
   getAlternatePaths: (entryId: string) => Record<string, string>;
+  getAlternatePathsForPath: (locale: string, path: string) => Record<string, string>;
   getRoutedStaticPaths: () => RoutedStaticPath[];
   getSitemapEntries: () => SitemapEntry[];
   getDocumentHead: (args: { locale: string; path: string }) => DocumentHead;
@@ -108,6 +109,12 @@ export function createIntlQuery(options: CreateIntlQueryOptions): IntlQuery {
       paths[document.locale] = document.path;
     }
     return paths;
+  }
+
+  function getAlternatePathsForPath(locale: string, path: string): Record<string, string> {
+    const document = pairing.byLocalePath.get(localePathKey(locale, normalizeSlug(path)));
+    if (!document) return {};
+    return getAlternatePaths(document.entryId);
   }
 
   function getRoutedStaticPaths(): RoutedStaticPath[] {
@@ -187,6 +194,7 @@ export function createIntlQuery(options: CreateIntlQueryOptions): IntlQuery {
     getContentByPath,
     getContentById,
     getAlternatePaths,
+    getAlternatePathsForPath,
     getRoutedStaticPaths,
     getSitemapEntries,
     getDocumentHead,

@@ -4,7 +4,7 @@
 // SiteLayout. No section UI beyond Measure / Flow on <main>.
 import { render } from 'astro:content';
 import { getRelativeLocaleUrl } from 'astro:i18n';
-import { getAlternatePaths } from '@repo/astro-intl';
+import { getAlternatePathsForPath } from '@repo/astro-intl';
 import { Hreflang } from '@repo/astro-intl/components';
 import { Hero, Schema, Seo } from '@repo/astro-site/components';
 import { ogImageFor } from '@repo/og-image/utils/og-image-for';
@@ -20,7 +20,6 @@ interface Props {
   entry: {
     body?: string;
     data: {
-      id: string;
       slug?: string;
       seoTitle?: string;
       seoDesc?: string;
@@ -31,7 +30,7 @@ interface Props {
 const { locale, entry } = Astro.props;
 const t = useTranslations(locale);
 const path = entry.data.slug ?? '/';
-const alternates = await getAlternatePaths(entry.data.id);
+const alternates = await getAlternatePathsForPath(locale, path);
 const switcher = localeSwitcherLinks(intlConfig.locales, locale, alternates, (code, tail) =>
   tail ? getRelativeLocaleUrl(code, tail) : getRelativeLocaleUrl(code),
 );
