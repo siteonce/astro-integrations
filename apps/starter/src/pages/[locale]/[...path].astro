@@ -1,28 +1,25 @@
 ---
 // CMS catch-all. Params are document-owned compiled paths
 // (prefixDefaultLocale: true). Looks up the entry, runs the missing-locale
-// chain, and picks a type layout from collection / page type. Does not
+// chain, and globs a `_pages` file from collection / page type. Does not
 // compose blocks.
+import type { AstroInstance } from 'astro';
 import { getRelativeLocaleUrl } from 'astro:i18n';
-import {
-  getAlternatePaths,
-  getContentByPath,
-  getRoutedStaticPaths,
-  setIntlConfig,
-} from '@repo/astro-intl';
+import { getContentByPath, getPairedSlugs, setIntlConfig } from '@repo/astro-intl';
 import intlConfig from '../../intl.config.ts';
-import Home from '../../layouts/home.astro';
-import Listing from '../../layouts/listing.astro';
-import Post from '../../layouts/post.astro';
-import Term from '../../layouts/term.astro';
 import { missingLocaleChain } from '../../missing-locale.ts';
-import { typeLayoutName } from '../../type-layout.ts';
+import { pageName } from '../../page-name.ts';
+
+const pages = import.meta.glob<AstroInstance>('../_pages/*.astro');
 
 // Page bundles do not share the integration's in-memory runtime.
 setIntlConfig(intlConfig);
 
-export function getStaticPaths() {
-  return getRoutedStaticPaths();
+export async function getStaticPaths() {
+  setIntlConfig(intlConfig);
+  return (await getPairedSlugs()).map(({ locale, slug }) => ({
+    params: { locale, path: slug === '/' ? undefined : slug },
+  }));
 }
 
 const locale = Astro.currentLocale ?? Astro.params.locale;
@@ -42,15 +39,18 @@ if (!entry) {
     path,
     defaultLocale: intlConfig.defaultLocale,
     getContentByPath,
-    getAlternatePaths,
     hrefFor: (code, tail) => (tail ? getRelativeLocaleUrl(code, tail) : getRelativeLocaleUrl(code)),
   });
   if (result.kind === 'redirect') return Astro.redirect(result.href);
   return Astro.rewrite('/404');
 }
 
-const layouts = { home: Home, listing: Listing, post: Post, term: Term };
-const Layout = layouts[typeLayoutName(entry)];
+const name = pageName(entry);
+const load = pages[`../_pages/${name}.astro`];
+if (!load) {
+  throw new Error(`starter: no _pages file for "${name}".`);
+}
+const { default: Page } = await load();
 ---
 
-<Layout locale={locale} entry={entry as never} />
+<Page locale={locale} entry={entry as never} />

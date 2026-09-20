@@ -3,13 +3,13 @@ import {
   createIntlQuery,
   type DocumentHead,
   type IntlQuery,
-  type RoutedStaticPath,
+  type PairedSlug,
   type SitemapEntry,
 } from './query.ts';
 import { getIntlRuntime, runtimeGeneration } from './runtime.ts';
 
 export { hreflangLinks } from './hreflang.ts';
-export type { DocumentHead, RoutedStaticPath, SitemapEntry };
+export type { DocumentHead, PairedSlug, SitemapEntry };
 
 export type IntlLoaders = {
   getCollection: (name: string) => Promise<CollectionEntryLike[]>;
@@ -85,8 +85,15 @@ export async function getAlternatePaths(entryId: string): Promise<Record<string,
   return (await loadQuery()).getAlternatePaths(entryId);
 }
 
-export async function getRoutedStaticPaths(): Promise<RoutedStaticPath[]> {
-  return (await loadQuery()).getRoutedStaticPaths();
+export async function getAlternatePathsForPath(
+  locale: string,
+  path: string,
+): Promise<Record<string, string>> {
+  return (await loadQuery()).getAlternatePathsForPath(locale, path);
+}
+
+export async function getPairedSlugs(): Promise<PairedSlug[]> {
+  return (await loadQuery()).getPairedSlugs();
 }
 
 export async function getSitemapEntries(): Promise<SitemapEntry[]> {

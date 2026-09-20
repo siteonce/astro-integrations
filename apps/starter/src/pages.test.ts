@@ -5,10 +5,10 @@ import { createRequire } from 'node:module';
 import path from 'node:path';
 import { describe, it } from 'node:test';
 import { fileURLToPath, pathToFileURL } from 'node:url';
-import { defineIntl, getRoutedStaticPaths } from '@repo/astro-intl';
+import { defineIntl, getPairedSlugs } from '@repo/astro-intl';
 import { experimental_AstroContainer as AstroContainer } from 'astro/container';
 import { missingLocaleChain } from './missing-locale.ts';
-import { typeLayoutName } from './type-layout.ts';
+import { pageName } from './page-name.ts';
 
 const srcDir = fileURLToPath(new URL('.', import.meta.url));
 const appRoot = path.join(srcDir, '..');
@@ -116,14 +116,14 @@ describe('root index', () => {
 describe('404 template', () => {
   const source = readFileSync(new URL('./pages/404.astro', import.meta.url), 'utf8');
 
-  it('uses catalog chrome, copied Seo, and blocks without a type layout', () => {
+  it('uses catalog chrome, copied Seo, and blocks without a `_pages` file', () => {
     assert.match(source, /useTranslations/);
     assert.match(source, /<Seo\b/);
     assert.match(source, /siteConfig=\{siteConfig\}/);
     assert.match(source, /<NotFound\b/);
     assert.match(source, /from ['"]@repo\/astro-site\/components['"]/);
     assert.match(source, /from ['"]\.\.\/layouts\/site-layout\.astro['"]/);
-    assert.doesNotMatch(source, /from ['"]\.\.\/layouts\/(?:home|listing|post|term)\.astro['"]/);
+    assert.doesNotMatch(source, /from ['"]\.\.\/_pages\//);
     assert.doesNotMatch(source, /from ['"]@repo\/astro['"/]/);
   });
 });
@@ -173,6 +173,7 @@ const pagesDir = path.join(srcDir, 'pages');
 function listPageFiles(dir: string, prefix = ''): string[] {
   const out: string[] = [];
   for (const name of readdirSync(dir, { withFileTypes: true })) {
+    if (name.name.startsWith('_')) continue;
     const rel = prefix ? `${prefix}/${name.name}` : name.name;
     if (name.isDirectory()) {
       out.push(...listPageFiles(path.join(dir, name.name), rel));
@@ -186,18 +187,21 @@ function listPageFiles(dir: string, prefix = ''): string[] {
 describe('catch-all source', () => {
   const source = readFileSync(catchAllUrl, 'utf8');
 
-  it('is the CMS router: getStaticPaths, lookup, missing-locale, type layout', () => {
+  it('is the CMS router: getStaticPaths, lookup, missing-locale, `_pages`', () => {
     assert.equal(existsSync(catchAllFile), true);
-    assert.match(source, /export function getStaticPaths/);
-    assert.match(source, /getRoutedStaticPaths/);
+    assert.match(source, /export (?:async )?function getStaticPaths/);
+    assert.match(source, /getPairedSlugs/);
+    assert.match(source, /slug === ['"]\/['"] \? undefined/);
+    assert.doesNotMatch(source, /getRoutedStaticPaths/);
     assert.match(source, /getContentByPath/);
     assert.match(source, /setIntlConfig/);
     assert.match(source, /missingLocaleChain/);
-    assert.match(source, /typeLayoutName/);
-    assert.match(source, /from ['"]\.\.\/\.\.\/layouts\/home\.astro['"]/);
-    assert.match(source, /from ['"]\.\.\/\.\.\/layouts\/listing\.astro['"]/);
-    assert.match(source, /from ['"]\.\.\/\.\.\/layouts\/post\.astro['"]/);
-    assert.match(source, /from ['"]\.\.\/\.\.\/layouts\/term\.astro['"]/);
+    assert.match(source, /pageName/);
+    assert.match(source, /import\.meta\.glob(?:<[^>]+>)?\(\s*['"]\.\.\/_pages\/\*\.astro['"]\s*\)/);
+    assert.doesNotMatch(source, /from ['"]\.\.\/_pages\/home\.astro['"]/);
+    assert.doesNotMatch(source, /from ['"]\.\.\/_pages\/listing\.astro['"]/);
+    assert.doesNotMatch(source, /from ['"]\.\.\/_pages\/post\.astro['"]/);
+    assert.doesNotMatch(source, /from ['"]\.\.\/_pages\/term\.astro['"]/);
     assert.match(source, /locale=\{locale\}/);
     assert.match(source, /entry=\{entry/);
     assert.match(source, /Astro\.redirect/);
@@ -233,16 +237,27 @@ describe('pages file routes', () => {
       assert.doesNotMatch(file, /(^|\/)about\.astro$/);
     }
   });
+
+  it('keeps document pages in `_pages`', () => {
+    const dir = path.join(pagesDir, '_pages');
+    assert.equal(existsSync(dir), true);
+    assert.deepEqual(readdirSync(dir).sort(), [
+      'home.astro',
+      'listing.astro',
+      'post.astro',
+      'term.astro',
+    ]);
+  });
 });
 
-describe('type layout map', () => {
+describe('page name map', () => {
   it('picks from collection / page type', () => {
-    assert.equal(typeLayoutName({ collection: 'pages', data: { pageType: 'home' } }), 'home');
-    assert.equal(typeLayoutName({ collection: 'pages', data: { pageType: 'listing' } }), 'listing');
-    assert.equal(typeLayoutName({ collection: 'blog', data: {} }), 'post');
-    assert.equal(typeLayoutName({ collection: 'tags', data: {} }), 'term');
-    assert.throws(() => typeLayoutName({ collection: 'authors', data: {} }));
-    assert.throws(() => typeLayoutName({ collection: 'pages', data: { pageType: 'contact' } }));
+    assert.equal(pageName({ collection: 'pages', data: { pageType: 'home' } }), 'home');
+    assert.equal(pageName({ collection: 'pages', data: { pageType: 'listing' } }), 'listing');
+    assert.equal(pageName({ collection: 'blog', data: {} }), 'post');
+    assert.equal(pageName({ collection: 'tags', data: {} }), 'term');
+    assert.throws(() => pageName({ collection: 'authors', data: {} }));
+    assert.throws(() => pageName({ collection: 'pages', data: { pageType: 'contact' } }));
   });
 });
 
@@ -255,12 +270,10 @@ describe('missing-locale chain', () => {
       path: 'only-in-en',
       defaultLocale: 'en',
       getContentByPath: async (locale, path) => {
-        if (locale === 'en' && path === 'only-in-en') return { data: { id: 'solo' } };
-        if (path === '/') return { data: { id: 'home' } };
+        if (locale === 'en' && path === 'only-in-en') return { data: {} };
+        if (path === '/') return { data: {} };
         return undefined;
       },
-      getAlternatePaths: async (entryId): Promise<Record<string, string>> =>
-        entryId === 'solo' ? { en: 'only-in-en' } : {},
       hrefFor,
     });
     assert.deepEqual(result, { kind: 'redirect', href: '/en/only-in-en/' });
@@ -272,8 +285,7 @@ describe('missing-locale chain', () => {
       path: 'missing',
       defaultLocale: 'en',
       getContentByPath: async (locale, path) =>
-        path === '/' && locale === 'de' ? { data: { id: 'home' } } : undefined,
-      getAlternatePaths: async () => ({}),
+        path === '/' && locale === 'de' ? { data: {} } : undefined,
       hrefFor,
     });
     assert.deepEqual(toHome, { kind: 'redirect', href: '/de/' });
@@ -283,7 +295,6 @@ describe('missing-locale chain', () => {
       path: 'missing',
       defaultLocale: 'en',
       getContentByPath: async () => undefined,
-      getAlternatePaths: async () => ({}),
       hrefFor,
     });
     assert.deepEqual(missing, { kind: 'not-found' });
@@ -293,61 +304,78 @@ describe('missing-locale chain', () => {
 const routedFixtures = {
   pages: [
     {
-      id: 'pages/home/en',
+      id: 'home/en',
       collection: 'pages',
-      data: { id: 'home', locale: 'en', slug: '/', pageType: 'home' },
+      filePath: 'home/en.mdx',
+      data: { locale: 'en', slug: '/', pageType: 'home' },
     },
     {
-      id: 'pages/home/de',
+      id: 'home/de',
       collection: 'pages',
-      data: { id: 'home', locale: 'de', slug: '/', pageType: 'home' },
+      filePath: 'home/de.mdx',
+      data: { locale: 'de', slug: '/', pageType: 'home' },
     },
     {
-      id: 'pages/blog/en',
+      id: 'blog/en',
       collection: 'pages',
-      data: { id: 'blog', locale: 'en', slug: 'blog', pageType: 'listing' },
+      filePath: 'blog/en.mdx',
+      data: { locale: 'en', slug: 'blog', pageType: 'listing' },
     },
     {
-      id: 'pages/blog/de',
+      id: 'blog/de',
       collection: 'pages',
-      data: { id: 'blog', locale: 'de', slug: 'blog', pageType: 'listing' },
+      filePath: 'blog/de.mdx',
+      data: { locale: 'de', slug: 'artikel', pageType: 'listing' },
     },
   ],
   blog: [
     {
-      id: 'blog/hello-world/en',
+      id: 'hello-world/en',
       collection: 'blog',
-      data: { id: 'hello-world', locale: 'en', slug: 'hello-world' },
+      filePath: 'hello-world/en.mdx',
+      data: { locale: 'en', slug: 'blog/hello-world' },
     },
     {
-      id: 'blog/hello-world/de',
+      id: 'hello-world/de',
       collection: 'blog',
-      data: { id: 'hello-world', locale: 'de', slug: 'hallo-welt' },
+      filePath: 'hello-world/de.mdx',
+      data: { locale: 'de', slug: 'artikel/hallo-welt' },
     },
     {
-      id: 'blog/overwrite-container/en',
+      id: 'overwrite-container/en',
       collection: 'blog',
-      data: { id: 'overwrite-container', locale: 'en', slug: 'overwrite-container' },
+      filePath: 'overwrite-container/en.mdx',
+      data: { locale: 'en', slug: 'blog/overwrite-container' },
     },
     {
-      id: 'blog/overwrite-container/de',
+      id: 'overwrite-container/de',
       collection: 'blog',
-      data: { id: 'overwrite-container', locale: 'de', slug: 'overwrite-container' },
+      filePath: 'overwrite-container/de.mdx',
+      data: { locale: 'de', slug: 'artikel/overwrite-container' },
     },
   ],
   tags: [
     {
-      id: 'tags/announcements/en',
+      id: 'announcements/en',
       collection: 'tags',
-      data: { id: 'announcements', locale: 'en', slug: 'announcements' },
+      filePath: 'announcements/en.mdx',
+      data: { locale: 'en', slug: 'tags/announcements' },
     },
     {
-      id: 'tags/announcements/de',
+      id: 'announcements/de',
       collection: 'tags',
-      data: { id: 'announcements', locale: 'de', slug: 'ankuendigungen' },
+      filePath: 'announcements/de.mdx',
+      data: { locale: 'de', slug: 'schlagworte/ankuendigungen' },
     },
   ],
-  authors: [{ id: 'authors/demo/en', collection: 'authors', data: { id: 'demo', locale: 'en' } }],
+  authors: [
+    {
+      id: 'demo/en',
+      collection: 'authors',
+      filePath: 'demo/en.mdx',
+      data: { locale: 'en' },
+    },
+  ],
 };
 
 function starterIntlConfig() {
@@ -355,10 +383,11 @@ function starterIntlConfig() {
     locales: ['en', 'de'],
     defaultLocale: 'en',
     routing: { prefixDefaultLocale: true },
+    entryId: 'collectionFolder',
     collections: {
       pages: { slugField: 'slug' },
-      blog: { pathPrefix: 'blog' },
-      tags: { pathPrefix: 'tags' },
+      blog: { slugField: 'slug' },
+      tags: { slugField: 'slug' },
       authors: {},
     },
   });
@@ -385,43 +414,52 @@ async function withIntl<T>(run: () => Promise<T>): Promise<T> {
   }
 }
 
+function pairKey(item: { locale: string; slug: string }) {
+  return `${item.locale}:${item.slug}`;
+}
+
 function paramKey(item: { params: { locale: string; path: string | undefined } }) {
   return `${item.params.locale}:${item.params.path ?? '/'}`;
 }
 
 describe('catch-all getStaticPaths', () => {
-  it('emits compiled paths for home, listing, posts, and term pages', async () => {
+  it('asks intl for paired locale+slug, including homepage /', async () => {
     await withIntl(async () => {
-      const paths = await getRoutedStaticPaths();
-      const keys = new Set(paths.map(paramKey));
+      const slugs = await getPairedSlugs();
+      const keys = new Set(slugs.map(pairKey));
       assert.equal(keys.has('en:/'), true);
       assert.equal(keys.has('de:/'), true);
       assert.equal(keys.has('en:blog'), true);
-      assert.equal(keys.has('de:blog'), true);
+      assert.equal(keys.has('de:artikel'), true);
       assert.equal(keys.has('en:blog/hello-world'), true);
-      assert.equal(keys.has('de:blog/hallo-welt'), true);
+      assert.equal(keys.has('de:artikel/hallo-welt'), true);
       assert.equal(keys.has('en:blog/overwrite-container'), true);
-      assert.equal(keys.has('de:blog/overwrite-container'), true);
+      assert.equal(keys.has('de:artikel/overwrite-container'), true);
       assert.equal(keys.has('en:tags/announcements'), true);
-      assert.equal(keys.has('de:tags/ankuendigungen'), true);
+      assert.equal(keys.has('de:schlagworte/ankuendigungen'), true);
       assert.equal(
-        paths.some((item) => item.params.path?.includes('authors')),
+        slugs.some((item) => item.slug.includes('authors')),
         false,
       );
-      assert.equal(paths.filter((item) => item.params.path === 'blog').length, 2);
+      assert.equal(slugs.filter((item) => item.slug === 'blog').length, 1);
+      assert.equal(slugs.filter((item) => item.slug === 'artikel').length, 1);
+      assert.equal(
+        slugs.some((item) => 'params' in item),
+        false,
+      );
     });
   });
 });
 
-const typeLayouts = ['home', 'listing', 'post', 'term'] as const;
+const documentPages = ['home', 'listing', 'post', 'term'] as const;
 
 async function compileCatchAll() {
   await mkdir(compileCache, { recursive: true });
   const dir = await mkdtemp(path.join(compileCache, 'catchall-'));
   const compiled = new Map<string, string>();
   compiled.set(catchAllFile, path.join(dir, 'path.mjs'));
-  for (const name of typeLayouts) {
-    compiled.set(path.join(srcDir, `layouts/${name}.astro`), path.join(dir, `${name}.mjs`));
+  for (const name of documentPages) {
+    compiled.set(path.join(srcDir, `pages/_pages/${name}.astro`), path.join(dir, `${name}.mjs`));
   }
 
   const i18nMock = path.join(dir, 'astro-i18n.mjs');
@@ -447,12 +485,12 @@ async function compileCatchAll() {
     return undefined;
   }
 
-  for (const name of typeLayouts) {
-    const file = path.join(srcDir, `layouts/${name}.astro`);
+  for (const name of documentPages) {
+    const file = path.join(srcDir, `pages/_pages/${name}.astro`);
     const source = `---
 const { locale, entry } = Astro.props;
 ---
-<div data-type-layout="${name}" data-locale={locale} data-entry-id={entry.data.id}></div>
+<div data-page="${name}" data-locale={locale} data-entry-id={entry.id}></div>
 `;
     const result = transform(source, {
       filename: `${name}.astro`,
@@ -477,12 +515,24 @@ const { locale, entry } = Astro.props;
     const next = rewriteSpecifier(catchAllFile, specifier);
     return next ? `import ${JSON.stringify(next)}` : full;
   });
+  const globPages = documentPages
+    .map((name) => {
+      const href = pathToFileURL(
+        compiled.get(path.join(srcDir, `pages/_pages/${name}.astro`)) ?? '',
+      ).href;
+      return `${JSON.stringify(`../_pages/${name}.astro`)}: () => import(${JSON.stringify(href)})`;
+    })
+    .join(', ');
+  code = code.replace(
+    /import\.meta\.glob(?:<[^>]+>)?\(\s*['"]\.\.\/_pages\/\*\.astro['"]\s*\)/g,
+    `{ ${globPages} }`,
+  );
   await writeFile(compiled.get(catchAllFile) ?? '', code);
   return compiled;
 }
 
 describe('render catch-all', () => {
-  it('picks the matching type layout and passes locale + entry', async () => {
+  it('picks the matching `_pages` file and passes locale + entry', async () => {
     await withIntl(async () => {
       const compiled = await compileCatchAll();
       const mod = await import(pathToFileURL(compiled.get(catchAllFile) ?? '').href);
@@ -493,8 +543,15 @@ describe('render catch-all', () => {
         ),
       );
       assert.equal(keys.has('en:/'), true);
-      assert.equal(keys.has('de:blog/hallo-welt'), true);
+      assert.equal(keys.has('de:artikel/hallo-welt'), true);
       assert.equal(keys.has('en:tags/announcements'), true);
+      assert.equal(
+        paths.some(
+          (item: { params: { locale: string; path: string | undefined } }) =>
+            item.params.locale === 'en' && item.params.path === undefined,
+        ),
+        true,
+      );
 
       const container = await AstroContainer.create();
 
@@ -506,32 +563,32 @@ describe('render catch-all', () => {
       }
 
       const home = await renderPath('en', undefined, 'https://example.com/en/');
-      assert.match(home, /data-type-layout="home"/);
+      assert.match(home, /data-page="home"/);
       assert.match(home, /data-locale="en"/);
-      assert.match(home, /data-entry-id="home"/);
+      assert.match(home, /data-entry-id="home\/en"/);
 
-      const listing = await renderPath('de', 'blog', 'https://example.com/de/blog/');
-      assert.match(listing, /data-type-layout="listing"/);
+      const listing = await renderPath('de', 'artikel', 'https://example.com/de/artikel/');
+      assert.match(listing, /data-page="listing"/);
       assert.match(listing, /data-locale="de"/);
-      assert.match(listing, /data-entry-id="blog"/);
+      assert.match(listing, /data-entry-id="blog\/de"/);
 
       const post = await renderPath(
         'de',
-        'blog/hallo-welt',
-        'https://example.com/de/blog/hallo-welt/',
+        'artikel/hallo-welt',
+        'https://example.com/de/artikel/hallo-welt/',
       );
-      assert.match(post, /data-type-layout="post"/);
+      assert.match(post, /data-page="post"/);
       assert.match(post, /data-locale="de"/);
-      assert.match(post, /data-entry-id="hello-world"/);
+      assert.match(post, /data-entry-id="hello-world\/de"/);
 
       const term = await renderPath(
         'en',
         'tags/announcements',
         'https://example.com/en/tags/announcements/',
       );
-      assert.match(term, /data-type-layout="term"/);
+      assert.match(term, /data-page="term"/);
       assert.match(term, /data-locale="en"/);
-      assert.match(term, /data-entry-id="announcements"/);
+      assert.match(term, /data-entry-id="announcements\/en"/);
     });
   });
 });

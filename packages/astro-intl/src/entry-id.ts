@@ -72,5 +72,12 @@ export function resolveEntryId(
       }
       return dir;
     }
+    case 'collectionFolder': {
+      const dir = parentDir(ctx.filePath);
+      if (!dir || !ctx.collection) {
+        throw new Error('@repo/astro-intl: collectionFolder could not be resolved.');
+      }
+      return `${ctx.collection}/${dir}`;
+    }
   }
 }

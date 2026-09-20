@@ -19,13 +19,14 @@ import { sitemapI18nIsSet } from './sitemap-i18n.ts';
 export { createT } from './create-t.ts';
 export { type CollectionConfig, defineIntl, type IntlConfig } from './define-intl.ts';
 export { id, locale, slug } from './fragments.ts';
-export type { DocumentHead, RoutedStaticPath, SitemapEntry } from './helpers.ts';
+export type { DocumentHead, PairedSlug, SitemapEntry } from './helpers.ts';
 export {
   getAlternatePaths,
+  getAlternatePathsForPath,
   getContentById,
   getContentByPath,
   getDocumentHead,
-  getRoutedStaticPaths,
+  getPairedSlugs,
   getSitemapEntries,
   hreflangLinks,
 } from './helpers.ts';

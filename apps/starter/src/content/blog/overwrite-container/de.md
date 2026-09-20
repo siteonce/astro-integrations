@@ -1,7 +1,6 @@
 ---
-id: overwrite-container
 locale: de
-slug: overwrite-container
+slug: artikel/overwrite-container
 pubDate: 2026-01-15
 status: published
 seoTitle: Measure überschreiben

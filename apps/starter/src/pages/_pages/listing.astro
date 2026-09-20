@@ -1,28 +1,28 @@
 ---
-// Listing type layout. Receives locale + the pages-collection listing document.
+// Listing page. Receives locale + the pages-collection listing document.
 // Queries the blog collection itself, maps view-models, and composes Hero +
 // PostList. Wraps SiteLayout. No section UI beyond Measure / Flow on <main>.
 import { getCollection, render } from 'astro:content';
 import { getRelativeLocaleUrl } from 'astro:i18n';
-import { getAlternatePaths } from '@repo/astro-intl';
+import { getAlternatePathsForPath } from '@repo/astro-intl';
 import { Hreflang } from '@repo/astro-intl/components';
 import { Hero, PostList, Schema, Seo } from '@repo/astro-site/components';
 import { isLocal, isPreview } from '@repo/astro-site/utils/deploy-env';
 import { ogImageFor } from '@repo/og-image/utils/og-image-for';
-import { deployConfig } from '../deploy-config.ts';
-import intlConfig from '../intl.config.ts';
-import { localeSwitcherLinks } from '../locale-switcher.ts';
-import { ogConfig } from '../og-config.ts';
-import { siteConfig } from '../site-config.ts';
-import { useTranslations } from '../t.ts';
-import SiteLayout from './site-layout.astro';
+import { deployConfig } from '../../deploy-config.ts';
+import intlConfig from '../../intl.config.ts';
+import { localeFolder } from '../../locale-folder.ts';
+import { localeSwitcherLinks } from '../../locale-switcher.ts';
+import { ogConfig } from '../../og-config.ts';
+import { siteConfig } from '../../site-config.ts';
+import { useTranslations } from '../../t.ts';
+import SiteLayout from '../../layouts/site-layout.astro';
 
 interface Props {
   locale: string;
   entry: {
     body?: string;
     data: {
-      id: string;
       slug?: string;
       seoTitle?: string;
       seoDesc?: string;
@@ -32,8 +32,8 @@ interface Props {
 
 const { locale, entry } = Astro.props;
 const t = useTranslations(locale);
-const alternates = await getAlternatePaths(entry.data.id);
-const path = alternates[locale] ?? entry.data.slug ?? '/';
+const path = entry.data.slug ?? '/';
+const alternates = await getAlternatePathsForPath(locale, path);
 const switcher = localeSwitcherLinks(intlConfig.locales, locale, alternates, (code, tail) =>
   tail ? getRelativeLocaleUrl(code, tail) : getRelativeLocaleUrl(code),
 );
@@ -52,13 +52,13 @@ const posts = (await getCollection('blog'))
 const tagSlug = new Map(
   (await getCollection('tags'))
     .filter((tag) => tag.data.locale === locale)
-    .map((tag) => [tag.data.id, tag.data.slug]),
+    .map((tag) => [localeFolder(tag), tag.data.slug]),
 );
 const dateFmt = new Intl.DateTimeFormat(locale, { dateStyle: 'long' });
 const items = posts.map((post) => {
   const keyFor = (id: string) => `taxonomy.blogTags.${id}`;
   return {
-    href: getRelativeLocaleUrl(locale, `blog/${post.data.slug}`),
+    href: getRelativeLocaleUrl(locale, post.data.slug),
     title: post.data.seoTitle,
     excerpt: post.data.excerpt,
     datetime: post.data.pubDate.toISOString(),
@@ -71,7 +71,7 @@ const items = posts.map((post) => {
       const key = keyFor(id);
       const value = t(key);
       return {
-        href: getRelativeLocaleUrl(locale, `tags/${tagSlug.get(id) ?? id}`),
+        href: getRelativeLocaleUrl(locale, tagSlug.get(id) ?? id),
         label: value === key ? id : value,
       };
     }),

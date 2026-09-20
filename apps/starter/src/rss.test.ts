@@ -14,7 +14,7 @@ describe('RSS printer', () => {
     const source = readFileSync(rssUrl, 'utf8');
     assert.match(source, /from ['"]@astrojs\/rss['"]/);
     assert.match(source, /getSitemapEntries/);
-    assert.match(source, /getAlternatePaths/);
+    assert.match(source, /getAlternatePathsForPath/);
     assert.match(source, /getAbsoluteLocaleUrl/);
     assert.match(source, /from ['"]@repo\/astro-intl['"]/);
     assert.match(source, /from ['"]\.\.\/\.\.\/t\.ts['"]/);

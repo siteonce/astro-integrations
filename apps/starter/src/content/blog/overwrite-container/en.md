@@ -1,7 +1,6 @@
 ---
-id: overwrite-container
 locale: en
-slug: overwrite-container
+slug: blog/overwrite-container
 pubDate: 2026-01-15
 status: published
 seoTitle: Overwrite Measure

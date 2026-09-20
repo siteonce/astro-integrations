@@ -12,6 +12,10 @@ Catalogs live at `src/messages/{locale}.json`. The locale is per-request — nev
 
 OG template copy: `og-templates/AGENTS.md`.
 
+### Pages
+
+File routes in `pages/`. Document pages the catch-all loads live in `pages/_pages/` (Astro ignores `_`). New kind → new `_pages` file. New document of an existing kind → no new file route. 404 is a route, not a `_pages` file.
+
 ### Image / asset folder choice
 
 - **`src/images/`** — content imagery through Astro `<Image>` / `<Picture>`.

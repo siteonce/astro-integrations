@@ -104,6 +104,7 @@ export function pairCollections(
           resolver,
           {
             id: entry.id,
+            collection: name,
             slug,
             locale,
             filePath: entry.filePath,

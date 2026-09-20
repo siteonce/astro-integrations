@@ -122,6 +122,78 @@ describe('pairCollections', () => {
   });
 });
 
+describe('pairCollections collectionFolder', () => {
+  const folderConfig = defineIntl({
+    locales: ['en', 'de'],
+    defaultLocale: 'en',
+    routing: { prefixDefaultLocale: true },
+    entryId: 'collectionFolder',
+    collections: {
+      pages: { slugField: 'slug' },
+      blog: { slugField: 'slug' },
+    },
+  });
+
+  it('pairs siblings as collection/folder and allows the same folder name in two collections', () => {
+    const paired = pairCollections(folderConfig, {
+      pages: [
+        entry('pages', 'blog/en', { locale: 'en', slug: 'blog' }, 'blog/en.mdx'),
+        entry('pages', 'blog/de', { locale: 'de', slug: 'artikel' }, 'blog/de.mdx'),
+      ],
+      blog: [
+        entry(
+          'blog',
+          'hello-world/en',
+          { locale: 'en', slug: 'blog/hello-world' },
+          'hello-world/en.mdx',
+        ),
+        entry(
+          'blog',
+          'hello-world/de',
+          { locale: 'de', slug: 'artikel/hallo-welt' },
+          'hello-world/de.mdx',
+        ),
+      ],
+    });
+
+    const listingEn = paired.routed.find(
+      (item) => item.entryId === 'pages/blog' && item.locale === 'en',
+    );
+    const helloDe = paired.routed.find(
+      (item) => item.entryId === 'blog/hello-world' && item.locale === 'de',
+    );
+    assert.equal(listingEn?.path, 'blog');
+    assert.equal(helloDe?.path, 'artikel/hallo-welt');
+    assert.equal(paired.routed.filter((item) => item.entryId === 'pages/blog').length, 2);
+    assert.equal(paired.routed.filter((item) => item.entryId === 'blog/hello-world').length, 2);
+  });
+
+  it('warns when the default-locale sibling is missing and still pairs from the folder', () => {
+    const paired = pairCollections(folderConfig, {
+      pages: [
+        entry('pages', 'home/en', { locale: 'en', slug: '/' }, 'home/en.mdx'),
+        entry('pages', 'home/de', { locale: 'de', slug: '/' }, 'home/de.mdx'),
+      ],
+      blog: [entry('blog', 'nur-de/de', { locale: 'de', slug: 'artikel/nur-de' }, 'nur-de/de.mdx')],
+    });
+    const solo = paired.routed.find((item) => item.entryId === 'blog/nur-de');
+    assert.equal(solo?.locale, 'de');
+    assert.equal(solo?.path, 'artikel/nur-de');
+    assert.ok(paired.warnings.some((warning) => warning.includes('entryId "blog/nur-de"')));
+  });
+
+  it('aborts a flat locale file with no parent folder', () => {
+    assert.throws(
+      () =>
+        pairCollections(folderConfig, {
+          pages: [entry('pages', 'home/en', { locale: 'en', slug: '/' }, 'home/en.mdx')],
+          blog: [entry('blog', 'post', { locale: 'en', slug: 'blog/post' }, 'post.md')],
+        }),
+      /collectionFolder could not be resolved/,
+    );
+  });
+});
+
 describe('query helpers', () => {
   const query = createIntlQuery({
     config,
@@ -141,11 +213,13 @@ describe('query helpers', () => {
     assert.equal(query.getContentById('de', 'ada')?.data.name, 'Ada');
   });
 
-  it('feeds catch-all params and sitemap / RSS alternates', () => {
-    const paths = query.getRoutedStaticPaths();
-    assert.ok(paths.some((item) => item.params.locale === 'en' && item.params.path === undefined));
-    assert.ok(
-      paths.some((item) => item.params.locale === 'de' && item.params.path === 'blog/hallo-welt'),
+  it('lists paired locale+slug and sitemap / RSS alternates', () => {
+    const slugs = query.getPairedSlugs();
+    assert.ok(slugs.some((item) => item.locale === 'en' && item.slug === '/'));
+    assert.ok(slugs.some((item) => item.locale === 'de' && item.slug === 'blog/hallo-welt'));
+    assert.equal(
+      slugs.some((item) => 'params' in item),
+      false,
     );
 
     const sitemap = query.getSitemapEntries();
@@ -180,5 +254,75 @@ describe('query helpers', () => {
     const missing = query.getDocumentHead({ locale: 'en', path: 'only-in-en' });
     assert.equal(missing.xDefault, 'https://example.com/en/only-in-en');
     assert.equal(missing.alternates.length, 1);
+  });
+});
+
+describe('query helpers collectionFolder', () => {
+  const folderConfig = defineIntl({
+    locales: ['en', 'de'],
+    defaultLocale: 'en',
+    routing: { prefixDefaultLocale: true },
+    entryId: 'collectionFolder',
+    collections: {
+      blog: { slugField: 'slug' },
+      tags: { slugField: 'slug' },
+    },
+  });
+  const collections = {
+    blog: [
+      entry(
+        'blog',
+        'hello-world/en',
+        { locale: 'en', slug: 'blog/hello-world' },
+        'hello-world/en.mdx',
+      ),
+      entry(
+        'blog',
+        'hello-world/de',
+        { locale: 'de', slug: 'artikel/hallo-welt' },
+        'hello-world/de.mdx',
+      ),
+    ],
+    tags: [
+      entry(
+        'tags',
+        'announcements/en',
+        { locale: 'en', slug: 'tags/announcements' },
+        'announcements/en.mdx',
+      ),
+      entry(
+        'tags',
+        'announcements/de',
+        { locale: 'de', slug: 'schlagworte/ankuendigungen' },
+        'announcements/de.mdx',
+      ),
+    ],
+  };
+  const query = createIntlQuery({
+    config: folderConfig,
+    collections,
+    getAbsoluteLocaleUrl: absolute,
+  });
+
+  it('looks up by collection/folder and by the sibling path', () => {
+    assert.equal(query.getContentById('en', 'blog/hello-world')?.id, 'hello-world/en');
+    assert.equal(query.getContentById('de', 'tags/announcements')?.id, 'announcements/de');
+    assert.deepEqual(query.getAlternatePaths('blog/hello-world'), {
+      en: 'blog/hello-world',
+      de: 'artikel/hallo-welt',
+    });
+    assert.deepEqual(query.getAlternatePathsForPath('de', 'artikel/hallo-welt'), {
+      en: 'blog/hello-world',
+      de: 'artikel/hallo-welt',
+    });
+    assert.deepEqual(query.getAlternatePathsForPath('en', 'missing'), {});
+    const sitemap = query.getSitemapEntries();
+    const helloEn = sitemap.find(
+      (item) => item.entryId === 'blog/hello-world' && item.locale === 'en',
+    );
+    assert.deepEqual(helloEn?.alternates, {
+      en: 'https://example.com/en/blog/hello-world',
+      de: 'https://example.com/de/artikel/hallo-welt',
+    });
   });
 });

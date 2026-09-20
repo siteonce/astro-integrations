@@ -4,17 +4,31 @@ const DEFAULT_MESSAGES_DIR = 'messages';
 
 export type EntryIdContext = {
   id: string;
+  collection: string;
   slug: string | undefined;
   locale: string;
   filePath: string | undefined;
   data: Record<string, unknown>;
 };
 
-export type EntryIdStrategy = 'frontmatter' | 'slug' | 'astroId' | 'fileStem' | 'parentDir';
+export type EntryIdStrategy =
+  | 'frontmatter'
+  | 'slug'
+  | 'astroId'
+  | 'fileStem'
+  | 'parentDir'
+  | 'collectionFolder';
 
 export type EntryIdResolver = EntryIdStrategy | ((ctx: EntryIdContext) => string);
 
-const entryIdStrategySchema = z.enum(['frontmatter', 'slug', 'astroId', 'fileStem', 'parentDir']);
+const entryIdStrategySchema = z.enum([
+  'frontmatter',
+  'slug',
+  'astroId',
+  'fileStem',
+  'parentDir',
+  'collectionFolder',
+]);
 
 const entryIdResolverSchema: z.ZodType<EntryIdResolver> = z.union([
   entryIdStrategySchema,

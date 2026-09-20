@@ -28,6 +28,6 @@ describe('sitemap printer', () => {
     assert.equal(sitemapFilter('https://example.com/robots.txt'), false);
     assert.equal(sitemapFilter('https://example.com/_og/en/'), false);
     assert.equal(sitemapFilter('https://example.com/en/blog/hello-world/'), true);
-    assert.equal(sitemapFilter('https://example.com/de/blog/hallo-welt/'), true);
+    assert.equal(sitemapFilter('https://example.com/de/artikel/hallo-welt/'), true);
   });
 });

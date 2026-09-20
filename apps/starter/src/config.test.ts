@@ -22,18 +22,20 @@ describe('starter config', () => {
     assert.throws(() => deployConfigSchema.parse({ class: 'staging' }));
   });
 
-  it('sets en+de with prefixDefaultLocale and a blog pathPrefix', () => {
+  it('sets en+de with prefixDefaultLocale', () => {
     assert.deepEqual(intlConfig.locales, ['en', 'de']);
     assert.equal(intlConfig.defaultLocale, 'en');
     assert.equal(intlConfig.routing.prefixDefaultLocale, true);
-    assert.equal(intlConfig.collections?.blog?.pathPrefix, 'blog');
   });
 
   it('lists routed pages, blog, tags, and unrouted authors without page types', () => {
+    assert.equal(intlConfig.entryId, 'collectionFolder');
     assert.equal(intlConfig.collections?.pages?.slugField, 'slug');
     assert.equal(intlConfig.collections?.pages?.pathPrefix, undefined);
-    assert.equal(intlConfig.collections?.blog?.pathPrefix, 'blog');
-    assert.equal(intlConfig.collections?.tags?.pathPrefix, 'tags');
+    assert.equal(intlConfig.collections?.blog?.slugField, 'slug');
+    assert.equal(intlConfig.collections?.blog?.pathPrefix, undefined);
+    assert.equal(intlConfig.collections?.tags?.slugField, 'slug');
+    assert.equal(intlConfig.collections?.tags?.pathPrefix, undefined);
     assert.equal(intlConfig.collections?.authors?.slugField, undefined);
     assert.equal(intlConfig.collections?.authors?.pathPrefix, undefined);
 
