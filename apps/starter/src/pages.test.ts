@@ -195,10 +195,11 @@ describe('catch-all source', () => {
     assert.match(source, /setIntlConfig/);
     assert.match(source, /missingLocaleChain/);
     assert.match(source, /pageName/);
-    assert.match(source, /from ['"]\.\.\/_pages\/home\.astro['"]/);
-    assert.match(source, /from ['"]\.\.\/_pages\/listing\.astro['"]/);
-    assert.match(source, /from ['"]\.\.\/_pages\/post\.astro['"]/);
-    assert.match(source, /from ['"]\.\.\/_pages\/term\.astro['"]/);
+    assert.match(source, /import\.meta\.glob(?:<[^>]+>)?\(\s*['"]\.\.\/_pages\/\*\.astro['"]\s*\)/);
+    assert.doesNotMatch(source, /from ['"]\.\.\/_pages\/home\.astro['"]/);
+    assert.doesNotMatch(source, /from ['"]\.\.\/_pages\/listing\.astro['"]/);
+    assert.doesNotMatch(source, /from ['"]\.\.\/_pages\/post\.astro['"]/);
+    assert.doesNotMatch(source, /from ['"]\.\.\/_pages\/term\.astro['"]/);
     assert.match(source, /locale=\{locale\}/);
     assert.match(source, /entry=\{entry/);
     assert.match(source, /Astro\.redirect/);
@@ -504,6 +505,17 @@ const { locale, entry } = Astro.props;
     const next = rewriteSpecifier(catchAllFile, specifier);
     return next ? `import ${JSON.stringify(next)}` : full;
   });
+  const globPages = documentPages
+    .map((name) => {
+      const href = pathToFileURL(compiled.get(path.join(srcDir, `pages/_pages/${name}.astro`)) ?? '')
+        .href;
+      return `${JSON.stringify(`../_pages/${name}.astro`)}: () => import(${JSON.stringify(href)})`;
+    })
+    .join(', ');
+  code = code.replace(
+    /import\.meta\.glob(?:<[^>]+>)?\(\s*['"]\.\.\/_pages\/\*\.astro['"]\s*\)/g,
+    `{ ${globPages} }`,
+  );
   await writeFile(compiled.get(catchAllFile) ?? '', code);
   return compiled;
 }

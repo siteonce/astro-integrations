@@ -1,22 +1,22 @@
 ---
 // CMS catch-all. Params are document-owned compiled paths
 // (prefixDefaultLocale: true). Looks up the entry, runs the missing-locale
-// chain, and picks a `_pages` file from collection / page type. Does not
+// chain, and globs a `_pages` file from collection / page type. Does not
 // compose blocks.
+import type { AstroInstance } from 'astro';
 import { getRelativeLocaleUrl } from 'astro:i18n';
 import { getContentByPath, getRoutedStaticPaths, setIntlConfig } from '@repo/astro-intl';
 import intlConfig from '../../intl.config.ts';
 import { missingLocaleChain } from '../../missing-locale.ts';
 import { pageName } from '../../page-name.ts';
-import Home from '../_pages/home.astro';
-import Listing from '../_pages/listing.astro';
-import Post from '../_pages/post.astro';
-import Term from '../_pages/term.astro';
+
+const pages = import.meta.glob<AstroInstance>('../_pages/*.astro');
 
 // Page bundles do not share the integration's in-memory runtime.
 setIntlConfig(intlConfig);
 
 export function getStaticPaths() {
+  setIntlConfig(intlConfig);
   return getRoutedStaticPaths();
 }
 
@@ -43,8 +43,12 @@ if (!entry) {
   return Astro.rewrite('/404');
 }
 
-const pages = { home: Home, listing: Listing, post: Post, term: Term };
-const Page = pages[pageName(entry)];
+const name = pageName(entry);
+const load = pages[`../_pages/${name}.astro`];
+if (!load) {
+  throw new Error(`starter: no _pages file for "${name}".`);
+}
+const { default: Page } = await load();
 ---
 
 <Page locale={locale} entry={entry as never} />
