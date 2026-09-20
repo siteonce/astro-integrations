@@ -26,8 +26,9 @@ export type DocumentHead = {
   xDefault: string | undefined;
 };
 
-export type RoutedStaticPath = {
-  params: { locale: string; path: string | undefined };
+export type PairedSlug = {
+  locale: string;
+  slug: string;
 };
 
 export type IntlQuery = {
@@ -36,7 +37,7 @@ export type IntlQuery = {
   getContentById: (locale: string, entryId: string) => CollectionEntryLike | undefined;
   getAlternatePaths: (entryId: string) => Record<string, string>;
   getAlternatePathsForPath: (locale: string, path: string) => Record<string, string>;
-  getRoutedStaticPaths: () => RoutedStaticPath[];
+  getPairedSlugs: () => PairedSlug[];
   getSitemapEntries: () => SitemapEntry[];
   getDocumentHead: (args: { locale: string; path: string }) => DocumentHead;
 };
@@ -117,12 +118,10 @@ export function createIntlQuery(options: CreateIntlQueryOptions): IntlQuery {
     return getAlternatePaths(document.entryId);
   }
 
-  function getRoutedStaticPaths(): RoutedStaticPath[] {
+  function getPairedSlugs(): PairedSlug[] {
     return [...pairing.routed].sort(compareLocalePath).map((document) => ({
-      params: {
-        locale: document.locale,
-        path: document.path === '/' ? undefined : document.path,
-      },
+      locale: document.locale,
+      slug: document.path,
     }));
   }
 
@@ -195,7 +194,7 @@ export function createIntlQuery(options: CreateIntlQueryOptions): IntlQuery {
     getContentById,
     getAlternatePaths,
     getAlternatePathsForPath,
-    getRoutedStaticPaths,
+    getPairedSlugs,
     getSitemapEntries,
     getDocumentHead,
   };

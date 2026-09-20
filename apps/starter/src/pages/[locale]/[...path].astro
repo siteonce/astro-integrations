@@ -5,7 +5,7 @@
 // compose blocks.
 import type { AstroInstance } from 'astro';
 import { getRelativeLocaleUrl } from 'astro:i18n';
-import { getContentByPath, getRoutedStaticPaths, setIntlConfig } from '@repo/astro-intl';
+import { getContentByPath, getPairedSlugs, setIntlConfig } from '@repo/astro-intl';
 import intlConfig from '../../intl.config.ts';
 import { missingLocaleChain } from '../../missing-locale.ts';
 import { pageName } from '../../page-name.ts';
@@ -15,9 +15,11 @@ const pages = import.meta.glob<AstroInstance>('../_pages/*.astro');
 // Page bundles do not share the integration's in-memory runtime.
 setIntlConfig(intlConfig);
 
-export function getStaticPaths() {
+export async function getStaticPaths() {
   setIntlConfig(intlConfig);
-  return getRoutedStaticPaths();
+  return (await getPairedSlugs()).map(({ locale, slug }) => ({
+    params: { locale, path: slug === '/' ? undefined : slug },
+  }));
 }
 
 const locale = Astro.currentLocale ?? Astro.params.locale;

@@ -213,11 +213,13 @@ describe('query helpers', () => {
     assert.equal(query.getContentById('de', 'ada')?.data.name, 'Ada');
   });
 
-  it('feeds catch-all params and sitemap / RSS alternates', () => {
-    const paths = query.getRoutedStaticPaths();
-    assert.ok(paths.some((item) => item.params.locale === 'en' && item.params.path === undefined));
-    assert.ok(
-      paths.some((item) => item.params.locale === 'de' && item.params.path === 'blog/hallo-welt'),
+  it('lists paired locale+slug and sitemap / RSS alternates', () => {
+    const slugs = query.getPairedSlugs();
+    assert.ok(slugs.some((item) => item.locale === 'en' && item.slug === '/'));
+    assert.ok(slugs.some((item) => item.locale === 'de' && item.slug === 'blog/hallo-welt'));
+    assert.equal(
+      slugs.some((item) => 'params' in item),
+      false,
     );
 
     const sitemap = query.getSitemapEntries();

@@ -5,7 +5,7 @@ import { createRequire } from 'node:module';
 import path from 'node:path';
 import { describe, it } from 'node:test';
 import { fileURLToPath, pathToFileURL } from 'node:url';
-import { defineIntl, getRoutedStaticPaths } from '@repo/astro-intl';
+import { defineIntl, getPairedSlugs } from '@repo/astro-intl';
 import { experimental_AstroContainer as AstroContainer } from 'astro/container';
 import { missingLocaleChain } from './missing-locale.ts';
 import { pageName } from './page-name.ts';
@@ -189,8 +189,10 @@ describe('catch-all source', () => {
 
   it('is the CMS router: getStaticPaths, lookup, missing-locale, `_pages`', () => {
     assert.equal(existsSync(catchAllFile), true);
-    assert.match(source, /export function getStaticPaths/);
-    assert.match(source, /getRoutedStaticPaths/);
+    assert.match(source, /export (?:async )?function getStaticPaths/);
+    assert.match(source, /getPairedSlugs/);
+    assert.match(source, /slug === ['"]\/['"] \? undefined/);
+    assert.doesNotMatch(source, /getRoutedStaticPaths/);
     assert.match(source, /getContentByPath/);
     assert.match(source, /setIntlConfig/);
     assert.match(source, /missingLocaleChain/);
@@ -412,15 +414,19 @@ async function withIntl<T>(run: () => Promise<T>): Promise<T> {
   }
 }
 
+function pairKey(item: { locale: string; slug: string }) {
+  return `${item.locale}:${item.slug}`;
+}
+
 function paramKey(item: { params: { locale: string; path: string | undefined } }) {
   return `${item.params.locale}:${item.params.path ?? '/'}`;
 }
 
 describe('catch-all getStaticPaths', () => {
-  it('emits compiled paths for home, listing, posts, and term pages', async () => {
+  it('asks intl for paired locale+slug, including homepage /', async () => {
     await withIntl(async () => {
-      const paths = await getRoutedStaticPaths();
-      const keys = new Set(paths.map(paramKey));
+      const slugs = await getPairedSlugs();
+      const keys = new Set(slugs.map(pairKey));
       assert.equal(keys.has('en:/'), true);
       assert.equal(keys.has('de:/'), true);
       assert.equal(keys.has('en:blog'), true);
@@ -432,11 +438,15 @@ describe('catch-all getStaticPaths', () => {
       assert.equal(keys.has('en:tags/announcements'), true);
       assert.equal(keys.has('de:schlagworte/ankuendigungen'), true);
       assert.equal(
-        paths.some((item) => item.params.path?.includes('authors')),
+        slugs.some((item) => item.slug.includes('authors')),
         false,
       );
-      assert.equal(paths.filter((item) => item.params.path === 'blog').length, 1);
-      assert.equal(paths.filter((item) => item.params.path === 'artikel').length, 1);
+      assert.equal(slugs.filter((item) => item.slug === 'blog').length, 1);
+      assert.equal(slugs.filter((item) => item.slug === 'artikel').length, 1);
+      assert.equal(
+        slugs.some((item) => 'params' in item),
+        false,
+      );
     });
   });
 });
@@ -507,8 +517,9 @@ const { locale, entry } = Astro.props;
   });
   const globPages = documentPages
     .map((name) => {
-      const href = pathToFileURL(compiled.get(path.join(srcDir, `pages/_pages/${name}.astro`)) ?? '')
-        .href;
+      const href = pathToFileURL(
+        compiled.get(path.join(srcDir, `pages/_pages/${name}.astro`)) ?? '',
+      ).href;
       return `${JSON.stringify(`../_pages/${name}.astro`)}: () => import(${JSON.stringify(href)})`;
     })
     .join(', ');
@@ -534,6 +545,13 @@ describe('render catch-all', () => {
       assert.equal(keys.has('en:/'), true);
       assert.equal(keys.has('de:artikel/hallo-welt'), true);
       assert.equal(keys.has('en:tags/announcements'), true);
+      assert.equal(
+        paths.some(
+          (item: { params: { locale: string; path: string | undefined } }) =>
+            item.params.locale === 'en' && item.params.path === undefined,
+        ),
+        true,
+      );
 
       const container = await AstroContainer.create();
 
