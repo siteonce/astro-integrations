@@ -4,7 +4,7 @@ import { blog } from '@repo/astro-site/schemas/content/blog';
 import { seo } from '@repo/astro-site/schemas/content/seo';
 import { glob } from 'astro/loaders';
 import { z } from 'astro/zod';
-import { listingLocaleSection, localeSection } from './locale-section.ts';
+import { listingLocaleSection, localeSection } from './utils/locale-section.ts';
 
 const pairing = { locale, slug };
 

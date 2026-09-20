@@ -35,7 +35,7 @@ Elegant and least friction. Offer the pairing + catalog layer without the cost o
 
 **Intl has no opinion on `pages/` or `layouts/`.** Collection roles and page types are starter convention. New _kind_ of document in starter → a new body file. New _document_ of an existing kind → no new file route.
 
-**Starter must look like Astro.** Layouts are chrome (`SiteLayout` in `layouts/`). Document bodies the catch-all loads live in `pages/_pages/` (Astro ignores `_`, so they are not routes). 404 is a file route. Do not park page work in `layouts/`. Do not put `AGENTS.md` in `pages/` (`.md` there becomes a route).
+**Starter must look like Astro.** Layouts are chrome (`SiteLayout` in `layouts/`). Document bodies the catch-all loads live in `pages/_pages/` (Astro ignores `_`, so they are not routes). Catch-all helpers sit next to the route as `_page-name.ts` and `_missing-locale.ts`. 404 is a file route. Do not park page work in `layouts/`. Do not put `AGENTS.md` in `pages/` (`.md` there becomes a route).
 
 **One catch-all.** Content URLs go through `[locale]/[...path].astro`. It finds the document and picks a `_pages` body via the starter kind map (`pageName`). Do not add per-section file routes, `[locale]/index.astro` for home, or a per-entry path to a body file. `pageType` stays on the mixed pages collection (home vs listing); other collections map from the collection name. Missing-locale uses the same public tail in the default locale, then that locale’s home, then 404 — not pairing.
 

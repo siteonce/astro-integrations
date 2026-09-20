@@ -7,8 +7,8 @@ import type { AstroInstance } from 'astro';
 import { getRelativeLocaleUrl } from 'astro:i18n';
 import { getContentByPath, getPairedSlugs, setIntlConfig } from '@repo/astro-intl';
 import intlConfig from '../../intl.config.ts';
-import { missingLocaleChain } from '../../missing-locale.ts';
-import { pageName } from '../../page-name.ts';
+import { missingLocaleChain } from '../_missing-locale.ts';
+import { pageName } from '../_page-name.ts';
 
 const pages = import.meta.glob<AstroInstance>('../_pages/*.astro');
 

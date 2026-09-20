@@ -7,8 +7,8 @@ import { describe, it } from 'node:test';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { defineIntl, getPairedSlugs } from '@repo/astro-intl';
 import { experimental_AstroContainer as AstroContainer } from 'astro/container';
-import { missingLocaleChain } from './missing-locale.ts';
-import { pageName } from './page-name.ts';
+import { missingLocaleChain } from './pages/_missing-locale.ts';
+import { pageName } from './pages/_page-name.ts';
 
 const srcDir = fileURLToPath(new URL('.', import.meta.url));
 const appRoot = path.join(srcDir, '..');

@@ -14,7 +14,7 @@ OG template copy: `og-templates/AGENTS.md`.
 
 ### Pages
 
-File routes in `pages/`. Document pages the catch-all loads live in `pages/_pages/` (Astro ignores `_`). New kind → new `_pages` file. New document of an existing kind → no new file route. 404 is a route, not a `_pages` file.
+File routes in `pages/`. Underscore skips the router: document bodies in `pages/_pages/`; catch-all helpers `_page-name.ts` and `_missing-locale.ts` next to the route. New kind → new `_pages` file. New document of an existing kind → no new file route. 404 is a route, not a `_pages` file.
 
 ### Image / asset folder choice
 

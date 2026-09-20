@@ -7,7 +7,7 @@ import { describe, it } from 'node:test';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { defineIntl, getAlternatePaths } from '@repo/astro-intl';
 import { experimental_AstroContainer as AstroContainer } from 'astro/container';
-import { localeSwitcherLinks } from './locale-switcher.ts';
+import { localeSwitcherLinks } from './utils/locale-switcher.ts';
 
 const srcDir = fileURLToPath(new URL('.', import.meta.url));
 const appRoot = path.join(srcDir, '..');
