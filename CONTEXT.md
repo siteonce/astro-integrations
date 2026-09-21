@@ -16,53 +16,39 @@ A snapshot monorepo that is the foundation for every Astro **content site** buil
 
 **starter monorepo**: The workspace inside the snapshot — apps and packages — structured like an end-user project. _Avoid_: starter (alone)
 
-**starter**: The content-site application at `apps/starter`. Root `pnpm dev` / `build` / `preview` run it.
+**starter**: The content-site application at `apps/starter`. Root `pnpm dev` / `build` / `preview` run it. _Avoid_: marketing app, treating `apps/marketing` as the snapshot app
 
-**starter theme**: The visual token layer inside the starter monorepo (CSS variables and Tailwind theme). Not a second product. _Avoid_: starter (for this meaning)
+**starter theme**: The visual token layer inside the starter (CSS variables and Tailwind theme). Not a second product. _Avoid_: starter (for this meaning)
 
-**marketing app**: Leftover public-site application at `apps/marketing`. _Avoid_: treating it as the snapshot app
+**leftover**: Departing `apps/marketing` and `packages/astro` (`@repo/astro`, factory `siteonce()`, `virtual:app/*`). Not the snapshot surface. _Avoid_: marketing app (as the snapshot app); `@repo/astro` (as the site library)
 
-**astro-intl**: Workspace package `@repo/astro-intl` — catalogs, collection pairing, locale list written through to Astro `i18n`. Factory `astroIntl()`.
+### Packages
+
+**astro-intl**: Workspace package `@repo/astro-intl` — **catalogs**, collection pairing, locale list written through to Astro `i18n`. Factory `astroIntl()`.
 
 **astro-intl-sitemap**: Workspace package `@repo/astro-intl-sitemap` — printer glue the app passes into `@astrojs/sitemap`.
 
-**astro-site**: Workspace package `@repo/astro-site` — layout, **Seo**, **Schema**, **blocks**, schema fragments, and helpers. Not an Astro integration.
+**astro-site**: Workspace package `@repo/astro-site` — layout, **Seo**, **Schema**, **blocks**, schema fragments, and helpers. Not an Astro integration. _Avoid_: `@repo/astro`, packages/astro, packages/schemas
 
-**astro**: Leftover workspace package `@repo/astro` — factory `siteonce()`, virtual `virtual:app/*`, catalog copy still used by **marketing app**. _Avoid_: packages/schemas
+**og-image**: Workspace package `@repo/og-image` — optional OG image generator. Factory `ogImage()`.
 
-**ui**: Small primitives in the catalog. Today: Measure and Flow CSS. Future CVA/Svelte primitives land here, one folder per component.
+**ui**: Small primitives in **astro-site**. Measure and Flow CSS; CVA/Svelte primitives, one folder per component. _Avoid_: catalog (for this)
 
 **blocks**: Composed page sections (Hero, PostList, …) built from **ui**.
 
 **`@repo/*`**: Workspace package scope inside the snapshot. Not a registry; the customer owns these folders. _Avoid_: `@siteonce/*` (for workspace names)
 
-**`astroIntl()`**: Default export of `@repo/astro-intl`.
-
-**`siteonce()`**: Default export of leftover `@repo/astro`. **starter** registers `astroIntl()`. _Avoid_: astroLib(), astro() (the framework already owns that name in `astro.config`)
+**`astroIntl()`**: Default export of `@repo/astro-intl`. _Avoid_: siteonce(), astroLib(), astro() (the framework already owns that name in `astro.config`)
 
 **`ogImage()`**: Default export of `@repo/og-image`. _Avoid_: astroOgImage()
 
-**`virtual:app/*`**: Vite modules `siteonce()` fills (`config`, `i18n`) for **marketing app**. **starter** reads `src/*.config.ts` and passes message objects into `createT`. _Avoid_: `virtual:astro-lib/*`, `virtual:siteonce/*`, `virtual:<app-folder>/*` (for the id)
+**`createT`**: Pure factory that returns `t()` from message objects the app passes in. _Avoid_: loading catalogs through `virtual:app/i18n`
 
 **`virtual:og-image/config`**: Vite module `ogImage()` fills with generation config.
 
-**editorial media**: Images for content entries, stored in a public object store. Frontmatter holds a URL. Day-one store is Backblaze B2. Co-located files exist only so the demo renders offline. _Avoid_: host blobs (for this meaning), storage (as a package)
+### Intl
 
-**newsletter**: An ESP-hosted campaign (Buttondown, Beehiiv, Mailchimp). RSS is the machine feed an ESP may poll. The snapshot does not send mail. _Avoid_: packages/mail, transactional mail (for this meaning)
-
-**provider facade**: A module that hides a third-party vendor (auth, payments, mail, storage) behind a SiteOnce API. Out of scope — the snapshot wires vendor SDKs directly. _Avoid_: wrapper (for this meaning)
-
-### Content schemas
-
-**seo** (fragment): Shared Zod fragment for collection frontmatter that drives search and social: `seoTitle`, `seoDesc`, `primaryKeyword`, `secondaryKeywords`. Not the **Seo** head component. _Avoid_: prose (for this meaning)
-
-**media** (fragment): Shared Zod fragment for an entry’s editorial image: `featImage` (URL) and `featImageAlt`. Pairs with **editorial media**. _Avoid_: featImagePath
-
-**blog**: The composed collection schema for a blog: **seo** + **media** plus posting fields (pubDate, status, tags, excerpt, optional og). Lives in **astro** so a second site can import it. A directory composes fragments instead. _Avoid_: prose (for this schema)
-
-**term**: An item in a **taxonomy**: locale-free slug, optional custom fields, display label via `t()`. The slug is the collection entry id. _Avoid_: tag (for this unit)
-
-**taxonomy**: A named vocabulary of **terms**. Site-owned as a content collection when the site catalogs terms or those terms own URLs. _Avoid_: tag registry, TaxonomyType
+**catalog**: Per-locale message file for `t()`. The app passes parsed objects into `createT`. _Avoid_: dictionary, i18n collection; using catalog for **ui** / **blocks**; a virtual module for this
 
 **slug** (entry field): The public tail after the locale prefix. Homepage is `/`. Not the pairing `id` and not Astro’s collection id. _Avoid_: authored path, per-entry pathPrefix
 
@@ -70,17 +56,51 @@ A snapshot monorepo that is the foundation for every Astro **content site** buil
 
 **section**: A locale-specific prefix of a routed collection’s public tail (`blog` vs `artikel`, or a multi-segment prefix such as `about/history` vs `ueber-uns/geschichte`). Listing slug equals a section; an entry slug is that section plus one rest segment. _Avoid_: pathPrefix (as a document field), catalog key (for this)
 
-### Lifecycle & head components
+**routed collection**: A listed collection whose entries have a public URL (`slug`). _Avoid_: giving records a slug
+
+**record**: A translated collection entry with no public URL. _Avoid_: routed (for this)
+
+**page type**: Starter convention on the pages collection (`home` | `listing`). Intl does not know page types. _Avoid_: collection role (as an intl concept)
+
+### Content schemas
+
+**seo** (fragment): Shared Zod fragment for collection frontmatter that drives search and social: `seoTitle`, `seoDesc`, `primaryKeyword`, `secondaryKeywords`. Not the **Seo** head component. _Avoid_: prose (for this meaning)
+
+**media** (fragment): Shared Zod fragment for an entry’s editorial image: `featImage` (URL) and `featImageAlt`. Pairs with **editorial media**. _Avoid_: featImagePath
+
+**blog**: The composed collection schema for a blog: **seo** + **media** plus posting fields (pubDate, status, tags, excerpt, optional og). Lives in **astro-site** so a second site can import it. A directory composes fragments instead. _Avoid_: prose (for this schema)
+
+**term**: An item in a **taxonomy**, published as a paired **document** (`id` + `locale` + `slug`). Posts match terms by folder id string. _Avoid_: tag (for this unit); locale-free slug as the collection entry id
+
+**taxonomy**: A named vocabulary of **terms**. Site-owned as a content collection when those terms own URLs. _Avoid_: tag registry, TaxonomyType
+
+**editorial media**: Images for content entries, stored in a public object store. Frontmatter holds a URL. Co-located files exist only so the demo renders offline. _Avoid_: host blobs (for this meaning), storage (as a package)
+
+**newsletter**: An ESP-hosted campaign (Buttondown, Beehiiv, Mailchimp). RSS is the machine feed an ESP may poll. The snapshot does not send mail. _Avoid_: packages/mail, transactional mail (for this meaning)
+
+**provider facade**: A module that hides a third-party vendor (auth, payments, mail, storage) behind a SiteOnce API. Out of scope — the snapshot wires vendor SDKs directly. _Avoid_: wrapper (for this meaning)
+
+### Lifecycle & head
+
+**chrome**: Shared site shell around every page — styles, Favicon, Analytics, locale switcher, head pass-through. **SiteLayout** is chrome. _Avoid_: composing **blocks** or document landmarks in the layout
+
+**document**: A published page for a paired entry (home, listing, post, **term**). Owns landmarks and head tags. _Avoid_: treating 404 as a paired document
+
+**`SiteLayout`**: The starter chrome component around **BaseLayout**.
 
 **`BaseLayout`**: The bare HTML skeleton component — `<html lang>` plus a `<head>` slot and a `<body>` slot.
 
-**`Seo`**: The component that owns `<head>` tag emission (title, meta, Open Graph, Twitter), driven by `siteConfig` plus per-page props.
+**`Seo`**: The component that owns `<head>` tag emission (title, meta, Open Graph, Twitter), driven by site config plus per-page props.
 
 **`Schema`**: The JSON-LD emitter component (Article, BreadcrumbList, Organization, WebSite).
 
-**`Analytics`**: The app head component that emits the analytics tag block (GA4 via Partytown). App concern, not a package export; the customer edits the file.
+**`Hreflang`**: Alternate-language `<link rel="alternate">` tags from pairing. Intl export, distinct from **Seo**.
 
-**`Favicon`**: The marketing-app head component that emits the standard favicon tag block. App concern, not a package export; icon files live in the app’s `public/`.
+**`Analytics`**: The app head component that emits the analytics tag block. App concern, not a package export; the customer edits the file.
+
+**`Favicon`**: The app head component that emits the standard favicon tag block. App concern, not a package export; icon files live in the app’s `public/`.
+
+**`robotsTxt`**: Helper that builds the robots.txt body from site and deploy config. Not a route. Distinct from **Seo** `noindex`. _Avoid_: feeding noindex into robots rules
 
 ### Styling
 
@@ -100,11 +120,11 @@ A snapshot monorepo that is the foundation for every Astro **content site** buil
 
 ### Integration & environment
 
-**`deployConfig`**: App-owned mapping of host environment onto one exclusive class (`production` | `preview` | `local`). The values file lives in the app; the customer writes the host check (Netlify `CONTEXT` today). Schema lives in **astro**; `siteonce()` exposes it on `virtual:app/config`. _Avoid_: DEPLOY_CONTEXT, packages/netlify, authConfig, three independent booleans
+**`deployConfig`**: App-owned mapping of host environment onto one exclusive class (`production` | `preview` | `local`). The app writes the host check and parses the schema on import. _Avoid_: DEPLOY_CONTEXT, packages/netlify, authConfig, three independent booleans, `virtual:app/config`
 
-**`deployEnv`**: Helpers `isProd` / `isPreview` / `isLocal` that read `deployConfig.class` from `virtual:app/config` for SSR/build product code. _Avoid_: netlifyEnv, astro:env (for this fill), deployContext
+**`deployEnv`**: Helpers `isProd` / `isPreview` / `isLocal` that read `deployConfig.class`. Callers pass the parsed config. _Avoid_: netlifyEnv, astro:env (for this fill), deployContext
 
-**`rehypeExternalLinks`**: The integration-wired rehype plugin that adds `target="_blank" rel="noopener noreferrer"` to outbound prose links not listed in `siteConfig.externalLink.exceptions`.
+**`rehypeExternalLinks`**: The rehype plugin that adds `target="_blank" rel="noopener noreferrer"` to outbound prose links not listed in `siteConfig.externalLink.exceptions`.
 
 ### OG images
 
