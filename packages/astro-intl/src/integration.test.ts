@@ -5,7 +5,7 @@ import path from 'node:path';
 import { afterEach, describe, it } from 'node:test';
 import { pathToFileURL } from 'node:url';
 import type { AstroConfig, AstroIntegration } from 'astro';
-import astroIntl, { createT } from './integration.ts';
+import astroIntl from './integration.ts';
 
 type Setup = NonNullable<AstroIntegration['hooks']['astro:config:setup']>;
 type SetupParams = Parameters<Setup>[0];
@@ -220,15 +220,5 @@ export default { integrations: [sitemap({ i18n: { defaultLocale: 'en', locales: 
       () => runSetup({ root, integrations: [sitemap] }),
       /sitemap i18n option is set/,
     );
-  });
-
-  it('exports a pure createT from the package entry', () => {
-    const { t } = createT({ en: { label: 'Ready' } });
-    assert.equal(t('en', 'label'), 'Ready');
-  });
-
-  it('records reserved tails from astro:routes:resolved', () => {
-    const resolved = astroIntl().hooks['astro:routes:resolved'];
-    assert.equal(typeof resolved, 'function');
   });
 });

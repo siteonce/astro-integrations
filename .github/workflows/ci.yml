@@ -2,7 +2,7 @@ name: CI
 
 # Lean backstop for what reaches `main`. The local pre-commit (lint-staged) is
 # the primary gate; this re-verifies the *whole* tree non-mutatively and adds
-# the checks lint-staged can't scope per file (typecheck, build).
+# the checks lint-staged can't scope per file (typecheck, package tests, starter build).
 on:
   push:
     branches: [main]
@@ -36,4 +36,5 @@ jobs:
       - run: pnpm format:check
       - run: pnpm lint
       - run: pnpm typecheck
+      - run: pnpm test
       - run: pnpm build
