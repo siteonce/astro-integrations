@@ -2,42 +2,9 @@ import * as z from 'zod';
 
 const DEFAULT_MESSAGES_DIR = 'messages';
 
-export type EntryIdContext = {
-  id: string;
-  collection: string;
-  slug: string | undefined;
-  locale: string;
-  filePath: string | undefined;
-  data: Record<string, unknown>;
-};
-
-export type EntryIdStrategy =
-  | 'frontmatter'
-  | 'slug'
-  | 'astroId'
-  | 'fileStem'
-  | 'parentDir'
-  | 'collectionFolder';
-
-export type EntryIdResolver = EntryIdStrategy | ((ctx: EntryIdContext) => string);
-
-const entryIdStrategySchema = z.enum([
-  'frontmatter',
-  'slug',
-  'astroId',
-  'fileStem',
-  'parentDir',
-  'collectionFolder',
-]);
-
-const entryIdResolverSchema: z.ZodType<EntryIdResolver> = z.union([
-  entryIdStrategySchema,
-  z.custom<(ctx: EntryIdContext) => string>((value) => typeof value === 'function'),
-]);
-
 export const collectionConfigSchema = z.strictObject({
-  entryId: entryIdResolverSchema.optional(),
-  entryIdField: z.string().min(1).optional(),
+  idField: z.string().min(1).optional(),
+  localeField: z.string().min(1).optional(),
   slugField: z.string().min(1).optional(),
   pathPrefix: z.union([z.string().min(1), z.record(z.string(), z.string().min(1))]).optional(),
 });
@@ -57,7 +24,6 @@ export const intlConfigSchema = z
         dir: z.string().min(1),
       })
       .optional(),
-    entryId: entryIdResolverSchema.optional(),
     collections: z.record(z.string(), collectionConfigSchema).optional(),
     reservedPaths: z.array(z.string().min(1)).optional(),
   })

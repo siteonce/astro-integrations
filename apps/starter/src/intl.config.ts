@@ -7,17 +7,10 @@ export default defineIntl({
     prefixDefaultLocale: true,
   },
   messages: { dir: 'messages' },
-  entryId: 'collectionFolder',
   collections: {
-    pages: {
-      slugField: 'slug',
-    },
-    blog: {
-      slugField: 'slug',
-    },
-    tags: {
-      slugField: 'slug',
-    },
-    authors: {},
+    pages: { idField: 'id', localeField: 'locale', slugField: 'slug' },
+    blog: { idField: 'id', localeField: 'locale', slugField: 'slug' },
+    tags: { idField: 'id', localeField: 'locale', slugField: 'slug' },
+    authors: { idField: 'id', localeField: 'locale' },
   },
 });

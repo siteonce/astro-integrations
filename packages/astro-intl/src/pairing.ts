@@ -55,8 +55,9 @@ function describeEntry(collection: string, entry: CollectionEntryLike): string {
 }
 
 /**
- * Pair listed collections: resolve entryId + locale, compile routed `path`,
- * and abort on uniqueness / reserved-path collisions.
+ * Pair listed collections: read id + locale from entry data, prefix the
+ * collection name, compile routed `path`, and abort on uniqueness /
+ * reserved-path collisions.
  */
 export function pairCollections(
   config: IntlConfig,
@@ -81,13 +82,15 @@ export function pairCollections(
   for (const [name, collection] of Object.entries(listed)) {
     const routedCollection = isRoutedCollection(collection);
     const slugField = collection.slugField ?? 'slug';
-    const entryIdField = collection.entryIdField ?? 'id';
-    const resolver = collection.entryId ?? config.entryId ?? 'frontmatter';
+    const idField = collection.idField ?? 'id';
+    const localeField = collection.localeField ?? 'locale';
 
     for (const entry of collections[name] ?? []) {
-      const locale = readString(entry.data, 'locale');
+      const locale = readString(entry.data, localeField);
       if (!locale) {
-        throw new Error(`@repo/astro-intl: locale is missing on ${describeEntry(name, entry)}.`);
+        throw new Error(
+          `@repo/astro-intl: locale field "${localeField}" is missing on ${describeEntry(name, entry)}.`,
+        );
       }
       if (!locales.has(locale)) {
         throw new Error(
@@ -100,18 +103,7 @@ export function pairCollections(
 
       let entryId: string;
       try {
-        entryId = resolveEntryId(
-          resolver,
-          {
-            id: entry.id,
-            collection: name,
-            slug,
-            locale,
-            filePath: entry.filePath,
-            data: entry.data,
-          },
-          entryIdField,
-        );
+        entryId = resolveEntryId(name, entry.data, idField);
       } catch (error) {
         const message = error instanceof Error ? error.message : String(error);
         throw new Error(`${message} (${describeEntry(name, entry)})`);

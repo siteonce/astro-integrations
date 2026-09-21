@@ -270,9 +270,8 @@ describe('render home page', () => {
       locales: ['en', 'de'],
       defaultLocale: 'en',
       routing: { prefixDefaultLocale: true },
-      entryId: 'collectionFolder',
       collections: {
-        pages: { slugField: 'slug' },
+        pages: { idField: 'id', localeField: 'locale', slugField: 'slug' },
       },
     });
     const collections = {
@@ -282,6 +281,7 @@ describe('render home page', () => {
           collection: 'pages',
           filePath: 'home/en.mdx',
           data: {
+            id: 'home',
             locale: 'en',
             slug: '/',
             seoDesc: 'A new site built with Site Once.',
@@ -354,6 +354,7 @@ const listingPages = [
     collection: 'pages',
     filePath: 'blog/en.mdx',
     data: {
+      id: 'blog',
       locale: 'en',
       slug: 'blog',
       pageType: 'listing',
@@ -366,6 +367,7 @@ const listingPages = [
     collection: 'pages',
     filePath: 'blog/de.mdx',
     data: {
+      id: 'blog',
       locale: 'de',
       slug: 'artikel',
       pageType: 'listing',
@@ -381,6 +383,7 @@ const blogPosts = [
     collection: 'blog',
     filePath: 'hello-world/en.mdx',
     data: {
+      id: 'hello-world',
       locale: 'en',
       slug: 'blog/hello-world',
       seoTitle: 'Hello world',
@@ -398,6 +401,7 @@ const blogPosts = [
     collection: 'blog',
     filePath: 'hello-world/de.mdx',
     data: {
+      id: 'hello-world',
       locale: 'de',
       slug: 'artikel/hallo-welt',
       seoTitle: 'Hallo Welt',
@@ -415,6 +419,7 @@ const blogPosts = [
     collection: 'blog',
     filePath: 'overwrite-container/en.mdx',
     data: {
+      id: 'overwrite-container',
       locale: 'en',
       slug: 'blog/overwrite-container',
       seoTitle: 'Overwrite Measure',
@@ -432,6 +437,7 @@ const blogPosts = [
     collection: 'blog',
     filePath: 'overwrite-container/de.mdx',
     data: {
+      id: 'overwrite-container',
       locale: 'de',
       slug: 'artikel/overwrite-container',
       seoTitle: 'Measure überschreiben',
@@ -452,6 +458,7 @@ const termPages = [
     collection: 'tags',
     filePath: 'announcements/en.mdx',
     data: {
+      id: 'announcements',
       locale: 'en',
       slug: 'tags/announcements',
       seoTitle: 'Announcements',
@@ -463,6 +470,7 @@ const termPages = [
     collection: 'tags',
     filePath: 'announcements/de.mdx',
     data: {
+      id: 'announcements',
       locale: 'de',
       slug: 'schlagworte/ankuendigungen',
       seoTitle: 'Ankündigungen',
@@ -474,6 +482,7 @@ const termPages = [
     collection: 'tags',
     filePath: 'engineering/en.mdx',
     data: {
+      id: 'engineering',
       locale: 'en',
       slug: 'tags/engineering',
       seoTitle: 'Engineering',
@@ -485,6 +494,7 @@ const termPages = [
     collection: 'tags',
     filePath: 'engineering/de.mdx',
     data: {
+      id: 'engineering',
       locale: 'de',
       slug: 'schlagworte/technik',
       seoTitle: 'Technik',
@@ -505,12 +515,11 @@ function starterIntlConfig() {
     locales: ['en', 'de'],
     defaultLocale: 'en',
     routing: { prefixDefaultLocale: true },
-    entryId: 'collectionFolder',
     collections: {
-      pages: { slugField: 'slug' },
-      blog: { slugField: 'slug' },
-      tags: { slugField: 'slug' },
-      authors: {},
+      pages: { idField: 'id', localeField: 'locale', slugField: 'slug' },
+      blog: { idField: 'id', localeField: 'locale', slugField: 'slug' },
+      tags: { idField: 'id', localeField: 'locale', slugField: 'slug' },
+      authors: { idField: 'id', localeField: 'locale' },
     },
   });
 }

@@ -14,6 +14,7 @@ Astro integration for **intl**. Factory `astroIntl()`. Owns **catalogs** (pure `
 - File-route-wins: reserved tails from `astro:routes:resolved` plus optional `reservedPaths`. Do not add a dummy file route to prove it.
 - Query helpers do not import `@astrojs/sitemap` or `@astrojs/rss`.
 - Duplicate `(locale, path)` or a file route that shadows an entry aborts the build.
+- Pairing reads `data[idField]` and `data[localeField]` (defaults `id` / `locale`) and prefixes the collection name. Do not resolve pairing from `filePath` or Astro `entry.id`. No strategy enum.
 - Pairing holds each sibling’s `slug`. The app’s `getStaticPaths` claims URLs. List helpers return pairing (`locale` + `slug`), not catch-all params. Do not add a second path index.
 
 ## Out of scope

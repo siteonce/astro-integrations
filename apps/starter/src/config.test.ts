@@ -29,13 +29,20 @@ describe('starter config', () => {
   });
 
   it('lists routed pages, blog, tags, and unrouted authors without page types', () => {
-    assert.equal(intlConfig.entryId, 'collectionFolder');
+    assert.equal(intlConfig.collections?.pages?.idField, 'id');
+    assert.equal(intlConfig.collections?.pages?.localeField, 'locale');
     assert.equal(intlConfig.collections?.pages?.slugField, 'slug');
     assert.equal(intlConfig.collections?.pages?.pathPrefix, undefined);
+    assert.equal(intlConfig.collections?.blog?.idField, 'id');
+    assert.equal(intlConfig.collections?.blog?.localeField, 'locale');
     assert.equal(intlConfig.collections?.blog?.slugField, 'slug');
     assert.equal(intlConfig.collections?.blog?.pathPrefix, undefined);
+    assert.equal(intlConfig.collections?.tags?.idField, 'id');
+    assert.equal(intlConfig.collections?.tags?.localeField, 'locale');
     assert.equal(intlConfig.collections?.tags?.slugField, 'slug');
     assert.equal(intlConfig.collections?.tags?.pathPrefix, undefined);
+    assert.equal(intlConfig.collections?.authors?.idField, 'id');
+    assert.equal(intlConfig.collections?.authors?.localeField, 'locale');
     assert.equal(intlConfig.collections?.authors?.slugField, undefined);
     assert.equal(intlConfig.collections?.authors?.pathPrefix, undefined);
 
@@ -44,6 +51,8 @@ describe('starter config', () => {
       'utf8',
     );
     assert.doesNotMatch(source, /pageType/);
+    assert.doesNotMatch(source, /entryId/);
+    assert.doesNotMatch(source, /collectionFolder/);
   });
 
   it('registers astroIntl, ogImage, MDX, Svelte, sitemap, and rehypeExternalLinks', () => {

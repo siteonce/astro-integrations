@@ -72,8 +72,8 @@ function localeFolderFromFile(filePath: string): string {
 function byFolderLocale(entries: { filePath: string; data: Frontmatter }[]) {
   const map = new Map<string, Frontmatter>();
   for (const entry of entries) {
-    assert.equal(entry.data.id, undefined, `${entry.filePath} must not author pairing id`);
     const folder = localeFolderFromFile(entry.filePath);
+    assert.equal(entry.data.id, folder, `${entry.filePath} pairing id must match the folder`);
     const locale = String(entry.data.locale);
     const key = pairKey(locale, folder);
     assert.equal(map.has(key), false, `duplicate (folder, locale) ${key}`);

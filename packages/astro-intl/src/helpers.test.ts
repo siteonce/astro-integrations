@@ -67,7 +67,7 @@ describe('getSitemapEntries / getAlternatePaths / Hreflang', () => {
         `https://example.com/${locale}${path ? `/${path}` : ''}`,
     });
     try {
-      assert.deepEqual(await getAlternatePaths('hello-world'), {
+      assert.deepEqual(await getAlternatePaths('blog/hello-world'), {
         en: 'blog/hello-world',
         de: 'blog/hallo-welt',
       });
