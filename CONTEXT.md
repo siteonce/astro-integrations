@@ -56,7 +56,7 @@ A snapshot monorepo that is the foundation for every Astro **content site** buil
 
 **slug** (entry field): The public tail after the locale prefix. Homepage is `/`. Not the pairing `id` and not Astro’s collection id. _Avoid_: authored path, per-entry pathPrefix
 
-**pairing `id`**: Shared key that joins locale siblings of one document. Authored on the entry (`data.id` by default). Distinct from the public `slug` and from Astro’s per-file collection `id`. Intl prefixes the collection name. _Avoid_: using slug as the group key; treating `entry.id` as the pairing key; generating the key from the folder tree
+**pairing `id`**: Shared key that joins locale siblings of one document. Authored on the entry (`data.id` by default). Distinct from the public `slug` and from Astro’s per-file collection `id`. Intl prefixes the collection name. _Avoid_: using slug as the group key; treating `entry.id` as the pairing key; generating the key from the folder tree; minting a second internal key
 
 **section**: A locale-specific prefix of a routed collection’s public tail (`blog` vs `artikel`, or a multi-segment prefix such as `about/history` vs `ueber-uns/geschichte`). Listing slug equals a section; an entry slug is that section plus one rest segment. _Avoid_: pathPrefix (as a document field), catalog key (for this)
 
