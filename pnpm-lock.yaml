@@ -75,6 +75,9 @@ importers:
       '@astrojs/mdx':
         specifier: ^7.0.8
         version: 7.0.8(@astrojs/markdown-satteri@0.3.4)(astro@7.0.9(@astrojs/markdown-remark@7.2.1)(@emnapi/core@1.11.1)(@emnapi/runtime@1.11.1)(@types/node@24.12.4)(jiti@2.7.0)(yaml@2.9.0))
+      '@astrojs/partytown':
+        specifier: ^2.1.7
+        version: 2.1.7
       '@astrojs/rss':
         specifier: ^4.0.18
         version: 4.0.18

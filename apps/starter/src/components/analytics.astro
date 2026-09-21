@@ -1,0 +1,16 @@
+---
+// GA4 tags, run off the main thread via Partytown (`type="text/partytown"`).
+// Replace the measurement id below with the project's. Swap the tags for
+// another provider if needed — keep the Partytown type so the worker still
+// applies. `astro.config.mjs` registers @astrojs/partytown with
+// `forward: ['dataLayer.push']` for this example.
+const measurementId = 'G-XXXXXXXXXX';
+const gaInline = `window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','${measurementId}');`;
+---
+
+<script
+  is:inline
+  type="text/partytown"
+  async
+  src={`https://www.googletagmanager.com/gtag/js?id=${measurementId}`}></script>
+<script is:inline type="text/partytown" set:html={gaInline} />

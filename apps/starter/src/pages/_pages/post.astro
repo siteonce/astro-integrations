@@ -16,12 +16,14 @@ import SiteLayout from '../../layouts/site-layout.astro';
 import { ogConfig } from '../../og.config.ts';
 import { siteConfig } from '../../site.config.ts';
 import { useTranslations } from '../../t.ts';
+import { resolveFeatImage } from '../../utils/feat-image.ts';
 import { localeFolder } from '../../utils/locale-folder.ts';
 
 interface Props {
   locale: string;
   entry: {
     id: string;
+    filePath?: string;
     body?: string;
     data: {
       slug?: string;
@@ -74,10 +76,11 @@ const related = getRelatedContent(entry, posts).map((post) => ({
   href: getRelativeLocaleUrl(locale, post.data.slug),
   title: post.data.seoTitle,
 }));
+const featSrc = entry.data.featImage
+  ? resolveFeatImage(localeFolder(entry), entry.data.featImage)
+  : undefined;
 const image =
-  entry.data.featImage && entry.data.featImageAlt && !entry.data.featImage.startsWith('.')
-    ? { src: entry.data.featImage, alt: entry.data.featImageAlt }
-    : undefined;
+  featSrc && entry.data.featImageAlt ? { src: featSrc, alt: entry.data.featImageAlt } : undefined;
 ---
 
 <SiteLayout locale={locale} switcher={switcher}>

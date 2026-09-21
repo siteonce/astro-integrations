@@ -1,11 +1,12 @@
 ---
-// Site chrome around BaseLayout: styles, Favicon, locale switcher, and a head
-// pass-through. Document pages drop Seo/Hreflang/Schema into the head slot and
-// own their landmarks. This file does not compose blocks.
+// Site chrome around BaseLayout: styles, Favicon, Analytics, locale switcher,
+// and a head pass-through. Document pages drop Seo/Hreflang/Schema into the
+// head slot and own their landmarks. This file does not compose blocks.
 
 import { BaseLayout } from '@repo/astro-site/components';
 import { cn } from '@repo/astro-site/utils/cn';
 import type { HTMLAttributes } from 'astro/types';
+import Analytics from '../components/analytics.astro';
 import Favicon from '../components/favicon.astro';
 import { useTranslations } from '../t.ts';
 import '../styles';
@@ -34,6 +35,7 @@ const { class: bodyClass, 'class:list': bodyClassList, ...bodyRest } = body ?? {
 >
   <Fragment slot="head">
     <Favicon />
+    <Analytics />
     <slot name="head" />
   </Fragment>
   <header>

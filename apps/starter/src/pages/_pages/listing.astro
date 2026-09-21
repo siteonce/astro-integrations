@@ -15,6 +15,7 @@ import SiteLayout from '../../layouts/site-layout.astro';
 import { ogConfig } from '../../og.config.ts';
 import { siteConfig } from '../../site.config.ts';
 import { useTranslations } from '../../t.ts';
+import { resolveFeatImage } from '../../utils/feat-image.ts';
 import { localeFolder } from '../../utils/locale-folder.ts';
 
 interface Props {
@@ -56,16 +57,14 @@ const tagSlug = new Map(
 const dateFmt = new Intl.DateTimeFormat(locale, { dateStyle: 'long' });
 const items = posts.map((post) => {
   const keyFor = (id: string) => `taxonomy.blogTags.${id}`;
+  const src = resolveFeatImage(localeFolder(post), post.data.featImage);
   return {
     href: getRelativeLocaleUrl(locale, post.data.slug),
     title: post.data.seoTitle,
     excerpt: post.data.excerpt,
     datetime: post.data.pubDate.toISOString(),
     dateLabel: dateFmt.format(post.data.pubDate),
-    image:
-      post.data.featImage && post.data.featImageAlt && !post.data.featImage.startsWith('.')
-        ? { src: post.data.featImage, alt: post.data.featImageAlt }
-        : undefined,
+    image: src ? { src, alt: post.data.featImageAlt } : undefined,
     terms: post.data.tags.map((id) => {
       const key = keyFor(id);
       const value = t(key);

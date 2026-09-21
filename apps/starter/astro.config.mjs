@@ -1,5 +1,6 @@
 import { unified } from '@astrojs/markdown-remark';
 import mdx from '@astrojs/mdx';
+import partytown from '@astrojs/partytown';
 import sitemap from '@astrojs/sitemap';
 import svelte from '@astrojs/svelte';
 import astroIntl from '@repo/astro-intl';
@@ -55,6 +56,11 @@ export default defineConfig({
     ogImage({ config: ogConfig }),
     mdx(),
     svelte(),
+    partytown({
+      config: {
+        forward: ['dataLayer.push'],
+      },
+    }),
     collectIntlSitemapPages,
     sitemap({
       customPages: intlSitemapPages,
