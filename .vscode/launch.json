@@ -2,7 +2,7 @@
   "version": "0.2.0",
   "configurations": [
     {
-      "command": "pnpm --filter marketing dev",
+      "command": "pnpm --filter starter dev",
       "name": "Development server",
       "request": "launch",
       "type": "node-terminal"

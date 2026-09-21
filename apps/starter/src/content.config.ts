@@ -44,7 +44,7 @@ const posts = defineCollection({
   schema: blog.extend(pairing).superRefine(localeSection(blogSection, 'entry', { slugify })),
 });
 
-// Term pages: marketing's locale-free tag catalog re-authored with locale + slug.
+// Term pages: a routed tags collection with locale + slug.
 const tags = defineCollection({
   loader: glob({
     pattern: '**/*.{md,mdx}',

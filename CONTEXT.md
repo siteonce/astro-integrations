@@ -16,11 +16,11 @@ A snapshot monorepo that is the foundation for every Astro **content site** buil
 
 **starter monorepo**: The workspace inside the snapshot — apps and packages — structured like an end-user project. _Avoid_: starter (alone)
 
-**starter**: The content-site application at `apps/starter`. Root `pnpm dev` / `build` / `preview` run it. _Avoid_: marketing app, treating `apps/marketing` as the snapshot app
+**starter**: The content-site application at `apps/starter`. Root `pnpm dev` / `build` / `preview` run it.
 
 **starter theme**: The visual token layer inside the starter (CSS variables and Tailwind theme). Not a second product. _Avoid_: starter (for this meaning)
 
-**leftover**: Departing `apps/marketing` and `packages/astro` (`@repo/astro`, factory `siteonce()`, `virtual:app/*`). Not the snapshot surface. _Avoid_: marketing app (as the snapshot app); `@repo/astro` (as the site library)
+**leftover**: Departing `packages/astro` (`@repo/astro`, factory `siteonce()`, `virtual:app/*`). Not the snapshot surface. _Avoid_: `@repo/astro` (as the site library)
 
 ### Packages
 
