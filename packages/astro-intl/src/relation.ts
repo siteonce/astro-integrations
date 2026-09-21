@@ -1,17 +1,35 @@
-/**
- * **relation** helper: authored pairing `id`, parsed `{ collection, id }`,
- * resolved in the current locale. Locale-free and inline-map collections sit
- * on `astro:content`; listed targets use pairing.
- */
-
 import * as z from 'zod';
 import type { CollectionConfig } from './define-intl.ts';
-import { type CollectionEntryLike, localeEntryKey, type PairingIndex } from './pairing.ts';
+import type { CollectionEntryLike } from './pairing.ts';
+
+const RELATED_TARGETS = Symbol.for('@repo/astro-intl/related-targets');
 
 export type Relation = {
   collection: string;
   id: string;
 };
+
+export type ResolveRelationOptions = {
+  locales: readonly string[];
+  listed: Readonly<Record<string, CollectionConfig>>;
+  collections: Readonly<Record<string, CollectionEntryLike[]>>;
+  getContentById: (locale: string, entryId: string) => CollectionEntryLike | undefined;
+  where?: string;
+};
+
+function relatedTargets(): Set<string> {
+  const g = globalThis as Record<symbol, Set<string> | undefined>;
+  let set = g[RELATED_TARGETS];
+  if (!set) {
+    set = new Set();
+    g[RELATED_TARGETS] = set;
+  }
+  return set;
+}
+
+export function relatedTargetNames(): string[] {
+  return [...relatedTargets()];
+}
 
 function describeEntry(collection: string, entry: CollectionEntryLike): string {
   return entry.filePath ?? `${collection}:${entry.id}`;
@@ -23,19 +41,31 @@ function isPlainObject(value: unknown): value is Record<string, unknown> {
   );
 }
 
-export function isRelation(value: unknown): value is Relation {
+function isRelation(value: unknown): value is Relation {
   if (!isPlainObject(value)) return false;
   const keys = Object.keys(value);
-  return (
-    keys.length === 2 &&
-    typeof value.collection === 'string' &&
-    value.collection.length > 0 &&
-    typeof value.id === 'string' &&
-    value.id.length > 0
-  );
+  if (
+    keys.length !== 2 ||
+    typeof value.collection !== 'string' ||
+    value.collection.length === 0 ||
+    typeof value.id !== 'string' ||
+    value.id.length === 0
+  ) {
+    return false;
+  }
+  return relatedTargets().has(value.collection);
 }
 
-/** Walk parsed entry data for `{ collection, id }` objects. */
+function isLocaleMap(value: unknown, locales: readonly string[]): value is Record<string, unknown> {
+  if (!isPlainObject(value)) return false;
+  const keys = Object.keys(value);
+  return keys.length === locales.length && locales.every((code) => keys.includes(code));
+}
+
+function fail(message: string, where?: string): never {
+  throw new Error(where ? `${message} (${where}).` : `${message}.`);
+}
+
 export function collectRelations(value: unknown): Relation[] {
   if (isRelation(value)) return [value];
   if (Array.isArray(value)) return value.flatMap(collectRelations);
@@ -43,21 +73,17 @@ export function collectRelations(value: unknown): Relation[] {
   return [];
 }
 
-/** Authored pairing `id` string → `{ collection, id }`. */
 export function relation(collection: string) {
   if (!collection) {
     throw new Error('@repo/astro-intl: relation() needs a collection name.');
   }
+  relatedTargets().add(collection);
   return z
     .string()
     .min(1)
     .transform((id): Relation => ({ collection, id }));
 }
 
-/**
- * Locale-keyed object for inline translation. Keys are `locales`.
- * Missing or extra keys fail parse.
- */
 export function localized<T extends z.ZodType>(value: T, locales: readonly string[]) {
   if (locales.length === 0) {
     throw new Error('@repo/astro-intl: localized() needs at least one locale.');
@@ -82,58 +108,54 @@ export function localizedValue<T>(field: Readonly<Record<string, T>>, locale: st
   return field[locale] as T;
 }
 
-export function findLocaleFreeEntry(
-  entries: readonly CollectionEntryLike[],
-  id: string,
-): CollectionEntryLike | undefined {
-  return entries.find((entry) => {
-    if (entry.id === id) return true;
-    const dataId = entry.data.id;
-    return typeof dataId === 'string' && dataId === id;
-  });
+function peelLocalized(
+  data: Record<string, unknown>,
+  locale: string,
+  locales: readonly string[],
+): Record<string, unknown> {
+  const next: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(data)) {
+    next[key] = isLocaleMap(value, locales) ? localizedValue(value, locale) : value;
+  }
+  return next;
 }
-
-function listedEntryId(collection: string, id: string): string {
-  return `${collection}/${id}`;
-}
-
-export type AssertRelationsOptions = {
-  locales: readonly string[];
-  listed: Readonly<Record<string, CollectionConfig>>;
-  pairing: PairingIndex;
-  collections: Readonly<Record<string, CollectionEntryLike[]>>;
-};
 
 export function resolveRelation(
   locale: string,
   rel: Relation,
-  options: Pick<AssertRelationsOptions, 'listed' | 'pairing' | 'collections'>,
+  options: ResolveRelationOptions,
 ): CollectionEntryLike {
-  const target = options.collections[rel.collection];
-  if (!target) {
-    throw new Error(`@repo/astro-intl: collections.${rel.collection} is not a content collection.`);
+  const { listed, collections, getContentById, locales, where } = options;
+  if (!(rel.collection in collections)) {
+    fail(`@repo/astro-intl: collections.${rel.collection} is not a content collection`, where);
   }
-  if (rel.collection in options.listed) {
-    const entry = options.pairing.byLocaleEntryId.get(
-      localeEntryKey(locale, listedEntryId(rel.collection, rel.id)),
-    )?.entry;
+  let entry: CollectionEntryLike | undefined;
+  if (rel.collection in listed) {
+    entry = getContentById(locale, `${rel.collection}/${rel.id}`);
     if (!entry) {
-      throw new Error(
-        `@repo/astro-intl: relation ${rel.collection}/${rel.id} is missing locale "${locale}".`,
+      fail(
+        `@repo/astro-intl: relation ${rel.collection}/${rel.id} is missing locale "${locale}"`,
+        where,
       );
     }
-    return entry;
+  } else {
+    // Unlisted files key by filename (Astro entry id).
+    entry = collections[rel.collection]?.find((item) => item.id === rel.id);
+    if (!entry) {
+      fail(`@repo/astro-intl: relation ${rel.collection}/${rel.id} is missing`, where);
+    }
   }
-  const found = findLocaleFreeEntry(target, rel.id);
-  if (!found) {
-    throw new Error(`@repo/astro-intl: relation ${rel.collection}/${rel.id} is missing.`);
-  }
-  return found;
+  return { ...entry, data: peelLocalized(entry.data, locale, locales) };
 }
 
-/** Fail when a parsed **relation** has no target in the source locale. */
-export function assertRelations(options: AssertRelationsOptions): void {
-  const { locales, listed, pairing, collections } = options;
+export function assertRelations(options: Omit<ResolveRelationOptions, 'where'>): void {
+  const { locales, listed, collections, getContentById } = options;
+  const resolve = {
+    locales,
+    listed,
+    collections,
+    getContentById,
+  };
 
   for (const [name, entries] of Object.entries(collections)) {
     const localeField = listed[name]?.localeField ?? 'locale';
@@ -145,25 +167,13 @@ export function assertRelations(options: AssertRelationsOptions): void {
       const where = describeEntry(name, entry);
 
       for (const rel of collectRelations(entry.data)) {
-        if (!(rel.collection in collections)) {
-          throw new Error(
-            `@repo/astro-intl: collections.${rel.collection} is not a content collection (${where}).`,
-          );
-        }
         if (rel.collection in listed) {
           const localesToCheck = sourceLocale ? [sourceLocale] : locales;
-          for (const locale of localesToCheck) {
-            const key = localeEntryKey(locale, listedEntryId(rel.collection, rel.id));
-            if (!pairing.byLocaleEntryId.has(key)) {
-              throw new Error(
-                `@repo/astro-intl: relation ${rel.collection}/${rel.id} is missing locale "${locale}" (${where}).`,
-              );
-            }
+          for (const code of localesToCheck) {
+            resolveRelation(code, rel, { ...resolve, where });
           }
-        } else if (!findLocaleFreeEntry(collections[rel.collection] ?? [], rel.id)) {
-          throw new Error(
-            `@repo/astro-intl: relation ${rel.collection}/${rel.id} is missing (${where}).`,
-          );
+        } else {
+          resolveRelation(sourceLocale ?? locales[0], rel, { ...resolve, where });
         }
       }
     }

@@ -83,7 +83,6 @@ const authors = defineCollection({
   }),
 });
 
-// Locale-free lookup. Filename is the pairing id. Out of intl pairing.
 const clients = defineCollection({
   loader: glob({
     pattern: '*.json',
@@ -96,7 +95,6 @@ const clients = defineCollection({
   }),
 });
 
-// Inline locale maps on one file. Filename is the pairing id. Out of intl pairing.
 const roles = defineCollection({
   loader: glob({
     pattern: '*.json',

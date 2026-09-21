@@ -8,7 +8,6 @@ import {
   getAlternatePathsForPath,
   getRelated,
   localeSwitcherLinks,
-  localizedValue,
   type Relation,
 } from '@repo/astro-intl';
 import { Hreflang } from '@repo/astro-intl/components';
@@ -92,15 +91,11 @@ const image =
   featSrc && entry.data.featImageAlt ? { src: featSrc, alt: entry.data.featImageAlt } : undefined;
 
 const authorEntry = entry.data.author ? await getRelated(locale, entry.data.author) : undefined;
-const authorName = typeof authorEntry?.data.name === 'string' ? authorEntry.data.name : undefined;
 const clientEntry = entry.data.client ? await getRelated(locale, entry.data.client) : undefined;
-const clientName = typeof clientEntry?.data.name === 'string' ? clientEntry.data.name : undefined;
 const roleEntry = entry.data.role ? await getRelated(locale, entry.data.role) : undefined;
-const roleField = roleEntry?.data.name;
-const roleName =
-  roleField && typeof roleField === 'object'
-    ? localizedValue(roleField as Record<string, string>, locale)
-    : undefined;
+const authorName = authorEntry?.data.name as string | undefined;
+const clientName = clientEntry?.data.name as string | undefined;
+const roleName = roleEntry?.data.name as string | undefined;
 const byline = [authorName, roleName, clientName].filter(Boolean).join(' · ');
 ---
 

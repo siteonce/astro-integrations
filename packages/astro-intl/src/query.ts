@@ -33,6 +33,7 @@ export type PairedSlug = {
 
 export type IntlQuery = {
   pairing: PairingIndex;
+  collections: Readonly<Record<string, CollectionEntryLike[]>>;
   getContentByPath: (locale: string, path: string) => CollectionEntryLike | undefined;
   getContentById: (locale: string, entryId: string) => CollectionEntryLike | undefined;
   getAlternatePaths: (entryId: string) => Record<string, string>;
@@ -190,6 +191,7 @@ export function createIntlQuery(options: CreateIntlQueryOptions): IntlQuery {
 
   return {
     pairing,
+    collections: options.collections,
     getContentByPath,
     getContentById,
     getAlternatePaths,

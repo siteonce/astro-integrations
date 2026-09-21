@@ -6,7 +6,13 @@ import {
   type PairedSlug,
   type SitemapEntry,
 } from './query.ts';
-import { assertRelations, collectRelations, type Relation, resolveRelation } from './relation.ts';
+import {
+  assertRelations,
+  collectRelations,
+  type Relation,
+  relatedTargetNames,
+  resolveRelation,
+} from './relation.ts';
 import { getIntlRuntime, runtimeGeneration } from './runtime.ts';
 
 export { hreflangLinks } from './hreflang.ts';
@@ -20,19 +26,16 @@ export type IntlLoaders = {
 let loadersOverride: IntlLoaders | undefined;
 let cached: IntlQuery | undefined;
 let cachedGeneration = -1;
-let relatedCollections: Record<string, CollectionEntryLike[]> = {};
 
 export function setIntlLoaders(loaders: IntlLoaders | undefined): void {
   loadersOverride = loaders;
   cached = undefined;
   cachedGeneration = -1;
-  relatedCollections = {};
 }
 
 export function resetIntlQuery(): void {
   cached = undefined;
   cachedGeneration = -1;
-  relatedCollections = {};
 }
 
 async function defaultLoaders(): Promise<IntlLoaders> {
@@ -44,6 +47,17 @@ async function defaultLoaders(): Promise<IntlLoaders> {
   };
 }
 
+async function loadNamedCollection(
+  loaders: IntlLoaders,
+  name: string,
+): Promise<CollectionEntryLike[]> {
+  try {
+    return await loaders.getCollection(name);
+  } catch {
+    throw new Error(`@repo/astro-intl: collections.${name} is not a content collection.`);
+  }
+}
+
 async function loadQuery(): Promise<IntlQuery> {
   const generation = runtimeGeneration();
   if (cached && cachedGeneration === generation) return cached;
@@ -51,21 +65,9 @@ async function loadQuery(): Promise<IntlQuery> {
   const loaders = loadersOverride ?? (await defaultLoaders());
   const collections: Record<string, CollectionEntryLike[]> = {};
   for (const name of Object.keys(runtime.config.collections ?? {})) {
-    try {
-      collections[name] = await loaders.getCollection(name);
-    } catch {
-      throw new Error(`@repo/astro-intl: collections.${name} is not a content collection.`);
-    }
+    collections[name] = await loadNamedCollection(loaders, name);
   }
-  const query = createIntlQuery({
-    config: runtime.config,
-    collections,
-    reservedTails: runtime.reservedTails,
-    fileRouteTails: runtime.routeTails,
-    getAbsoluteLocaleUrl: loaders.getAbsoluteLocaleUrl,
-  });
-
-  const needed = new Set<string>();
+  const needed = new Set(relatedTargetNames());
   for (const entries of Object.values(collections)) {
     for (const entry of entries) {
       for (const rel of collectRelations(entry.data)) {
@@ -75,19 +77,21 @@ async function loadQuery(): Promise<IntlQuery> {
   }
   for (const name of needed) {
     if (name in collections) continue;
-    try {
-      collections[name] = await loaders.getCollection(name);
-    } catch {
-      throw new Error(`@repo/astro-intl: collections.${name} is not a content collection.`);
-    }
+    collections[name] = await loadNamedCollection(loaders, name);
   }
+  const query = createIntlQuery({
+    config: runtime.config,
+    collections,
+    reservedTails: runtime.reservedTails,
+    fileRouteTails: runtime.routeTails,
+    getAbsoluteLocaleUrl: loaders.getAbsoluteLocaleUrl,
+  });
   assertRelations({
     locales: runtime.config.locales,
     listed: runtime.config.collections ?? {},
-    pairing: query.pairing,
     collections,
+    getContentById: query.getContentById,
   });
-  relatedCollections = collections;
   cached = query;
   cachedGeneration = generation;
   for (const warning of query.pairing.warnings) {
@@ -99,20 +103,11 @@ async function loadQuery(): Promise<IntlQuery> {
 export async function getRelated(locale: string, rel: Relation): Promise<CollectionEntryLike> {
   const query = await loadQuery();
   const runtime = getIntlRuntime();
-  if (!(rel.collection in relatedCollections)) {
-    const loaders = loadersOverride ?? (await defaultLoaders());
-    try {
-      relatedCollections[rel.collection] = await loaders.getCollection(rel.collection);
-    } catch {
-      throw new Error(
-        `@repo/astro-intl: collections.${rel.collection} is not a content collection.`,
-      );
-    }
-  }
   return resolveRelation(locale, rel, {
+    locales: runtime.config.locales,
     listed: runtime.config.collections ?? {},
-    pairing: query.pairing,
-    collections: relatedCollections,
+    collections: query.collections,
+    getContentById: query.getContentById,
   });
 }
 

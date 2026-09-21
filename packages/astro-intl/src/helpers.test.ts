@@ -1,9 +1,11 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
+import { z } from 'zod';
 import { defineIntl } from './define-intl.ts';
 import {
   getAlternatePaths,
   getDocumentHead,
+  getPairedSlugs,
   getRelated,
   getSitemapEntries,
   hreflangLinks,
@@ -11,7 +13,39 @@ import {
   setIntlLoaders,
 } from './helpers.ts';
 import type { CollectionEntryLike } from './pairing.ts';
+import { localized, relation } from './relation.ts';
 import { setIntlConfig } from './runtime.ts';
+
+const locales = ['en', 'de'] as const;
+const authorRel = relation('authors').parse('ada');
+const clientRel = relation('clients').parse('acme');
+const roleRel = relation('roles').parse('editor');
+const roleName = localized(z.string().min(1), locales).parse({
+  en: 'Editor',
+  de: 'Redakteur',
+});
+
+function withQuery(collections: Record<string, CollectionEntryLike[]>, loaded?: string[]): void {
+  const config = defineIntl({
+    locales: ['en', 'de'],
+    defaultLocale: 'en',
+    routing: { prefixDefaultLocale: true },
+    collections: {
+      blog: { slugField: 'slug' },
+      authors: {},
+    },
+  });
+  setIntlConfig(config);
+  setIntlLoaders({
+    getCollection: async (name) => {
+      loaded?.push(name);
+      if (!(name in collections)) throw new Error(`missing ${name}`);
+      return collections[name] ?? [];
+    },
+    getAbsoluteLocaleUrl: (locale, path = '') =>
+      `https://example.com/${locale}${path ? `/${path}` : ''}`,
+  });
+}
 
 describe('getSitemapEntries / getAlternatePaths / Hreflang', () => {
   it('pairs fixture collections through the public helpers', async () => {
@@ -60,60 +94,137 @@ describe('getSitemapEntries / getAlternatePaths / Hreflang', () => {
       resetIntlQuery();
     }
   });
+});
 
-  it('resolves listed and locale-free relations through getRelated', async () => {
-    const config = defineIntl({
-      locales: ['en', 'de'],
-      defaultLocale: 'en',
-      routing: { prefixDefaultLocale: true },
-      collections: {
-        blog: { slugField: 'slug' },
-        authors: {},
+describe('getRelated', () => {
+  const blog = [
+    {
+      id: 'hello-en',
+      data: {
+        id: 'hello-world',
+        locale: 'en',
+        slug: 'blog/hello-world',
+        author: authorRel,
+        client: clientRel,
+        role: roleRel,
       },
-    });
-    const collections: Record<string, CollectionEntryLike[]> = {
-      blog: [
-        {
-          id: 'hello-en',
-          data: {
-            id: 'hello-world',
-            locale: 'en',
-            slug: 'blog/hello-world',
-            author: { collection: 'authors', id: 'ada' },
-            client: { collection: 'clients', id: 'acme' },
-          },
-        },
-        {
-          id: 'hello-de',
-          data: {
-            id: 'hello-world',
-            locale: 'de',
-            slug: 'artikel/hallo-welt',
-            author: { collection: 'authors', id: 'ada' },
-            client: { collection: 'clients', id: 'acme' },
-          },
-        },
-      ],
-      authors: [
-        { id: 'ada-en', data: { id: 'ada', locale: 'en', name: 'Ada' } },
-        { id: 'ada-de', data: { id: 'ada', locale: 'de', name: 'Ada DE' } },
-      ],
-      clients: [{ id: 'acme', data: { name: 'Acme' } }],
-    };
-    setIntlConfig(config);
-    setIntlLoaders({
-      getCollection: async (name) => {
-        if (!(name in collections)) throw new Error(`missing ${name}`);
-        return collections[name] ?? [];
+    },
+    {
+      id: 'hello-de',
+      data: {
+        id: 'hello-world',
+        locale: 'de',
+        slug: 'artikel/hallo-welt',
+        author: authorRel,
+        client: clientRel,
+        role: roleRel,
       },
-      getAbsoluteLocaleUrl: (locale, path = '') =>
-        `https://example.com/${locale}${path ? `/${path}` : ''}`,
+    },
+  ];
+  const authors = [
+    { id: 'ada-en', data: { id: 'ada', locale: 'en', name: 'Ada' } },
+    { id: 'ada-de', data: { id: 'ada', locale: 'de', name: 'Ada DE' } },
+  ];
+  const clients = [{ id: 'acme', data: { name: 'Acme' } }];
+  const roles = [{ id: 'editor', data: { name: roleName } }];
+
+  it('returns locale-resolved fields for listed, locale-free, and inline-map targets', async () => {
+    withQuery({ blog, authors, clients, roles });
+    try {
+      const author = await getRelated('de', authorRel);
+      assert.equal(author.data.name, 'Ada DE');
+      const client = await getRelated('de', clientRel);
+      assert.equal(client.data.name, 'Acme');
+      const role = await getRelated('de', roleRel);
+      assert.equal(role.data.name, 'Redakteur');
+    } finally {
+      setIntlLoaders(undefined);
+      setIntlConfig(undefined);
+      resetIntlQuery();
+    }
+  });
+
+  it('fails when a listed sibling is missing in the source locale', async () => {
+    withQuery({ blog, authors: [authors[0]], clients, roles });
+    try {
+      await assert.rejects(getPairedSlugs, /relation authors\/ada is missing locale "de"/);
+    } finally {
+      setIntlLoaders(undefined);
+      setIntlConfig(undefined);
+      resetIntlQuery();
+    }
+  });
+
+  it('fails when a locale-free id is missing', async () => {
+    withQuery({ blog, authors, clients: [], roles });
+    try {
+      await assert.rejects(getPairedSlugs, /relation clients\/acme is missing/);
+    } finally {
+      setIntlLoaders(undefined);
+      setIntlConfig(undefined);
+      resetIntlQuery();
+    }
+  });
+
+  it('matches unlisted files by filename, not data.id', async () => {
+    withQuery({
+      blog,
+      authors,
+      clients: [{ id: 'file-acme', data: { id: 'acme', name: 'Acme' } }],
+      roles,
     });
     try {
-      const author = await getRelated('de', { collection: 'authors', id: 'ada' });
-      assert.equal(author.data.name, 'Ada DE');
-      const client = await getRelated('de', { collection: 'clients', id: 'acme' });
-      assert.equal(client.data.name, 'Acme');
+      await assert.rejects(getPairedSlugs, /relation clients\/acme is missing/);
+    } finally {
+      setIntlLoaders(undefined);
+      setIntlConfig(undefined);
+      resetIntlQuery();
+    }
+  });
+
+  it('ignores an unbranded { collection, id } lookalike', async () => {
+    const loaded: string[] = [];
+    withQuery(
+      {
+        blog: [
+          {
+            id: 'hello-en',
+            data: {
+              id: 'hello-world',
+              locale: 'en',
+              slug: 'blog/hello-world',
+              author: authorRel,
+              lookalike: { collection: 'ghost', id: 'nope' },
+            },
+          },
+        ],
+        authors: [authors[0]],
+        clients,
+        roles,
+      },
+      loaded,
+    );
+    try {
+      await getPairedSlugs();
+      assert.equal(loaded.includes('ghost'), false);
+    } finally {
+      setIntlLoaders(undefined);
+      setIntlConfig(undefined);
+      resetIntlQuery();
+    }
+  });
+
+  it('does not fetch a collection that was not loaded at assert time', async () => {
+    const loaded: string[] = [];
+    withQuery({ blog, authors, clients, roles }, loaded);
+    try {
+      await getPairedSlugs();
+      const count = loaded.length;
+      await assert.rejects(
+        () => getRelated('en', { collection: 'ghost', id: 'x' }),
+        /collections.ghost is not a content collection/,
+      );
+      assert.equal(loaded.length, count);
     } finally {
       setIntlLoaders(undefined);
       setIntlConfig(undefined);
