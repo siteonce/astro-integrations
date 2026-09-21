@@ -139,7 +139,7 @@ export function resolveRelation(
       );
     }
   } else {
-    // Unlisted files key by filename (Astro entry id).
+    // Unlisted targets match the collection entry id. A glob loader derives it from the filename.
     entry = collections[rel.collection]?.find((item) => item.id === rel.id);
     if (!entry) {
       fail(`@repo/astro-intl: relation ${rel.collection}/${rel.id} is missing`, where);

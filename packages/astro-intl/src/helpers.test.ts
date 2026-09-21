@@ -166,7 +166,7 @@ describe('getRelated', () => {
     }
   });
 
-  it('matches unlisted files by filename, not data.id', async () => {
+  it('matches unlisted entries by entry id, not data.id', async () => {
     withQuery({
       blog,
       authors,

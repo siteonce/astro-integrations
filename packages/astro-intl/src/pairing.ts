@@ -2,6 +2,7 @@ import type { CollectionConfig, IntlConfig } from './define-intl.ts';
 import { resolveEntryId } from './entry-id.ts';
 import { compilePath, normalizeSlug } from './path.ts';
 
+/** Entry shape pairing and relations read. The content source fills `id` and `data`. `filePath` is optional. */
 export type CollectionEntryLike = {
   id: string;
   collection?: string;

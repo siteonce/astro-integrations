@@ -89,7 +89,7 @@ function compareLocalePath(
   return a.locale === b.locale ? a.path.localeCompare(b.path) : a.locale.localeCompare(b.locale);
 }
 
-/** Query helpers over a paired collection snapshot. Sit on `astro:content` entries. */
+/** Query helpers over a paired snapshot of collection entries. */
 export function createIntlQuery(options: CreateIntlQueryOptions): IntlQuery {
   const pairing = pairCollections(options.config, options.collections, options.reservedTails ?? []);
   const absolute = options.getAbsoluteLocaleUrl;

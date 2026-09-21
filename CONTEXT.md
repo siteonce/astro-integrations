@@ -50,6 +50,10 @@ A snapshot monorepo that is the foundation for every Astro **content site** buil
 
 **catalog**: Per-locale message file for `t()`. The app passes parsed objects into `createT`. _Avoid_: dictionary, i18n collection; using catalog for **ui** / **blocks**; a virtual module for this
 
+**content source**: Where a collection’s entries come from. The app chooses Astro content collections or a **CMS**.
+
+**CMS**: A content system outside this snapshot that can supply a **content source**. _Avoid_: an **astro-intl** package; calling **starter** a CMS
+
 **slug** (entry field): The public tail after the locale prefix. Homepage is `/`. Not the pairing `id` and not Astro’s collection id. _Avoid_: authored path, per-entry pathPrefix
 
 **pairing `id`**: Shared key that joins locale siblings of one document. Authored on the entry (`data.id` by default). Distinct from the public `slug` and from Astro’s per-file collection `id`. Intl prefixes the collection name. _Avoid_: using slug as the group key; treating `entry.id` as the pairing key; generating the key from the folder tree; minting a second internal key

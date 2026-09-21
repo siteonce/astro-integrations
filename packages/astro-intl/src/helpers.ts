@@ -18,6 +18,7 @@ import { getIntlRuntime, runtimeGeneration } from './runtime.ts';
 export { hreflangLinks } from './hreflang.ts';
 export type { DocumentHead, PairedSlug, SitemapEntry };
 
+/** Collection read used by query helpers. Production uses `astro:content`. Intl does not call a CMS. */
 export type IntlLoaders = {
   getCollection: (name: string) => Promise<CollectionEntryLike[]>;
   getAbsoluteLocaleUrl: (locale: string, path?: string) => string;
