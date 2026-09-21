@@ -3,8 +3,12 @@
 A snapshot monorepo for Astro content sites. Copy the repo; every file is yours. There are no promised upgrades.
 
 - **`apps/starter/`** — the content-site snapshot. Root `pnpm dev` / `pnpm build` / `pnpm preview` run this app.
-- **`packages/astro/`** — `siteonce()` integration, Astro-coupled runtime, config schemas, the component catalog, and helpers (`@repo/astro`).
-- **`packages/og-image/`** — optional OG image generator (`@repo/og-image`). Default export `ogImage()`.
+- **`packages/astro-intl/`** — catalogs, collection pairing, locale list written through to Astro i18n (`@repo/astro-intl`). Factory `astroIntl()`.
+- **`packages/astro-intl-sitemap/`** — printer glue the app passes into `@astrojs/sitemap` (`@repo/astro-intl-sitemap`).
+- **`packages/astro-site/`** — layout, Seo, Schema, blocks, schema fragments, and helpers (`@repo/astro-site`).
+- **`packages/og-image/`** — optional OG image generator (`@repo/og-image`). Factory `ogImage()`.
+
+How the snapshot is shaped: [`docs/spec/`](docs/spec/index.md). Glossary: [`CONTEXT.md`](CONTEXT.md).
 
 ## Development
 
@@ -19,7 +23,7 @@ Changes to packages under `packages/` are picked up live in `apps/starter` via p
 
 ## OG images
 
-The optional `@repo/og-image` integration reads generation settings from [`apps/starter/src/og.config.ts`](apps/starter/src/og.config.ts). The route registry requires a `"*"` default, lets project pages override or opt out, and uses an explicit collection for dynamic routes:
+The optional `@repo/og-image` integration reads generation settings from [`apps/starter/src/og.config.ts`](apps/starter/src/og.config.ts). `routes['*']` is the required default; project pages can override or opt out:
 
 ```ts
 export const ogConfig = {
@@ -27,7 +31,6 @@ export const ogConfig = {
   templates: { default: {} },
   routes: {
     '*': { template: 'default' },
-    '/blog/[slug]': { collection: 'blog' },
     '/404': false,
   },
   fonts: [

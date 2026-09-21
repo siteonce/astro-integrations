@@ -16,11 +16,19 @@ A snapshot monorepo that is the foundation for every Astro **content site** buil
 
 **starter monorepo**: The workspace inside the snapshot — apps and packages — structured like an end-user project. _Avoid_: starter (alone)
 
+**starter**: The content-site application at `apps/starter`. Root `pnpm dev` / `build` / `preview` run it.
+
 **starter theme**: The visual token layer inside the starter monorepo (CSS variables and Tailwind theme). Not a second product. _Avoid_: starter (for this meaning)
 
-**marketing app**: The public site application at `apps/marketing` (today's `starter/`). _Avoid_: starter (for this meaning)
+**marketing app**: Leftover public-site application at `apps/marketing`. _Avoid_: treating it as the snapshot app
 
-**astro**: The workspace package that is the Astro integration, Astro-coupled runtime (virtual modules, i18n, rehype, robots), config schemas, reusable content-collection schema fragments, the component catalog, and helpers (`cn`, related-content picker). _Avoid_: site (for this package), packages/schemas
+**astro-intl**: Workspace package `@repo/astro-intl` — catalogs, collection pairing, locale list written through to Astro `i18n`. Factory `astroIntl()`.
+
+**astro-intl-sitemap**: Workspace package `@repo/astro-intl-sitemap` — printer glue the app passes into `@astrojs/sitemap`.
+
+**astro-site**: Workspace package `@repo/astro-site` — layout, **Seo**, **Schema**, **blocks**, schema fragments, and helpers. Not an Astro integration.
+
+**astro**: Leftover workspace package `@repo/astro` — factory `siteonce()`, virtual `virtual:app/*`, catalog copy still used by **marketing app**. _Avoid_: packages/schemas
 
 **ui**: Small primitives in the catalog. Today: Measure and Flow CSS. Future CVA/Svelte primitives land here, one folder per component.
 
@@ -28,11 +36,13 @@ A snapshot monorepo that is the foundation for every Astro **content site** buil
 
 **`@repo/*`**: Workspace package scope inside the snapshot. Not a registry; the customer owns these folders. _Avoid_: `@siteonce/*` (for workspace names)
 
-**`siteonce()`**: Default export of `@repo/astro` — the Astro integration registered in an app’s `astro.config`. _Avoid_: astroLib(), astro() (the framework already owns that name in `astro.config`)
+**`astroIntl()`**: Default export of `@repo/astro-intl`.
+
+**`siteonce()`**: Default export of leftover `@repo/astro`. **starter** registers `astroIntl()`. _Avoid_: astroLib(), astro() (the framework already owns that name in `astro.config`)
 
 **`ogImage()`**: Default export of `@repo/og-image`. _Avoid_: astroOgImage()
 
-**`virtual:app/*`**: Vite modules the current app’s `siteonce()` registration fills (`config`, `i18n`). Same ids in every app; each build supplies that app’s values. Head and `t()` import these, never `apps/<name>/src/*.config.ts`. _Avoid_: `virtual:astro-lib/*`, `virtual:siteonce/*`, `virtual:<app-folder>/*` (for the id)
+**`virtual:app/*`**: Vite modules `siteonce()` fills (`config`, `i18n`) for **marketing app**. **starter** reads `src/*.config.ts` and passes message objects into `createT`. _Avoid_: `virtual:astro-lib/*`, `virtual:siteonce/*`, `virtual:<app-folder>/*` (for the id)
 
 **`virtual:og-image/config`**: Vite module `ogImage()` fills with generation config.
 

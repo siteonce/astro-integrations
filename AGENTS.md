@@ -1,6 +1,7 @@
 # astro-stack
 
 - **Vocabulary** — use terms from `CONTEXT.md`; respect its _Avoid_ entries.
+- **Product description** — `docs/spec/`. Read the files that cover the area before changing it.
 
 ## Standing constraints
 
@@ -12,9 +13,9 @@
 - **Config vs env.** Secrets and environment-dependent values go in `.env` (typed via `astro:env`). Structured static values go in the app’s `src/*.config.ts`. Never inline either in components or pages; never put secrets in config files.
 - **Error policy.** If a problem can be known without rendering a particular request, fail loudly at startup (or build start) and abort — schema parse failure, missing required config, unknown route/collection that config can name up front, missing required env. Prefer pushing checks to startup. If the same class of condition can only be detected while rendering a specific response, skip or no-op and log at that path so one bad optional resolution does not take down the page.
 - **Source comments.** Describe current behavior. Do not cite plan phases, PR numbers, or plan/backlog files.
-- **AGENTS.md pairing.** `docs/agents/architecture.md`
+- **AGENTS.md pairing.** Sibling `CLAUDE.md` is `@AGENTS.md`.
 
-## Agent skills
+## Process
 
 ### Issue tracker
 
@@ -23,15 +24,3 @@
 ### Triage labels
 
 `docs/agents/triage-labels.md`
-
-### Domain docs
-
-`docs/agents/domain.md`
-
-### Sit on Astro
-
-`docs/agents/sit-on-astro.md`
-
-### Tests
-
-`docs/agents/tests.md`
