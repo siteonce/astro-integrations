@@ -13,8 +13,8 @@ import { rehypeExternalLinks } from '@repo/astro-site/utils/rehype-external-link
 import ogImage from '@repo/og-image';
 import tailwindcss from '@tailwindcss/vite';
 import { defineConfig } from 'astro/config';
-import { ogConfig } from './src/og-config.ts';
-import { siteConfig } from './src/site-config.ts';
+import { ogConfig } from './src/og.config.ts';
+import { siteConfig } from './src/site.config.ts';
 
 // Allow the editorial-media host when MEDIA_BASE_URL is a valid origin.
 function mediaRemotePatterns() {

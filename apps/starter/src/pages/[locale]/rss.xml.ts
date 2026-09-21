@@ -5,7 +5,7 @@ import { getAlternatePathsForPath, getSitemapEntries, setIntlConfig } from '@rep
 import { persistIntlSitemapEntries } from '@repo/astro-intl-sitemap';
 import type { APIRoute } from 'astro';
 import intlConfig from '../../intl.config.ts';
-import { siteConfig } from '../../site-config.ts';
+import { siteConfig } from '../../site.config.ts';
 import { t } from '../../t.ts';
 
 // Page bundles do not share the integration's in-memory runtime.

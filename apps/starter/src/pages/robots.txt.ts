@@ -1,7 +1,7 @@
 import { robotsTxt } from '@repo/astro-site';
 import type { APIRoute } from 'astro';
-import { deployConfig } from '../deploy-config.ts';
-import { siteConfig } from '../site-config.ts';
+import { deployConfig } from '../deploy.config.ts';
+import { siteConfig } from '../site.config.ts';
 
 // Prerendered endpoint so the body can branch on deploy class at build.
 export const prerender = true;

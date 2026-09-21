@@ -19,7 +19,7 @@ Changes to packages under `packages/` are picked up live in `apps/marketing` via
 
 ## OG images
 
-The optional `@repo/og-image` integration reads generation settings from [`apps/marketing/src/og-config.ts`](apps/marketing/src/og-config.ts). The route registry requires a `"*"` default, lets project pages override or opt out, and uses an explicit collection for dynamic routes:
+The optional `@repo/og-image` integration reads generation settings from [`apps/marketing/src/og.config.ts`](apps/marketing/src/og.config.ts). The route registry requires a `"*"` default, lets project pages override or opt out, and uses an explicit collection for dynamic routes:
 
 ```ts
 export const ogConfig = {
