@@ -12,7 +12,7 @@ Astro integration for **intl**. Factory `astroIntl()`. Owns **catalogs** (pure `
 - Fail at startup when `src/intl.config.ts` is missing, a configured locale has no catalog file, overlapping `i18n` keys are already set on `defineConfig`, or `@astrojs/sitemap`'s `i18n` option is set.
 - **intl** does not know collection roles or **page types**. Listed collections are routed (have a URL) or translated records (do not).
 - File-route-wins: reserved tails from `astro:routes:resolved` plus optional `reservedPaths`. Do not add a dummy file route to prove it.
-- Query helpers do not import `@astrojs/sitemap` or `@astrojs/rss`.
+- Query helpers do not import `@astrojs/sitemap` or `@astrojs/rss`. Sitemap printer glue lives in `@repo/astro-intl-sitemap`.
 - Duplicate `(locale, path)` or a file route that shadows an entry aborts the build.
 - Pairing reads `data[idField]` and `data[localeField]` (defaults `id` / `locale`) and prefixes the collection name. Do not resolve pairing from `filePath` or Astro `entry.id`. No strategy enum. Do not mint a second internal key.
 - Pairing holds each sibling’s `slug`. The app’s `getStaticPaths` claims URLs. List helpers return pairing (`locale` + `slug`), not catch-all params. Do not add a second path index.
@@ -20,5 +20,5 @@ Astro integration for **intl**. Factory `astroIntl()`. Owns **catalogs** (pure `
 ## Out of scope
 
 - A virtual module for **catalogs**.
-- Registering or wrapping `@astrojs/sitemap` / `@astrojs/rss`.
+- Registering or wrapping `@astrojs/sitemap` / `@astrojs/rss`. Printer glue is `@repo/astro-intl-sitemap`.
 - Collection roles and **page types**.

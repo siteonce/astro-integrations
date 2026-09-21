@@ -2,10 +2,10 @@ import { getCollection } from 'astro:content';
 import { getAbsoluteLocaleUrl } from 'astro:i18n';
 import rss from '@astrojs/rss';
 import { getAlternatePathsForPath, getSitemapEntries, setIntlConfig } from '@repo/astro-intl';
+import { persistIntlSitemapEntries } from '@repo/astro-intl-sitemap';
 import type { APIRoute } from 'astro';
 import intlConfig from '../../intl.config.ts';
 import { siteConfig } from '../../site-config.ts';
-import { persistIntlSitemapEntries } from '../../sitemap.ts';
 import { t } from '../../t.ts';
 
 // Page bundles do not share the integration's in-memory runtime.

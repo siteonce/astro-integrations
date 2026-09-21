@@ -3,18 +3,18 @@ import mdx from '@astrojs/mdx';
 import sitemap from '@astrojs/sitemap';
 import svelte from '@astrojs/svelte';
 import astroIntl from '@repo/astro-intl';
+import {
+  collectIntlSitemapPages,
+  intlSitemapPages,
+  serializeSitemap,
+  sitemapFilter,
+} from '@repo/astro-intl-sitemap';
 import { rehypeExternalLinks } from '@repo/astro-site/utils/rehype-external-links';
 import ogImage from '@repo/og-image';
 import tailwindcss from '@tailwindcss/vite';
 import { defineConfig } from 'astro/config';
 import { ogConfig } from './src/og-config.ts';
 import { siteConfig } from './src/site-config.ts';
-import {
-  collectIntlSitemapPages,
-  intlSitemapPages,
-  serializeSitemap,
-  sitemapFilter,
-} from './src/sitemap.ts';
 
 // Allow the editorial-media host when MEDIA_BASE_URL is a valid origin.
 function mediaRemotePatterns() {

@@ -19,7 +19,7 @@ That is the wire. Everything else is the user’s Astro: folders, file routes vs
 Two products, two jobs:
 
 - **intl** (`@repo/astro-intl`) — locales written through to Astro `i18n`, catalogs, pairing, lookup by id and by locale+slug. It does not own folders, page bodies, or which URLs the build emits.
-- **starter** — an example of using intl, and an example of a CMS-like Astro site. It registers content URLs, missing-locale, and sitemap/RSS printers. It has to pass the same bar. A starter convention that fights Astro is still cost.
+- **starter** — an example of using intl, and an example of a CMS-like Astro site. It registers content URLs, missing-locale, and RSS. Sitemap printer glue lives in `@repo/astro-intl-sitemap`. It has to pass the same bar. A starter convention that fights Astro is still cost.
 
 ## Why
 
@@ -39,7 +39,7 @@ Elegant and least friction. Offer the pairing + catalog layer without the cost o
 
 **One catch-all.** Content URLs go through `[locale]/[...path].astro`. It finds the document and picks a `_pages` body via the starter kind map (`pageName`). Do not add per-section file routes, `[locale]/index.astro` for home, or a per-entry path to a body file. `pageType` stays on the mixed pages collection (home vs listing); other collections map from the collection name. Missing-locale uses the same public tail in the default locale, then that locale’s home, then 404 — not pairing.
 
-**Who publishes URLs.** Intl joins documents. Starter lists the pages. Astro matches the file. Intl keeps one table (pairing `id` + `locale` + `slug`): uniqueness of `(id, locale)` and of `(locale, slug)`, lookup by locale+slug, sibling slugs. Starter’s `getStaticPaths` registers which URLs get HTML. It asks intl for one list of paired `locale`+`slug` (not catch-all params) and maps those to params, including homepage `/` → `undefined`. Do not keep a getStaticPaths-shaped helper on intl. Missing-locale, sitemap, and RSS stay in starter. Alternate-language data is pairing; the tags are starter’s to print. Do not copy the pairing walk into starter, keep a second path list, or add a package. Intl is not a router: it does not own catch-all params, sitemap `loc`s, or canonical/hreflang `href`s.
+**Who publishes URLs.** Intl joins documents. Starter lists the pages. Astro matches the file. Intl keeps one table (pairing `id` + `locale` + `slug`): uniqueness of `(id, locale)` and of `(locale, slug)`, lookup by locale+slug, sibling slugs. Starter’s `getStaticPaths` registers which URLs get HTML. It asks intl for one list of paired `locale`+`slug` (not catch-all params) and maps those to params, including homepage `/` → `undefined`. Do not keep a getStaticPaths-shaped helper on intl. Missing-locale and RSS stay in starter. Sitemap printer glue lives in `@repo/astro-intl-sitemap`. Alternate-language data is pairing; the tags are starter’s to print. Do not copy the pairing walk into starter or keep a second path list. Intl is not a router: it does not own catch-all params, sitemap `loc`s, or canonical/hreflang `href`s.
 
 **Do not fix translated sections with pathnames or `routing: "manual"`** unless that is an explicit request. A pathnames map would own the section while the entry already owns the full tail. Localized `pages/en/blog` vs `pages/de/artikel` folders fight the CMS story.
 

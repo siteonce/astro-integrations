@@ -17,6 +17,8 @@ describe('RSS printer', () => {
     assert.match(source, /getAlternatePathsForPath/);
     assert.match(source, /getAbsoluteLocaleUrl/);
     assert.match(source, /from ['"]@repo\/astro-intl['"]/);
+    assert.match(source, /from ['"]@repo\/astro-intl-sitemap['"]/);
+    assert.match(source, /persistIntlSitemapEntries/);
     assert.match(source, /from ['"]\.\.\/\.\.\/t\.ts['"]/);
     assert.match(source, /export function getStaticPaths/);
     assert.match(source, /export const prerender = true/);

@@ -19,6 +19,7 @@
     "@astrojs/svelte": "^9.0.1",
     "@fontsource/inter": "^5.2.8",
     "@repo/astro-intl": "workspace:*",
+    "@repo/astro-intl-sitemap": "workspace:*",
     "@repo/astro-site": "workspace:*",
     "@repo/og-image": "workspace:*",
     "astro": "^7.0.9",

@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { describe, it } from 'node:test';
 import { fileURLToPath } from 'node:url';
 import { deployConfigSchema } from '@repo/astro-site/schemas/config/deploy-config';
@@ -67,6 +67,7 @@ describe('starter config', () => {
     assert.ok(names.includes('@astrojs/mdx'));
     assert.ok(names.includes('@astrojs/svelte'));
     assert.ok(names.includes('@astrojs/sitemap'));
+    assert.ok(names.includes('astro-intl-collect-sitemap-pages'));
     assert.ok(!names.includes('@repo/astro'));
     assert.ok(!names.includes('@repo/astro-site'));
 
@@ -75,8 +76,14 @@ describe('starter config', () => {
       'utf8',
     );
     assert.match(source, /rehypeExternalLinks/);
+    assert.match(source, /from ['"]@repo\/astro-intl-sitemap['"]/);
     assert.match(source, /\bsitemap\(/);
+    assert.match(source, /customPages:\s*intlSitemapPages/);
+    assert.match(source, /filter:\s*sitemapFilter/);
+    assert.match(source, /serialize:\s*serializeSitemap/);
     assert.doesNotMatch(source, /sitemap\([^)]*i18n\s*:/);
+    assert.doesNotMatch(source, /from ['"]\.\/src\/sitemap\.ts['"]/);
+    assert.equal(existsSync(fileURLToPath(new URL('./sitemap.ts', import.meta.url))), false);
     assert.doesNotMatch(source, /\bsiteonce\s*\(/);
     assert.doesNotMatch(source, /\bastroSite\s*\(/);
   });

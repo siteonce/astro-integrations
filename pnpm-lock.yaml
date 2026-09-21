@@ -90,6 +90,9 @@ importers:
       '@repo/astro-intl':
         specifier: workspace:*
         version: link:../../packages/astro-intl
+      '@repo/astro-intl-sitemap':
+        specifier: workspace:*
+        version: link:../../packages/astro-intl-sitemap
       '@repo/astro-site':
         specifier: workspace:*
         version: link:../../packages/astro-site
@@ -173,6 +176,22 @@ importers:
       zod:
         specifier: 4.4.3
         version: 4.4.3
+    devDependencies:
+      '@types/node':
+        specifier: 22.13.16
+        version: 22.13.16
+      astro:
+        specifier: 7.0.9
+        version: 7.0.9(@astrojs/markdown-remark@7.2.1)(@emnapi/core@1.11.1)(@emnapi/runtime@1.11.1)(@types/node@22.13.16)(jiti@2.7.0)(yaml@2.9.0)
+
+  packages/astro-intl-sitemap:
+    dependencies:
+      '@astrojs/sitemap':
+        specifier: 3.7.3
+        version: 3.7.3
+      '@repo/astro-intl':
+        specifier: workspace:*
+        version: link:../astro-intl
     devDependencies:
       '@types/node':
         specifier: 22.13.16
