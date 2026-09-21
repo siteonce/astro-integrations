@@ -29,7 +29,7 @@ Astro’s i18n is a **routing** API. The internationalization guide opens: it he
 From the [configuration reference](https://docs.astro.build/en/reference/configuration-reference/) (`i18n` section) and the [i18n guide](https://docs.astro.build/en/guides/internationalization/).
 
 | Key | Type | Added | Default | Role |
-|---|---|---|---|---|
+| --- | --- | --- | --- | --- |
 | `i18n.locales` | `Locales` (string codes, or `{ path, codes }`) | `astro@3.5.0` | required | Supported locales. Folder names must match `locales` items, or the `path` when using objects. |
 | `i18n.defaultLocale` | `string` | `astro@3.5.0` | required | Must be one of `locales`. |
 | `i18n.fallback` | `Record<string, string>` | `astro@3.5.0` | none (404) | Missing locale page → another locale. Unconfigured locales 404. |
@@ -68,7 +68,7 @@ From the [Internationalization API Reference](https://docs.astro.build/en/refere
 **URL builders (always available when i18n is configured):**
 
 | Helper | Type | Notes |
-|---|---|---|
+| --- | --- | --- |
 | `getRelativeLocaleUrl(locale, path?, options?)` | `string` | Throws if locale is unknown. |
 | `getAbsoluteLocaleUrl(locale, path?, options?)` | `string` | Absolute when `site` is set; else relative. Honors `i18n.domains`. |
 | `getRelativeLocaleUrlList(path?, options?)` | `string[]` | One URL per locale. |
@@ -81,18 +81,18 @@ These helpers **prefix a locale onto a path you already chose**. They do not tra
 **Custom locale path/code mapping:**
 
 | Helper | Added | Role |
-|---|---|---|
+| --- | --- | --- |
 | `getPathByLocale(locale)` | (with custom paths) | Code → URL `path` (`"fr-CA"` → `"french"`). |
-| `getLocaleByPath(path)` | | Path → first configured `code`. |
+| `getLocaleByPath(path)` |  | Path → first configured `code`. |
 | `toCodes(locales)` | `astro@4.0.0` | First code per locale entry. |
 | `toPaths(locales)` | `astro@4.0.0` | Configured URL paths. |
-| `normalizeTheLocale(locale)` | | `_` → `-`, lowercase. |
+| `normalizeTheLocale(locale)` |  | `_` → `-`, lowercase. |
 | `pathHasLocale(path)` | `astro@4.6.0` | Whether a path contains a configured locale/path. Use before helpers that require a locale in the URL ([`i18nNoLocaleFoundInPath`](https://docs.astro.build/en/reference/errors/i18n-no-locale-found-in-path/)). |
 
 **Manual-routing only (`routing: "manual"`, Added `astro@4.6.0`):**
 
 | Helper | Type | Role |
-|---|---|---|
+| --- | --- | --- |
 | `redirectToDefaultLocale(context, statusCode?)` | `Promise<Response>` | Redirect to `defaultLocale`. |
 | `redirectToFallback(context, response)` | `Promise<Response>` | Apply `i18n.fallback` in user middleware. |
 | `notFound(context, response?)` | `Promise<Response> \| undefined` | 404 when path is not root and has no locale. Can copy headers from an existing `Response`. |
@@ -130,7 +130,7 @@ There is **no documented third mode** (soft 404, “untranslated” banner, cont
 Not per-route aliases. One URL prefix can map to several BCP-47 codes for `Accept-Language`:
 
 ```js
-locales: ["es", "en", { path: "french", codes: ["fr", "fr-BR", "fr-CA"] }]
+locales: ['es', 'en', { path: 'french', codes: ['fr', 'fr-BR', 'fr-CA'] }];
 ```
 
 Folder name and URL prefix are `path` (`/french/...`). `codes` match the browser. `getRelativeLocaleUrl` should be called with the **path** value (docs: “use the `path` as the value for `locale`”). `getPathByLocale("fr-CA")` → `"french"`; `getLocaleByPath("french")` → first code.
@@ -171,7 +171,7 @@ Astro 5.14 added `routePattern` on `getStaticPaths` so user helpers can localize
 ### 2.10 Version timeline (shipped)
 
 | When | What | Source |
-|---|---|---|
+| --- | --- | --- |
 | 2023-10-19 | RFC 0045 written | [roadmap/proposals/0045-i18n-routing.md](https://github.com/withastro/roadmap/blob/main/proposals/0045-i18n-routing.md) |
 | 2023-11-08 | Experimental i18n (`experimental.i18n`) | [Astro 3.5](https://astro.build/blog/astro-350/) |
 | 2023-12-05 | i18n routing **stable** | [Astro 4.0](https://astro.build/blog/astro-4/) |
@@ -250,7 +250,7 @@ Closed without an accepted design. Do not treat it as a planned core feature.
 ### 3.5 Notable core issues (bugs, not new API)
 
 | Issue | Date | Status | Relevance |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | [#12431](https://github.com/withastro/astro/issues/12431) fallback ignored with `middleware()` | 2024-11 | Fixed [#12718](https://github.com/withastro/astro/pull/12718) | Manual routing can use `i18n.fallback`. |
 | [#14017](https://github.com/withastro/astro/pull/14017) fallback rewrite in server mode | 2025-07 | Merged | Rewrites need `fallbackRoutes` awareness. |
 | [#15688](https://github.com/withastro/astro/issues/15688) fallback on all 3xx | 2026-02 | Fixed [#15704](https://github.com/withastro/astro/pull/15704) | Fallback is 404-only. |
@@ -273,12 +273,12 @@ Astro 6.3 experimental advanced routing (including `i18n()` as a composable hand
 ## 4. Explicit gaps vs next-intl-style usage
 
 | next-intl-shaped need | Astro core today | Planned in core? |
-|---|---|---|
+| --- | --- | --- |
 | Message catalogs (ICU, nested keys, `t()`) | No. RFC 0045 non-goal. Recipe: DIY `ui.ts`. Starlight: i18n collection + i18next, **Starlight-only**. | No RFC. |
 | Locale prefix / `localePrefix` | Yes: `prefixDefaultLocale` + `redirectToDefaultLocale`. Different names. | Stable. |
 | `pathnames` (`/about` → `/über-uns`) | No first-class map. Recipe “Translate Routes” is user-land. `{ path, codes }` is **locale prefix** aliasing, not per-route. | #1176 Stage 1, not accepted. #1347 closed. Maintainers: integration / opinionated. |
 | Single page file, many localized URLs | File-based routing wants a file per URL, or a dynamic `[locale]` / `[...locale]` route plus `getStaticPaths`. Pathnames need rewrite. | Infrastructure exists (Stoppa, 2025-07-31); product not in core. |
-| CMS document `id` + `locale` + `path` | Collections: `id` is slug, optional `filePath`. Recipe pairs by **same filename** under `en/` / `fr/`. No `locale` field. | No movement found. Content Layer is a generic loader; a loader *could* emit those fields, but core does not. |
+| CMS document `id` + `locale` + `path` | Collections: `id` is slug, optional `filePath`. Recipe pairs by **same filename** under `en/` / `fr/`. No `locale` field. | No movement found. Content Layer is a generic loader; a loader _could_ emit those fields, but core does not. |
 | Fallback missing translation | Route-level redirect or rewrite only. No “show default copy with banner.” | Unclear. Starlight does the banner itself. |
 | `hreflang` / sitemap for translated slugs | Sitemap `i18n` assumes same slug + prefix. | Florian: sitemap too naive for pathnames. |
 | `getPathname` / `getRelativeLocaleUrl` that knows aliases | `getRelativeLocaleUrl` prefixes only. | Would have to land with pathnames; not accepted. |
@@ -319,15 +319,15 @@ Pattern for pathnames without abandoning Astro’s prefix/fallback:
 
 ```js
 // astro.config: i18n.routing: "manual"
-import { sequence } from "astro:middleware";
-import { middleware as astroI18n } from "astro:i18n";
+import { sequence } from 'astro:middleware';
+import { middleware as astroI18n } from 'astro:i18n';
 
 export const onRequest = sequence(
   pathnamesMiddleware, // rewrite localized path → canonical file route
   astroI18n({
     prefixDefaultLocale: true, // or false; must match URL policy
     redirectToDefaultLocale: false,
-    fallbackType: "redirect",
+    fallbackType: 'redirect',
   }),
 );
 ```
