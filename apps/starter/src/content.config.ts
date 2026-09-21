@@ -1,9 +1,18 @@
 import { defineCollection } from 'astro:content';
-import { id, listingLocaleSection, locale, localeSection, slug } from '@repo/astro-intl';
+import {
+  id,
+  listingLocaleSection,
+  locale,
+  localeSection,
+  localized,
+  relation,
+  slug,
+} from '@repo/astro-intl';
 import { blog } from '@repo/astro-site/schemas/content/blog';
 import { seo } from '@repo/astro-site/schemas/content/seo';
 import { glob } from 'astro/loaders';
 import { z } from 'astro/zod';
+import intlConfig from './intl.config.ts';
 import { slugify } from './utils/slugify.ts';
 
 const pairing = { id, locale, slug };
@@ -17,7 +26,7 @@ const tagsSection = [{ en: 'tags', de: 'schlagworte' }] as const;
 // entries that share a slug (homepage `/`). Pairing id is data.id prefixed
 // with the collection name, not this generateId.
 function entryFileId({ entry }: { entry: string }) {
-  return entry.replace(/\.(md|mdx)$/u, '');
+  return entry.replace(/\.(md|mdx|json)$/u, '');
 }
 
 const pages = defineCollection({
@@ -41,7 +50,14 @@ const posts = defineCollection({
     base: './src/content/blog',
     generateId: entryFileId,
   }),
-  schema: blog.extend(pairing).superRefine(localeSection(blogSection, 'entry', { slugify })),
+  schema: blog
+    .extend({
+      ...pairing,
+      author: relation('authors').optional(),
+      client: relation('clients').optional(),
+      role: relation('roles').optional(),
+    })
+    .superRefine(localeSection(blogSection, 'entry', { slugify })),
 });
 
 // Term pages: a routed tags collection with locale + slug.
@@ -67,4 +83,29 @@ const authors = defineCollection({
   }),
 });
 
-export const collections = { pages, blog: posts, tags, authors };
+// Locale-free lookup. Filename is the pairing id. Out of intl pairing.
+const clients = defineCollection({
+  loader: glob({
+    pattern: '*.json',
+    base: './src/content/clients',
+    generateId: entryFileId,
+  }),
+  schema: z.object({
+    name: z.string().min(1),
+    url: z.string().min(1),
+  }),
+});
+
+// Inline locale maps on one file. Filename is the pairing id. Out of intl pairing.
+const roles = defineCollection({
+  loader: glob({
+    pattern: '*.json',
+    base: './src/content/roles',
+    generateId: entryFileId,
+  }),
+  schema: z.object({
+    name: localized(z.string().min(1), intlConfig.locales),
+  }),
+});
+
+export const collections = { pages, blog: posts, tags, authors, clients, roles };

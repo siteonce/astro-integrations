@@ -27,6 +27,7 @@ export {
   getContentByPath,
   getDocumentHead,
   getPairedSlugs,
+  getRelated,
   getSitemapEntries,
   hreflangLinks,
 } from './helpers.ts';
@@ -36,6 +37,8 @@ export type { LocaleSwitcherLink } from './locale-switcher.ts';
 export { localeSwitcherLinks } from './locale-switcher.ts';
 export type { MissingLocaleResult } from './missing-locale.ts';
 export { missingLocaleChain } from './missing-locale.ts';
+export type { Relation } from './relation.ts';
+export { localized, localizedValue, relation } from './relation.ts';
 export { getIntlRuntime, setIntlConfig } from './runtime.ts';
 
 const CONFIG_FILENAME = 'intl.config.ts';
