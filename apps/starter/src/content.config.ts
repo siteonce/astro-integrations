@@ -1,10 +1,10 @@
 import { defineCollection } from 'astro:content';
-import { id, locale, slug } from '@repo/astro-intl';
+import { id, listingLocaleSection, locale, localeSection, slug } from '@repo/astro-intl';
 import { blog } from '@repo/astro-site/schemas/content/blog';
 import { seo } from '@repo/astro-site/schemas/content/seo';
 import { glob } from 'astro/loaders';
 import { z } from 'astro/zod';
-import { listingLocaleSection, localeSection } from './utils/locale-section.ts';
+import { slugify } from './utils/slugify.ts';
 
 const pairing = { id, locale, slug };
 
@@ -41,7 +41,7 @@ const posts = defineCollection({
     base: './src/content/blog',
     generateId: entryFileId,
   }),
-  schema: blog.extend(pairing).superRefine(localeSection(blogSection, 'entry')),
+  schema: blog.extend(pairing).superRefine(localeSection(blogSection, 'entry', { slugify })),
 });
 
 // Term pages: marketing's locale-free tag catalog re-authored with locale + slug.
@@ -51,7 +51,7 @@ const tags = defineCollection({
     base: './src/content/tags',
     generateId: entryFileId,
   }),
-  schema: seo.extend(pairing).superRefine(localeSection(tagsSection, 'entry')),
+  schema: seo.extend(pairing).superRefine(localeSection(tagsSection, 'entry', { slugify })),
 });
 
 const authors = defineCollection({

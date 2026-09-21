@@ -3,10 +3,10 @@
 // via t(); copied Seo; NotFound block. Document shell is SiteLayout →
 // BaseLayout. noindex so error pages stay out of search.
 import { getRelativeLocaleUrl } from 'astro:i18n';
+import { localeSwitcherLinks } from '@repo/astro-intl';
 import { NotFound, Seo } from '@repo/astro-site/components';
 import intlConfig from '../intl.config.ts';
 import SiteLayout from '../layouts/site-layout.astro';
-import { localeSwitcherLinks } from '../utils/locale-switcher.ts';
 import { siteConfig } from '../site-config.ts';
 import { useTranslations } from '../t.ts';
 
@@ -14,6 +14,8 @@ const locale = Astro.currentLocale ?? intlConfig.defaultLocale;
 const t = useTranslations(locale);
 const switcher = localeSwitcherLinks(intlConfig.locales, locale, {}, (code, tail) =>
   tail ? getRelativeLocaleUrl(code, tail) : getRelativeLocaleUrl(code),
+).map((item) =>
+  item.current || item.href ? item : { ...item, href: getRelativeLocaleUrl(item.locale) },
 );
 const homeHref = getRelativeLocaleUrl(locale);
 ---

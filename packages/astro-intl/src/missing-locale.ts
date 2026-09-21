@@ -1,11 +1,13 @@
 /**
- * Default missing-locale chain for the catch-all. Redirect, never rewrite
+ * Default missing-locale chain for a catch-all. Redirect, never rewrite
  * another locale's document at this URL.
  *
  * 1. Default-locale document at this public tail (the requested path may be
  *    that sibling's path).
  * 2. Home in the requested locale, if that home document exists.
  * 3. Not found.
+ *
+ * Does not claim URLs. The app's getStaticPaths decides which paths exist.
  */
 
 export type MissingLocaleResult = { kind: 'redirect'; href: string } | { kind: 'not-found' };

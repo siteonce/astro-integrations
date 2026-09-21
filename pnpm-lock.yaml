@@ -102,9 +102,6 @@ importers:
       astro:
         specifier: ^7.0.9
         version: 7.0.9(@astrojs/markdown-remark@7.2.1)(@emnapi/core@1.11.1)(@emnapi/runtime@1.11.1)(@types/node@24.12.4)(jiti@2.7.0)(yaml@2.9.0)
-      github-slugger:
-        specifier: 2.0.0
-        version: 2.0.0
       svelte:
         specifier: ^5.55.10
         version: 5.55.10
@@ -205,6 +202,9 @@ importers:
       clsx:
         specifier: 2.1.1
         version: 2.1.1
+      github-slugger:
+        specifier: 2.0.0
+        version: 2.0.0
       tailwind-merge:
         specifier: 3.6.0
         version: 3.6.0

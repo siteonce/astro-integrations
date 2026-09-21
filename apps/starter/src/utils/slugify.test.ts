@@ -9,7 +9,7 @@ describe('slugify', () => {
     assert.equal(slugify('hello-world'), 'hello-world');
   });
 
-  it('transliterates German letters before github-slugger', () => {
+  it('transliterates German letters before slugify', () => {
     assert.equal(slugify('über uns'), 'ueber-uns');
     assert.equal(slugify('Größe'), 'groesse');
     assert.equal(slugify('ÄÖÜ'), 'aeoeue');

@@ -23,7 +23,6 @@
     "@repo/astro-site": "workspace:*",
     "@repo/og-image": "workspace:*",
     "astro": "^7.0.9",
-    "github-slugger": "2.0.0",
     "svelte": "^5.55.10"
   },
   "devDependencies": {

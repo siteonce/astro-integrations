@@ -30,6 +30,12 @@ export {
   getSitemapEntries,
   hreflangLinks,
 } from './helpers.ts';
+export type { LocaleSectionList, LocaleSectionMap } from './locale-section.ts';
+export { listingLocaleSection, localeSection } from './locale-section.ts';
+export type { LocaleSwitcherLink } from './locale-switcher.ts';
+export { localeSwitcherLinks } from './locale-switcher.ts';
+export type { MissingLocaleResult } from './missing-locale.ts';
+export { missingLocaleChain } from './missing-locale.ts';
 export { getIntlRuntime, setIntlConfig } from './runtime.ts';
 
 const CONFIG_FILENAME = 'intl.config.ts';

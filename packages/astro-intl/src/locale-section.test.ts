@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
-import { z } from 'astro/zod';
+import { z } from 'zod';
 import { listingLocaleSection, localeSection } from './locale-section.ts';
 
 const blogSection = [{ en: 'blog', de: 'artikel' }] as const;
@@ -9,9 +9,25 @@ const pagesSection = [
   { en: 'about/history', de: 'ueber-uns/geschichte' },
 ] as const;
 
+/** Test double: rest must already equal this spelling. */
+function slugify(value: string): string {
+  return value
+    .toLowerCase()
+    .replaceAll('ä', 'ae')
+    .replaceAll('ö', 'oe')
+    .replaceAll('ü', 'ue')
+    .replaceAll('ß', 'ss')
+    .replaceAll(' ', '-')
+    .replaceAll(/[^a-z0-9-]/g, '');
+}
+
 const entrySchema = z
   .object({ locale: z.string().min(1), slug: z.string().min(1) })
   .superRefine(localeSection(blogSection, 'entry'));
+
+const slugifiedEntrySchema = z
+  .object({ locale: z.string().min(1), slug: z.string().min(1) })
+  .superRefine(localeSection(blogSection, 'entry', { slugify }));
 
 const pagesEntrySchema = z
   .object({ locale: z.string().min(1), slug: z.string().min(1) })
@@ -96,17 +112,28 @@ describe('localeSection entry', () => {
     );
   });
 
-  it('rejects an unslugified rest, including German letters', () => {
+  it('accepts a one-segment rest when no slugify is passed', () => {
+    assert.deepEqual(entrySchema.parse({ locale: 'de', slug: 'artikel/über-uns' }), {
+      locale: 'de',
+      slug: 'artikel/über-uns',
+    });
+    assert.deepEqual(entrySchema.parse({ locale: 'en', slug: 'blog/Hello World' }), {
+      locale: 'en',
+      slug: 'blog/Hello World',
+    });
+  });
+
+  it('rejects an unslugified rest when slugify is passed', () => {
     assert.match(
-      firstIssue(entrySchema.safeParse({ locale: 'de', slug: 'artikel/über-uns' })),
+      firstIssue(slugifiedEntrySchema.safeParse({ locale: 'de', slug: 'artikel/über-uns' })),
       /locale "de" slug "artikel\/über-uns" rest "über-uns" is not a slug/,
     );
     assert.match(
-      firstIssue(entrySchema.safeParse({ locale: 'en', slug: 'blog/Hello World' })),
+      firstIssue(slugifiedEntrySchema.safeParse({ locale: 'en', slug: 'blog/Hello World' })),
       /locale "en" slug "blog\/Hello World" rest "Hello World" is not a slug/,
     );
     assert.match(
-      firstIssue(entrySchema.safeParse({ locale: 'en', slug: 'blog/!!!' })),
+      firstIssue(slugifiedEntrySchema.safeParse({ locale: 'en', slug: 'blog/!!!' })),
       /locale "en" slug "blog\/!!!" rest "!!!" is not a slug/,
     );
   });

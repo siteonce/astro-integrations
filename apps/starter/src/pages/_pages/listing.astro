@@ -4,19 +4,18 @@
 // PostList. Wraps SiteLayout. No section UI beyond Measure / Flow on <main>.
 import { getCollection, render } from 'astro:content';
 import { getRelativeLocaleUrl } from 'astro:i18n';
-import { getAlternatePathsForPath } from '@repo/astro-intl';
+import { getAlternatePathsForPath, localeSwitcherLinks } from '@repo/astro-intl';
 import { Hreflang } from '@repo/astro-intl/components';
 import { Hero, PostList, Schema, Seo } from '@repo/astro-site/components';
 import { isLocal, isPreview } from '@repo/astro-site/utils/deploy-env';
 import { ogImageFor } from '@repo/og-image/utils/og-image-for';
 import { deployConfig } from '../../deploy-config.ts';
 import intlConfig from '../../intl.config.ts';
-import { localeFolder } from '../../utils/locale-folder.ts';
-import { localeSwitcherLinks } from '../../utils/locale-switcher.ts';
+import SiteLayout from '../../layouts/site-layout.astro';
 import { ogConfig } from '../../og-config.ts';
 import { siteConfig } from '../../site-config.ts';
 import { useTranslations } from '../../t.ts';
-import SiteLayout from '../../layouts/site-layout.astro';
+import { localeFolder } from '../../utils/locale-folder.ts';
 
 interface Props {
   locale: string;

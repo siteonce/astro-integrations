@@ -87,4 +87,21 @@ describe('starter config', () => {
     assert.doesNotMatch(source, /\bsiteonce\s*\(/);
     assert.doesNotMatch(source, /\bastroSite\s*\(/);
   });
+
+  it('passes a German-bound slugify into localeSection', () => {
+    const source = readFileSync(
+      fileURLToPath(new URL('./content.config.ts', import.meta.url)),
+      'utf8',
+    );
+    assert.match(source, /listingLocaleSection/);
+    assert.match(source, /localeSection\([^,]+,\s*'entry',\s*\{\s*slugify\s*\}/);
+    const slugifySource = readFileSync(
+      fileURLToPath(new URL('./utils/slugify.ts', import.meta.url)),
+      'utf8',
+    );
+    assert.match(slugifySource, /ä:\s*['"]ae['"]/);
+    assert.match(slugifySource, /ö:\s*['"]oe['"]/);
+    assert.match(slugifySource, /ü:\s*['"]ue['"]/);
+    assert.match(slugifySource, /ß:\s*['"]ss['"]/);
+  });
 });

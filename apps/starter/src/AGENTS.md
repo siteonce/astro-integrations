@@ -14,7 +14,7 @@ OG template copy: `og-templates/AGENTS.md`.
 
 ### Pages
 
-File routes in `pages/`. Underscore skips the router: document bodies in `pages/_pages/`; catch-all helpers `_page-name.ts` and `_missing-locale.ts` next to the route. New kind → new `_pages` file. New document of an existing kind → no new file route. 404 is a route, not a `_pages` file.
+File routes in `pages/`. Underscore skips the router: document bodies in `pages/_pages/`; catch-all helper `_page-name.ts` next to the route. Missing-locale is the intl helper the catch-all calls. New kind → new `_pages` file. New document of an existing kind → no new file route. 404 is a route, not a `_pages` file. Locale switcher: current locale is `aria-current`. Other locales with a sibling are links. Missing siblings stay visible and disabled. 404 is not a document, so other locales still link to that locale’s home.
 
 ### Image / asset folder choice
 

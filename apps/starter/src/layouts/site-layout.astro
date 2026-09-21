@@ -2,9 +2,10 @@
 // Site chrome around BaseLayout: styles, Favicon, locale switcher, and a head
 // pass-through. Document pages drop Seo/Hreflang/Schema into the head slot and
 // own their landmarks. This file does not compose blocks.
-import type { HTMLAttributes } from 'astro/types';
+
 import { BaseLayout } from '@repo/astro-site/components';
 import { cn } from '@repo/astro-site/utils/cn';
+import type { HTMLAttributes } from 'astro/types';
 import Favicon from '../components/favicon.astro';
 import { useTranslations } from '../t.ts';
 import '../styles';
@@ -12,8 +13,8 @@ import '../styles';
 interface Props {
   /** Document language. Forwarded to BaseLayout as `<html lang>`. */
   locale: string;
-  /** Per-locale hrefs for the chrome switcher (sibling or homepage fallback). */
-  switcher: { locale: string; href: string }[];
+  /** Per-locale switcher items. `href` is present when the control is a link. */
+  switcher: { locale: string; href?: string }[];
   /** Attrs on `<html>` except `lang`. Forwarded to BaseLayout. */
   html?: Omit<HTMLAttributes<'html'>, 'lang'>;
   /** Attrs on `<body>`. Forwarded to BaseLayout. */
@@ -43,10 +44,14 @@ const { class: bodyClass, 'class:list': bodyClassList, ...bodyRest } = body ?? {
             <li>
               {item.locale === locale ? (
                 <span aria-current="page">{t(`locale.${item.locale}`)}</span>
-              ) : (
+              ) : item.href ? (
                 <a href={item.href} hreflang={item.locale} lang={item.locale}>
                   {t(`locale.${item.locale}`)}
                 </a>
+              ) : (
+                <span aria-disabled="true" lang={item.locale}>
+                  {t(`locale.${item.locale}`)}
+                </span>
               )}
             </li>
           ))

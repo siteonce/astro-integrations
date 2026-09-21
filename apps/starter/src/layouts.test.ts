@@ -5,9 +5,8 @@ import { createRequire } from 'node:module';
 import path from 'node:path';
 import { describe, it } from 'node:test';
 import { fileURLToPath, pathToFileURL } from 'node:url';
-import { defineIntl, getAlternatePaths } from '@repo/astro-intl';
+import { defineIntl, getAlternatePaths, localeSwitcherLinks } from '@repo/astro-intl';
 import { experimental_AstroContainer as AstroContainer } from 'astro/container';
-import { localeSwitcherLinks } from './utils/locale-switcher.ts';
 
 const srcDir = fileURLToPath(new URL('.', import.meta.url));
 const appRoot = path.join(srcDir, '..');
@@ -164,6 +163,7 @@ describe('SiteLayout and `_pages` source', () => {
     assert.match(siteLayout, /Favicon/);
     assert.match(siteLayout, /BaseLayout/);
     assert.match(siteLayout, /slot name="head"/);
+    assert.match(siteLayout, /aria-disabled="true"/);
     assert.doesNotMatch(siteLayout, /\bHero\b/);
     assert.doesNotMatch(siteLayout, /\bPostList\b/);
     assert.doesNotMatch(siteLayout, /\bArticle\b/);
@@ -240,14 +240,15 @@ describe('SiteLayout and `_pages` source', () => {
 });
 
 describe('locale switcher', () => {
-  it('falls back to the de homepage when the sibling is missing', () => {
+  it('disables de when the sibling is missing', () => {
     const hrefFor = (locale: string, path?: string) =>
       path ? `/${locale}/${path}/` : `/${locale}/`;
     const missingDe = localeSwitcherLinks(['en', 'de'], 'en', { en: '/' }, hrefFor);
     assert.deepEqual(missingDe, [
-      { locale: 'en', href: '/en/', current: true },
-      { locale: 'de', href: '/de/', current: false },
+      { locale: 'en', current: true, sibling: true },
+      { locale: 'de', current: false, sibling: false },
     ]);
+    assert.equal(missingDe[1]?.href, undefined);
 
     const withSibling = localeSwitcherLinks(
       ['en', 'de'],
@@ -330,7 +331,9 @@ describe('render home page', () => {
       assert.match(html, /This placeholder ships with the starter/);
       assert.match(html, /rel="icon"/);
       assert.match(html, /aria-label="Language"/);
-      assert.match(html, /href="\/de\/"/);
+      assert.match(html, /aria-disabled="true"/);
+      assert.match(html, /Deutsch/);
+      assert.doesNotMatch(html, /href="\/de\/"/);
       assert.doesNotMatch(html, /href="\/de\/home/);
       assert.match(html, /aria-current="page"/);
 

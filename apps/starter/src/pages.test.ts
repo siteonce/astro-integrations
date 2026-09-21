@@ -5,9 +5,8 @@ import { createRequire } from 'node:module';
 import path from 'node:path';
 import { describe, it } from 'node:test';
 import { fileURLToPath, pathToFileURL } from 'node:url';
-import { defineIntl, getPairedSlugs } from '@repo/astro-intl';
+import { defineIntl, getPairedSlugs, missingLocaleChain } from '@repo/astro-intl';
 import { experimental_AstroContainer as AstroContainer } from 'astro/container';
-import { missingLocaleChain } from './pages/_missing-locale.ts';
 import { pageName } from './pages/_page-name.ts';
 
 const srcDir = fileURLToPath(new URL('.', import.meta.url));
@@ -196,6 +195,7 @@ describe('catch-all source', () => {
     assert.match(source, /getContentByPath/);
     assert.match(source, /setIntlConfig/);
     assert.match(source, /missingLocaleChain/);
+    assert.doesNotMatch(source, /_missing-locale/);
     assert.match(source, /pageName/);
     assert.match(source, /import\.meta\.glob(?:<[^>]+>)?\(\s*['"]\.\.\/_pages\/\*\.astro['"]\s*\)/);
     assert.doesNotMatch(source, /from ['"]\.\.\/_pages\/home\.astro['"]/);

@@ -4,16 +4,15 @@
 // section UI beyond Measure / Flow on <main>.
 import { render } from 'astro:content';
 import { getRelativeLocaleUrl } from 'astro:i18n';
-import { getAlternatePathsForPath } from '@repo/astro-intl';
+import { getAlternatePathsForPath, localeSwitcherLinks } from '@repo/astro-intl';
 import { Hreflang } from '@repo/astro-intl/components';
 import { Hero, Schema, Seo } from '@repo/astro-site/components';
 import { ogImageFor } from '@repo/og-image/utils/og-image-for';
 import intlConfig from '../../intl.config.ts';
-import { localeSwitcherLinks } from '../../utils/locale-switcher.ts';
+import SiteLayout from '../../layouts/site-layout.astro';
 import { ogConfig } from '../../og-config.ts';
 import { siteConfig } from '../../site-config.ts';
 import { useTranslations } from '../../t.ts';
-import SiteLayout from '../../layouts/site-layout.astro';
 
 interface Props {
   locale: string;

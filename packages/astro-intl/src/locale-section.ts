@@ -1,5 +1,9 @@
-import type { z } from 'astro/zod';
-import { slugify } from './slugify.ts';
+/**
+ * Zod linter for a locale’s public-tail prefix. Section maps stay in the app.
+ * Does not write URLs.
+ */
+
+type IssueCtx = { addIssue: (issue: { code: 'custom'; message: string }) => void };
 
 /** One locale → public-tail prefix (`en` → `blog`, or `en` → `about/history`). */
 export type LocaleSectionMap = Readonly<Record<string, string>>;
@@ -39,10 +43,15 @@ function notUnderSection(locale: string, slug: string, prefixes: readonly string
 
 /**
  * Per-entry check: `{ locale, slug }` must sit under a listed prefix for that locale.
- * `listing` — slug equals a prefix. `entry` — prefix plus one slugified rest segment.
+ * `listing` — slug equals a prefix. `entry` — prefix plus one rest segment (no slash).
+ * Pass `slugify` to also require `rest === slugify(rest)`.
  */
-export function localeSection(sections: LocaleSectionList, kind: 'listing' | 'entry') {
-  return (value: { locale: string; slug: string }, ctx: z.RefinementCtx) => {
+export function localeSection(
+  sections: LocaleSectionList,
+  kind: 'listing' | 'entry',
+  options?: { slugify?: (value: string) => string },
+) {
+  return (value: { locale: string; slug: string }, ctx: IssueCtx) => {
     const prefixes = prefixesForLocale(sections, value.locale);
     if (prefixes.length === 0) {
       ctx.addIssue({
@@ -66,13 +75,16 @@ export function localeSection(sections: LocaleSectionList, kind: 'listing' | 'en
     for (const prefix of prefixes) {
       const rest = restAfterPrefix(tail, prefix);
       if (rest === undefined || rest.includes('/')) continue;
-      const slugified = slugify(rest);
-      if (slugified === '' || slugified !== rest) {
-        ctx.addIssue({
-          code: 'custom',
-          message: `locale "${value.locale}" slug "${value.slug}" rest "${rest}" is not a slug`,
-        });
-        return;
+      const slugify = options?.slugify;
+      if (slugify) {
+        const slugified = slugify(rest);
+        if (slugified === '' || slugified !== rest) {
+          ctx.addIssue({
+            code: 'custom',
+            message: `locale "${value.locale}" slug "${value.slug}" rest "${rest}" is not a slug`,
+          });
+          return;
+        }
       }
       return;
     }
@@ -89,7 +101,7 @@ export function localeSection(sections: LocaleSectionList, kind: 'listing' | 'en
  * A listing passes when its slug equals one registered section for that locale.
  */
 export function listingLocaleSection(sectionsByName: Readonly<Record<string, LocaleSectionList>>) {
-  return (value: { locale: string; slug: string; pageType: string }, ctx: z.RefinementCtx) => {
+  return (value: { locale: string; slug: string; pageType: string }, ctx: IssueCtx) => {
     if (value.pageType !== 'listing') return;
     const tail = normalizeTail(value.slug);
     const known = Object.values(sectionsByName).some((sections) =>

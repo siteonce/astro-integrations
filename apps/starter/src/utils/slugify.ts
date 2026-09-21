@@ -1,4 +1,4 @@
-import { slug } from 'github-slugger';
+import { slugify as siteSlugify } from '@repo/astro-site/utils/slugify';
 
 const german: Readonly<Record<string, string>> = {
   ä: 'ae',
@@ -10,11 +10,7 @@ const german: Readonly<Record<string, string>> = {
   Ü: 'ue',
 };
 
-/** Public-tail rest only. Transliterates German, then `github-slugger` `slug()`. */
+/** Starter public-tail rest: German map, then astro-site `slugify`. */
 export function slugify(value: string): string {
-  let transliterated = value;
-  for (const [from, to] of Object.entries(german)) {
-    transliterated = transliterated.replaceAll(from, to);
-  }
-  return slug(transliterated);
+  return siteSlugify(value, german);
 }
