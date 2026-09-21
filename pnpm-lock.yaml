@@ -183,13 +183,13 @@ importers:
 
   packages/astro-intl-sitemap:
     dependencies:
-      '@astrojs/sitemap':
-        specifier: 3.7.3
-        version: 3.7.3
       '@repo/astro-intl':
         specifier: workspace:*
         version: link:../astro-intl
     devDependencies:
+      '@astrojs/sitemap':
+        specifier: 3.7.3
+        version: 3.7.3
       '@types/node':
         specifier: 22.13.16
         version: 22.13.16
