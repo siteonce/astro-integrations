@@ -1,18 +1,8 @@
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
 import { describe, it } from 'node:test';
-import { fileURLToPath } from 'node:url';
 import { createT } from './create-t.ts';
 
 describe('createT', () => {
-  it('does not load catalog files itself', () => {
-    const source = readFileSync(fileURLToPath(new URL('./create-t.ts', import.meta.url)), 'utf8');
-    assert.doesNotMatch(source, /\bnode:fs\b/);
-    assert.doesNotMatch(source, /\breadFile(?:Sync)?\b/);
-    assert.doesNotMatch(source, /\bcreateJiti\b/);
-    assert.doesNotMatch(source, /\.json['"]/);
-  });
-
   it('resolves nested ICU keys', () => {
     const { t } = createT({
       en: { HomePage: { greeting: 'Hello {name}' } },

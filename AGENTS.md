@@ -31,3 +31,7 @@
 ### Sit on Astro
 
 `docs/agents/sit-on-astro.md`
+
+### Tests
+
+`docs/agents/tests.md`

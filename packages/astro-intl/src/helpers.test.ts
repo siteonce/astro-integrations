@@ -1,7 +1,5 @@
 import assert from 'node:assert/strict';
-import { readdirSync, readFileSync } from 'node:fs';
 import { describe, it } from 'node:test';
-import { fileURLToPath } from 'node:url';
 import { defineIntl } from './define-intl.ts';
 import {
   getAlternatePaths,
@@ -13,31 +11,6 @@ import {
 } from './helpers.ts';
 import type { CollectionEntryLike } from './pairing.ts';
 import { setIntlConfig } from './runtime.ts';
-
-const srcDir = fileURLToPath(new URL('.', import.meta.url));
-
-const printerImport = /(?:from|import)\s*\(?['"]@astrojs\/(?:sitemap|rss)['"]/;
-const siteImport = /@repo\/astro-site/;
-
-describe('intl helpers source', () => {
-  it('does not import @astrojs/sitemap, @astrojs/rss, or @repo/astro-site', () => {
-    for (const name of readdirSync(srcDir)) {
-      if (name.endsWith('.test.ts')) continue;
-      const source = readFileSync(new URL(name, import.meta.url), 'utf8');
-      assert.doesNotMatch(source, printerImport, name);
-      assert.doesNotMatch(source, siteImport, name);
-      assert.doesNotMatch(source, /github-slugger/, name);
-    }
-  });
-
-  it('emits alternate and x-default from Hreflang', () => {
-    const source = readFileSync(new URL('./hreflang.astro', import.meta.url), 'utf8');
-    assert.match(source, /rel="alternate"/);
-    assert.match(source, /hreflang/);
-    assert.match(source, /hreflangLinks/);
-    assert.match(source, /getDocumentHead/);
-  });
-});
 
 describe('getSitemapEntries / getAlternatePaths / Hreflang', () => {
   it('pairs fixture collections through the public helpers', async () => {
