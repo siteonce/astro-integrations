@@ -184,12 +184,12 @@ importers:
 
   packages/og-image:
     dependencies:
-      '@repo/astro':
+      '@repo/astro-intl':
         specifier: workspace:*
-        version: link:../astro
-      devalue:
-        specifier: 5.8.1
-        version: 5.8.1
+        version: link:../astro-intl
+      '@repo/astro-site':
+        specifier: workspace:*
+        version: link:../astro-site
       satori:
         specifier: 0.26.0
         version: 0.26.0

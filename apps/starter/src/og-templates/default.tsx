@@ -21,7 +21,7 @@ function isBlogData(data: Record<string, unknown>): data is Blog {
  *    inline-SVG support is narrow.
  */
 export default function defaultCard(ctx: OgContext) {
-  const isHome = !ctx.entry;
+  const isHome = ctx.path === '/' || ctx.entry?.data.slug === '/';
   const data = ctx.entry?.data;
   const blog = data && isBlogData(data) ? data : undefined;
   // Fallback chain, visible at the point of use (no hidden cascade).

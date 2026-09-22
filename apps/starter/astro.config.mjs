@@ -14,8 +14,11 @@ import { rehypeExternalLinks } from '@repo/astro-site/utils/rehype-external-link
 import ogImage from '@repo/og-image';
 import tailwindcss from '@tailwindcss/vite';
 import { defineConfig } from 'astro/config';
+import { deployConfig } from './src/deploy.config.ts';
+import intlConfig from './src/intl.config.ts';
 import { ogConfig } from './src/og.config.ts';
 import { siteConfig } from './src/site.config.ts';
+import { catalogs } from './src/t.ts';
 
 // Allow the editorial-media host when MEDIA_BASE_URL is a valid origin.
 function mediaRemotePatterns() {
@@ -53,7 +56,13 @@ export default defineConfig({
   },
   integrations: [
     astroIntl(),
-    ogImage({ config: ogConfig }),
+    ogImage({
+      config: ogConfig,
+      siteConfig,
+      deployConfig,
+      intlConfig,
+      catalogs,
+    }),
     mdx(),
     svelte(),
     partytown({
