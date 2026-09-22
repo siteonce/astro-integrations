@@ -56,12 +56,12 @@ importers:
       '@repo/astro-intl-sitemap':
         specifier: workspace:*
         version: link:../../packages/astro-intl-sitemap
+      '@repo/astro-og-image':
+        specifier: workspace:*
+        version: link:../../packages/astro-og-image
       '@repo/astro-site':
         specifier: workspace:*
         version: link:../../packages/astro-site
-      '@repo/og-image':
-        specifier: workspace:*
-        version: link:../../packages/og-image
       astro:
         specifier: ^7.0.9
         version: 7.0.9(@astrojs/markdown-remark@7.2.1)(@emnapi/core@1.11.1)(@emnapi/runtime@1.11.1)(@types/node@24.12.4)(jiti@2.7.0)(yaml@2.9.0)
@@ -120,6 +120,28 @@ importers:
         specifier: 7.0.9
         version: 7.0.9(@astrojs/markdown-remark@7.2.1)(@emnapi/core@1.11.1)(@emnapi/runtime@1.11.1)(@types/node@22.13.16)(jiti@2.7.0)(yaml@2.9.0)
 
+  packages/astro-og-image:
+    dependencies:
+      '@repo/astro-intl':
+        specifier: workspace:*
+        version: link:../astro-intl
+      '@repo/astro-site':
+        specifier: workspace:*
+        version: link:../astro-site
+      satori:
+        specifier: 0.26.0
+        version: 0.26.0
+      zod:
+        specifier: 4.4.3
+        version: 4.4.3
+    devDependencies:
+      astro:
+        specifier: 7.0.9
+        version: 7.0.9(@astrojs/markdown-remark@7.2.1)(@emnapi/core@1.11.1)(@emnapi/runtime@1.11.1)(@types/node@24.12.4)(jiti@2.7.0)(yaml@2.9.0)
+      sharp:
+        specifier: 0.34.5
+        version: 0.34.5
+
   packages/astro-site:
     dependencies:
       clsx:
@@ -141,28 +163,6 @@ importers:
       astro:
         specifier: 7.0.9
         version: 7.0.9(@astrojs/markdown-remark@7.2.1)(@emnapi/core@1.11.1)(@emnapi/runtime@1.11.1)(@types/node@22.13.16)(jiti@2.7.0)(yaml@2.9.0)
-
-  packages/og-image:
-    dependencies:
-      '@repo/astro-intl':
-        specifier: workspace:*
-        version: link:../astro-intl
-      '@repo/astro-site':
-        specifier: workspace:*
-        version: link:../astro-site
-      satori:
-        specifier: 0.26.0
-        version: 0.26.0
-      zod:
-        specifier: 4.4.3
-        version: 4.4.3
-    devDependencies:
-      astro:
-        specifier: 7.0.9
-        version: 7.0.9(@astrojs/markdown-remark@7.2.1)(@emnapi/core@1.11.1)(@emnapi/runtime@1.11.1)(@types/node@24.12.4)(jiti@2.7.0)(yaml@2.9.0)
-      sharp:
-        specifier: 0.34.5
-        version: 0.34.5
 
 packages:
 

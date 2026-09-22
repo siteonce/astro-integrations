@@ -1,7 +1,8 @@
-/** @jsxImportSource @repo/og-image */
+/** @jsxImportSource @repo/astro-og-image */
 /** @jsxRuntime automatic */
+
+import type { OgContext } from '@repo/astro-og-image/context';
 import type { Blog } from '@repo/astro-site';
-import type { OgContext } from '@repo/og-image/context';
 
 function isBlogData(data: Record<string, unknown>): data is Blog {
   return typeof data.seoTitle === 'string';

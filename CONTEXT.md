@@ -26,9 +26,9 @@ A snapshot monorepo that is the foundation for every Astro **content site** buil
 
 **astro-intl-sitemap**: Workspace package `@repo/astro-intl-sitemap` — printer glue the app passes into `@astrojs/sitemap`.
 
-**astro-site**: Workspace package `@repo/astro-site` — layout, **Seo**, **Schema**, **blocks**, schema fragments, and helpers. Not an Astro integration. _Avoid_: packages/schemas
+**astro-og-image**: Workspace package `@repo/astro-og-image` — optional OG image generator. Factory `ogImage()`.
 
-**og-image**: Workspace package `@repo/og-image` — optional OG image generator. Factory `ogImage()`.
+**astro-site**: Workspace package `@repo/astro-site` — layout, **Seo**, **Schema**, **blocks**, schema fragments, and helpers. Not an Astro integration. _Avoid_: packages/schemas
 
 **ui**: Small primitives in **astro-site**. Measure and Flow CSS; CVA/Svelte primitives, one folder per component. _Avoid_: catalog (for this)
 
@@ -38,11 +38,11 @@ A snapshot monorepo that is the foundation for every Astro **content site** buil
 
 **`astroIntl()`**: Default export of `@repo/astro-intl`. _Avoid_: siteonce(), astroLib(), astro() (the framework already owns that name in `astro.config`)
 
-**`ogImage()`**: Default export of `@repo/og-image`. _Avoid_: astroOgImage()
+**`ogImage()`**: Default export of `@repo/astro-og-image`. _Avoid_: astroOgImage()
 
 **`createT`**: Pure factory that returns `t()` from message objects the app passes in. _Avoid_: loading catalogs through `virtual:app/i18n`
 
-**`virtual:og-image/config`**: Vite module `ogImage()` fills with generation config.
+**`virtual:astro-og-image/config`**: Vite module `ogImage()` fills with generation config.
 
 ### Intl
 

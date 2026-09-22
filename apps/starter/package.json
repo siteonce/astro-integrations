@@ -20,8 +20,8 @@
     "@fontsource/inter": "^5.2.8",
     "@repo/astro-intl": "workspace:*",
     "@repo/astro-intl-sitemap": "workspace:*",
+    "@repo/astro-og-image": "workspace:*",
     "@repo/astro-site": "workspace:*",
-    "@repo/og-image": "workspace:*",
     "astro": "^7.0.9",
     "svelte": "^5.55.10"
   },

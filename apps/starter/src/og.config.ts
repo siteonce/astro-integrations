@@ -1,4 +1,4 @@
-import type { OgImageConfigInput } from '@repo/og-image/config';
+import type { OgImageConfigInput } from '@repo/astro-og-image/config';
 
 // Generation-only. Templates live in `src/og-templates/`. Fonts are
 // project-owned; Satori-compatible `.woff`, `.ttf`, or `.otf` only, never

@@ -10,8 +10,8 @@ import {
   serializeSitemap,
   sitemapFilter,
 } from '@repo/astro-intl-sitemap';
+import ogImage from '@repo/astro-og-image';
 import { rehypeExternalLinks } from '@repo/astro-site/utils/rehype-external-links';
-import ogImage from '@repo/og-image';
 import tailwindcss from '@tailwindcss/vite';
 import { defineConfig } from 'astro/config';
 import { deployConfig } from './src/deploy.config.ts';
