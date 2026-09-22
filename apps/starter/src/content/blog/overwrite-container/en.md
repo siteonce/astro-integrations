@@ -42,6 +42,6 @@ Open lengths stay static literals. Tailwind’s scan cannot see interpolated cla
 
 Center with `mx-auto`. Start/end are `ms-0 me-auto` / `me-0 ms-auto`.
 
-**Edit the file** to change defaults — `packages/astro/src/components/ui/measure/utilities.css`. That is how you change every instance.
+**Edit the file** to change defaults — `packages/astro-site/src/components/ui/measure/utilities.css`. That is how you change every instance.
 
 Do **not** wrap `measure` in a project component that injects default classes for every instance. Put classes at the call site, or edit the utilities file.

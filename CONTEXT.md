@@ -20,15 +20,13 @@ A snapshot monorepo that is the foundation for every Astro **content site** buil
 
 **starter theme**: The visual token layer inside the starter (CSS variables and Tailwind theme). Not a second product. _Avoid_: starter (for this meaning)
 
-**leftover**: Departing `packages/astro` (`@repo/astro`, factory `siteonce()`, `virtual:app/*`). Not the snapshot surface. _Avoid_: `@repo/astro` (as the site library)
-
 ### Packages
 
 **astro-intl**: Workspace package `@repo/astro-intl` — **catalogs**, collection pairing, locale list written through to Astro `i18n`. Factory `astroIntl()`.
 
 **astro-intl-sitemap**: Workspace package `@repo/astro-intl-sitemap` — printer glue the app passes into `@astrojs/sitemap`.
 
-**astro-site**: Workspace package `@repo/astro-site` — layout, **Seo**, **Schema**, **blocks**, schema fragments, and helpers. Not an Astro integration. _Avoid_: `@repo/astro`, packages/astro, packages/schemas
+**astro-site**: Workspace package `@repo/astro-site` — layout, **Seo**, **Schema**, **blocks**, schema fragments, and helpers. Not an Astro integration. _Avoid_: packages/schemas
 
 **og-image**: Workspace package `@repo/og-image` — optional OG image generator. Factory `ogImage()`.
 
