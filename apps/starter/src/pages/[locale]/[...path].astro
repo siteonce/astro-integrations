@@ -1,8 +1,8 @@
 ---
 // CMS catch-all. Params are document-owned compiled paths
 // (prefixDefaultLocale: true). Looks up the entry, runs the missing-locale
-// chain, and globs a `_pages` file from collection / page type. Does not
-// compose blocks.
+// chain, and globs a `_pages` file from collection / page type. intl does not
+// know page types; this map is catch-all convention. Does not compose blocks.
 
 import { getRelativeLocaleUrl } from 'astro:i18n';
 import {
@@ -13,7 +13,9 @@ import {
 } from '@repo/astro-intl';
 import type { AstroInstance } from 'astro';
 import intlConfig from '../../intl.config.ts';
-import { pageName } from '../_page-name.ts';
+
+// Collection name and `_pages` file differ for these two. Pages use pageType.
+const file: Record<string, string> = { blog: 'post', tags: 'term' };
 
 const pages = import.meta.glob<AstroInstance>('../_pages/*.astro');
 
@@ -50,7 +52,10 @@ if (!entry) {
   return Astro.rewrite('/404');
 }
 
-const name = pageName(entry);
+const name =
+  entry.collection === 'pages'
+    ? String(entry.data.pageType ?? '')
+    : (file[entry.collection ?? ''] ?? '');
 const load = pages[`../_pages/${name}.astro`];
 if (!load) {
   throw new Error(`starter: no _pages file for "${name}".`);
