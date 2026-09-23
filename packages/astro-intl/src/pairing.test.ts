@@ -10,9 +10,14 @@ const config = defineIntl({
   locales: ['en', 'de'],
   defaultLocale: 'en',
   routing: { prefixDefaultLocale: true },
+  routes: [
+    { id: 'home', slug: { en: '/', de: '/' } },
+    { id: 'blog', slug: { en: 'blog', de: 'artikel' } },
+    { id: 'posts', slug: { en: 'blog', de: 'artikel' }, collection: 'blog' },
+  ],
   collections: {
-    pages: { slugField: 'slug' },
-    blog: { pathPrefix: 'blog' },
+    pages: {},
+    blog: { slugField: 'slug' },
     authors: {},
   },
 });
@@ -28,14 +33,15 @@ function entry(
 
 const fixtures = {
   pages: [
-    entry('pages', 'home-en', { id: 'home', locale: 'en', slug: '/' }),
-    entry('pages', 'home-de', { id: 'home', locale: 'de', slug: '/' }),
-    entry('pages', 'solo-en', { id: 'solo', locale: 'en', slug: 'only-in-en' }),
-    entry('pages', 'de-only', { id: 'de-only', locale: 'de', slug: 'nur-de' }),
+    entry('pages', 'home-en', { id: 'home', locale: 'en' }),
+    entry('pages', 'home-de', { id: 'home', locale: 'de' }),
+    entry('pages', 'blog-en', { id: 'blog', locale: 'en' }),
+    entry('pages', 'blog-de', { id: 'blog', locale: 'de' }),
   ],
   blog: [
     entry('blog', 'hello-en', { id: 'hello-world', locale: 'en', slug: 'hello-world' }),
     entry('blog', 'hello-de', { id: 'hello-world', locale: 'de', slug: 'hallo-welt' }),
+    entry('blog', 'solo-en', { id: 'solo', locale: 'en', slug: 'solo' }),
   ],
   authors: [
     entry('authors', 'ada-en', { id: 'ada', locale: 'en', name: 'Ada' }),
@@ -56,12 +62,13 @@ describe('fragments', () => {
 });
 
 describe('intlConfigSchema collections', () => {
-  it('rejects a pathPrefix map that omits a locale', () => {
+  it('rejects a route slug map that omits a locale', () => {
     const parsed = intlConfigSchema.safeParse({
       locales: ['en', 'de'],
       defaultLocale: 'en',
       routing: { prefixDefaultLocale: true },
-      collections: { blog: { pathPrefix: { en: 'blog' } } },
+      routes: [{ id: 'posts', slug: { en: 'blog' }, collection: 'blog' }],
+      collections: { blog: { slugField: 'slug' } },
     });
     assert.equal(parsed.success, false);
   });
@@ -71,6 +78,7 @@ describe('intlConfigSchema collections', () => {
       locales: ['en', 'de'],
       defaultLocale: 'en',
       routing: { prefixDefaultLocale: true },
+      routes: [{ id: 'posts', slug: { en: 'blog', de: 'artikel' }, collection: 'pages' }],
       collections: {
         pages: { idField: 'id', localeField: 'locale', slugField: 'slug' },
       },
@@ -98,7 +106,7 @@ describe('intlConfigSchema collections', () => {
 });
 
 describe('pairCollections', () => {
-  it('compiles a path per locale for paired routed entries', () => {
+  it('compiles a leaf onto that locale’s prefix', () => {
     const paired = pairCollections(config, fixtures);
     const helloEn = paired.routed.find(
       (item) => item.entryId === 'blog/hello-world' && item.locale === 'en',
@@ -107,43 +115,105 @@ describe('pairCollections', () => {
       (item) => item.entryId === 'blog/hello-world' && item.locale === 'de',
     );
     assert.equal(helloEn?.path, 'blog/hello-world');
-    assert.equal(helloDe?.path, 'blog/hallo-welt');
-    const homeEn = paired.routed.find(
-      (item) => item.entryId === 'pages/home' && item.locale === 'en',
-    );
+    assert.equal(helloDe?.path, 'artikel/hallo-welt');
+    const homeEn = paired.routed.find((item) => item.entryId === 'home' && item.locale === 'en');
     assert.equal(homeEn?.path, '/');
+    assert.equal(homeEn?.entry?.id, 'home-en');
   });
 
   it('keeps listed records without a URL', () => {
     const paired = pairCollections(config, fixtures);
-    assert.equal(paired.records.length, 2);
-    assert.ok(paired.records.every((item) => item.entryId === 'authors/ada'));
+    assert.equal(paired.records.filter((item) => item.entryId === 'authors/ada').length, 2);
+    assert.ok(paired.routed.every((item) => item.entryId !== 'authors/ada'));
   });
 
-  it('aborts on a (locale, path) collision', () => {
+  it('aborts when a standalone path equals a compiled leaf', () => {
+    const clash = defineIntl({
+      locales: ['en', 'de'],
+      defaultLocale: 'en',
+      routing: { prefixDefaultLocale: true },
+      routes: [
+        { id: 'posts', slug: { en: 'blog', de: 'artikel' }, collection: 'blog' },
+        { id: 'clash', slug: { en: 'blog/hello-world', de: 'other' } },
+      ],
+      collections: { blog: { slugField: 'slug' } },
+    });
     assert.throws(
       () =>
-        pairCollections(config, {
-          ...fixtures,
-          pages: [
-            ...fixtures.pages,
-            entry('pages', 'clash', { id: 'clash', locale: 'en', slug: 'blog/hello-world' }),
+        pairCollections(clash, {
+          blog: [
+            entry('blog', 'hello-en', { id: 'hello-world', locale: 'en', slug: 'hello-world' }),
+            entry('blog', 'hello-de', { id: 'hello-world', locale: 'de', slug: 'hallo-welt' }),
           ],
         }),
       /\(locale, path\) "en" \/ "blog\/hello-world" collides/,
     );
   });
 
+  it('aborts when a leaf contains a slash', () => {
+    assert.throws(
+      () =>
+        pairCollections(config, {
+          ...fixtures,
+          blog: [entry('blog', 'bad', { id: 'bad', locale: 'en', slug: 'blog/hello-world' })],
+        }),
+      /not one segment/,
+    );
+  });
+
+  it('aborts when slugField has no route row', () => {
+    const bare = defineIntl({
+      locales: ['en', 'de'],
+      defaultLocale: 'en',
+      routing: { prefixDefaultLocale: true },
+      collections: { blog: { slugField: 'slug' } },
+    });
+    assert.throws(() => pairCollections(bare, { blog: [] }), /slugField has no route/);
+  });
+
+  it('aborts when a prefix is "/"', () => {
+    const bad = defineIntl({
+      locales: ['en', 'de'],
+      defaultLocale: 'en',
+      routing: { prefixDefaultLocale: true },
+      routes: [{ id: 'posts', slug: { en: '/', de: 'artikel' }, collection: 'blog' }],
+      collections: { blog: { slugField: 'slug' } },
+    });
+    assert.throws(() => pairCollections(bad, { blog: [] }), /empty or "\/"/);
+  });
+
+  it('aborts when two records match one standalone route', () => {
+    assert.throws(
+      () =>
+        pairCollections(config, {
+          ...fixtures,
+          authors: [
+            ...fixtures.authors,
+            entry('authors', 'home-author', { id: 'home', locale: 'en', name: 'Home' }),
+          ],
+        }),
+      /two records match route "home"/,
+    );
+  });
+
   it('aborts when a file route shadows a compiled path', () => {
     assert.throws(
-      () => pairCollections(config, fixtures, ['only-in-en']),
-      /path "only-in-en" is shadowed by a file route/,
+      () => pairCollections(config, fixtures, ['blog/solo']),
+      /path "blog\/solo" is shadowed by a file route/,
     );
   });
 
   it('warns when the default-locale sibling is missing', () => {
-    const paired = pairCollections(config, fixtures);
-    assert.ok(paired.warnings.some((warning) => warning.includes('entryId "pages/de-only"')));
+    const paired = pairCollections(config, {
+      ...fixtures,
+      blog: [
+        ...fixtures.blog,
+        entry('blog', 'nur-de', { id: 'nur-de', locale: 'de', slug: 'nur-de' }),
+      ],
+    });
+    const solo = paired.routed.find((item) => item.entryId === 'blog/nur-de');
+    assert.equal(solo?.path, 'artikel/nur-de');
+    assert.ok(paired.warnings.some((warning) => warning.includes('entryId "blog/nur-de"')));
   });
 
   it('aborts when a listed collection is absent', () => {
@@ -159,8 +229,13 @@ describe('pairCollections field id', () => {
     locales: ['en', 'de'],
     defaultLocale: 'en',
     routing: { prefixDefaultLocale: true },
+    routes: [
+      { id: 'home', slug: { en: '/', de: '/' } },
+      { id: 'blog', slug: { en: 'blog', de: 'artikel' } },
+      { id: 'posts', slug: { en: 'blog', de: 'artikel' }, collection: 'blog' },
+    ],
     collections: {
-      pages: { slugField: 'slug' },
+      pages: {},
       blog: { slugField: 'slug' },
     },
   });
@@ -168,42 +243,36 @@ describe('pairCollections field id', () => {
   it('pairs siblings as collection/id and allows the same id in two collections', () => {
     const paired = pairCollections(fieldConfig, {
       pages: [
-        entry('pages', 'blog/en', { id: 'blog', locale: 'en', slug: 'blog' }),
-        entry('pages', 'blog/de', { id: 'blog', locale: 'de', slug: 'artikel' }),
+        entry('pages', 'blog/en', { id: 'blog', locale: 'en' }),
+        entry('pages', 'blog/de', { id: 'blog', locale: 'de' }),
+        entry('pages', 'hello/en', { id: 'hello-world', locale: 'en' }),
+        entry('pages', 'hello/de', { id: 'hello-world', locale: 'de' }),
       ],
       blog: [
-        entry('blog', 'hello-world/en', {
-          id: 'hello-world',
-          locale: 'en',
-          slug: 'blog/hello-world',
-        }),
-        entry('blog', 'hello-world/de', {
-          id: 'hello-world',
-          locale: 'de',
-          slug: 'artikel/hallo-welt',
-        }),
+        entry('blog', 'hello-world/en', { id: 'hello-world', locale: 'en', slug: 'hello-world' }),
+        entry('blog', 'hello-world/de', { id: 'hello-world', locale: 'de', slug: 'hallo-welt' }),
       ],
     });
 
-    const listingEn = paired.routed.find(
-      (item) => item.entryId === 'pages/blog' && item.locale === 'en',
-    );
+    const listingEn = paired.routed.find((item) => item.entryId === 'blog' && item.locale === 'en');
     const helloDe = paired.routed.find(
       (item) => item.entryId === 'blog/hello-world' && item.locale === 'de',
     );
     assert.equal(listingEn?.path, 'blog');
+    assert.equal(listingEn?.entry?.id, 'blog/en');
     assert.equal(helloDe?.path, 'artikel/hallo-welt');
-    assert.equal(paired.routed.filter((item) => item.entryId === 'pages/blog').length, 2);
+    assert.equal(paired.routed.filter((item) => item.entryId === 'blog').length, 2);
     assert.equal(paired.routed.filter((item) => item.entryId === 'blog/hello-world').length, 2);
+    assert.ok(paired.records.some((item) => item.entryId === 'pages/hello-world'));
   });
 
   it('warns when the default-locale sibling is missing', () => {
     const paired = pairCollections(fieldConfig, {
       pages: [
-        entry('pages', 'home/en', { id: 'home', locale: 'en', slug: '/' }),
-        entry('pages', 'home/de', { id: 'home', locale: 'de', slug: '/' }),
+        entry('pages', 'home/en', { id: 'home', locale: 'en' }),
+        entry('pages', 'home/de', { id: 'home', locale: 'de' }),
       ],
-      blog: [entry('blog', 'nur-de/de', { id: 'nur-de', locale: 'de', slug: 'artikel/nur-de' })],
+      blog: [entry('blog', 'nur-de/de', { id: 'nur-de', locale: 'de', slug: 'nur-de' })],
     });
     const solo = paired.routed.find((item) => item.entryId === 'blog/nur-de');
     assert.equal(solo?.locale, 'de');
@@ -215,7 +284,7 @@ describe('pairCollections field id', () => {
     assert.throws(
       () =>
         pairCollections(fieldConfig, {
-          pages: [entry('pages', 'home/en', { locale: 'en', slug: '/' })],
+          pages: [entry('pages', 'home/en', { locale: 'en' })],
           blog: [],
         }),
       /id field "id" is missing/,
@@ -226,7 +295,7 @@ describe('pairCollections field id', () => {
     assert.throws(
       () =>
         pairCollections(fieldConfig, {
-          pages: [entry('pages', 'home/en', { id: 'home', slug: '/' })],
+          pages: [entry('pages', 'home/en', { id: 'home' })],
           blog: [],
         }),
       /locale field "locale" is missing/,
@@ -238,15 +307,18 @@ describe('pairCollections field id', () => {
       locales: ['en', 'de'],
       defaultLocale: 'en',
       routing: { prefixDefaultLocale: true },
+      routes: [{ id: 'home', slug: { en: '/', de: '/' } }],
       collections: {
-        pages: { idField: 'docId', localeField: 'lang', slugField: 'slug' },
+        pages: { idField: 'docId', localeField: 'lang' },
       },
     });
     const paired = pairCollections(custom, {
-      pages: [entry('pages', 'home-en', { docId: 'home', lang: 'en', slug: '/' })],
+      pages: [entry('pages', 'home-en', { docId: 'home', lang: 'en' })],
     });
-    assert.equal(paired.routed[0]?.entryId, 'pages/home');
+    assert.equal(paired.records[0]?.entryId, 'pages/home');
+    assert.equal(paired.routed[0]?.entryId, 'home');
     assert.equal(paired.routed[0]?.locale, 'en');
+    assert.equal(paired.routed[0]?.entry, paired.records[0]?.entry);
   });
 });
 
@@ -260,19 +332,27 @@ describe('query helpers', () => {
   it('looks up siblings and omits a missing locale', () => {
     assert.deepEqual(query.getAlternatePaths('blog/hello-world'), {
       en: 'blog/hello-world',
-      de: 'blog/hallo-welt',
+      de: 'artikel/hallo-welt',
     });
-    assert.deepEqual(query.getAlternatePaths('pages/solo'), { en: 'only-in-en' });
-    assert.equal(query.getContentById('de', 'pages/solo'), undefined);
-    assert.equal(query.getContentById('en', 'pages/solo')?.data.id, 'solo');
-    assert.equal(query.getContentByPath('de', 'blog/hallo-welt')?.data.id, 'hello-world');
+    assert.deepEqual(query.getAlternatePaths('home'), { en: '/', de: '/' });
+    assert.deepEqual(query.getAlternatePaths('blog/solo'), { en: 'blog/solo' });
+    assert.equal(query.getContentById('de', 'blog/solo'), undefined);
+    assert.equal(query.getContentById('en', 'blog/solo')?.data.id, 'solo');
+    assert.equal(query.getContentByPath('de', 'artikel/hallo-welt')?.data.id, 'hello-world');
+    assert.equal(query.getContentByPath('en', '/')?.id, 'home-en');
+    assert.equal(query.getContentByPath('en', 'blog')?.data.id, 'blog');
     assert.equal(query.getContentById('de', 'authors/ada')?.data.name, 'Ada');
+    assert.deepEqual(query.getRouteByPath('en', '/'), { id: 'home', path: '/' });
+    assert.deepEqual(query.getRouteByPath('de', 'artikel'), { id: 'blog', path: 'artikel' });
+    assert.equal(query.getRouteByPath('de', 'artikel/hallo-welt'), undefined);
   });
 
   it('lists paired locale+slug and sitemap / RSS alternates', () => {
     const slugs = query.getPairedSlugs();
-    assert.ok(slugs.some((item) => item.locale === 'en' && item.slug === '/'));
-    assert.ok(slugs.some((item) => item.locale === 'de' && item.slug === 'blog/hallo-welt'));
+    assert.equal(slugs.filter((item) => item.locale === 'en' && item.slug === '/').length, 1);
+    assert.equal(slugs.filter((item) => item.locale === 'en' && item.slug === 'blog').length, 1);
+    assert.equal(slugs.filter((item) => item.locale === 'de' && item.slug === 'artikel').length, 1);
+    assert.ok(slugs.some((item) => item.locale === 'de' && item.slug === 'artikel/hallo-welt'));
     assert.equal(
       slugs.some((item) => 'params' in item),
       false,
@@ -286,21 +366,25 @@ describe('query helpers', () => {
     assert.equal(helloEn?.loc, 'https://example.com/en/blog/hello-world');
     assert.deepEqual(helloEn?.alternates, {
       en: 'https://example.com/en/blog/hello-world',
-      de: 'https://example.com/de/blog/hallo-welt',
+      de: 'https://example.com/de/artikel/hallo-welt',
     });
-    const solo = sitemap.find((item) => item.entryId === 'pages/solo');
+    const home = sitemap.find((item) => item.locale === 'en' && item.path === '/');
+    assert.equal(home?.entryId, 'home');
+    const listing = sitemap.find((item) => item.locale === 'en' && item.path === 'blog');
+    assert.equal(listing?.entryId, 'blog');
+    const solo = sitemap.find((item) => item.entryId === 'blog/solo');
     assert.deepEqual(solo?.alternates, {
-      en: 'https://example.com/en/only-in-en',
+      en: 'https://example.com/en/blog/solo',
     });
     assert.ok(sitemap.every((item) => item.entryId !== 'ada'));
   });
 
   it('builds Hreflang data with per-locale URLs and x-default', () => {
-    const head = query.getDocumentHead({ locale: 'de', path: 'blog/hallo-welt' });
+    const head = query.getDocumentHead({ locale: 'de', path: 'artikel/hallo-welt' });
     assert.equal(head.lang, 'de');
-    assert.equal(head.canonical, 'https://example.com/de/blog/hallo-welt');
+    assert.equal(head.canonical, 'https://example.com/de/artikel/hallo-welt');
     assert.deepEqual(head.alternates, [
-      { hreflang: 'de', href: 'https://example.com/de/blog/hallo-welt' },
+      { hreflang: 'de', href: 'https://example.com/de/artikel/hallo-welt' },
       { hreflang: 'en', href: 'https://example.com/en/blog/hello-world' },
     ]);
     assert.equal(head.xDefault, 'https://example.com/en/blog/hello-world');
@@ -309,8 +393,8 @@ describe('query helpers', () => {
     assert.ok(links.some((link) => link.hreflang === 'de'));
     assert.ok(links.some((link) => link.hreflang === 'en'));
 
-    const missing = query.getDocumentHead({ locale: 'en', path: 'only-in-en' });
-    assert.equal(missing.xDefault, 'https://example.com/en/only-in-en');
+    const missing = query.getDocumentHead({ locale: 'en', path: 'blog/solo' });
+    assert.equal(missing.xDefault, 'https://example.com/en/blog/solo');
     assert.equal(missing.alternates.length, 1);
   });
 });
@@ -320,6 +404,10 @@ describe('query helpers collection/id', () => {
     locales: ['en', 'de'],
     defaultLocale: 'en',
     routing: { prefixDefaultLocale: true },
+    routes: [
+      { id: 'posts', slug: { en: 'blog', de: 'artikel' }, collection: 'blog' },
+      { id: 'terms', slug: { en: 'tags', de: 'schlagworte' }, collection: 'tags' },
+    ],
     collections: {
       blog: { slugField: 'slug' },
       tags: { slugField: 'slug' },
@@ -327,27 +415,19 @@ describe('query helpers collection/id', () => {
   });
   const collections = {
     blog: [
-      entry('blog', 'hello-world/en', {
-        id: 'hello-world',
-        locale: 'en',
-        slug: 'blog/hello-world',
-      }),
-      entry('blog', 'hello-world/de', {
-        id: 'hello-world',
-        locale: 'de',
-        slug: 'artikel/hallo-welt',
-      }),
+      entry('blog', 'hello-world/en', { id: 'hello-world', locale: 'en', slug: 'hello-world' }),
+      entry('blog', 'hello-world/de', { id: 'hello-world', locale: 'de', slug: 'hallo-welt' }),
     ],
     tags: [
       entry('tags', 'announcements/en', {
         id: 'announcements',
         locale: 'en',
-        slug: 'tags/announcements',
+        slug: 'announcements',
       }),
       entry('tags', 'announcements/de', {
         id: 'announcements',
         locale: 'de',
-        slug: 'schlagworte/ankuendigungen',
+        slug: 'ankuendigungen',
       }),
     ],
   };
@@ -369,6 +449,11 @@ describe('query helpers collection/id', () => {
       de: 'artikel/hallo-welt',
     });
     assert.deepEqual(query.getAlternatePathsForPath('en', 'missing'), {});
+    const slugs = query.getPairedSlugs();
+    assert.equal(
+      slugs.some((item) => item.slug === 'tags' || item.slug === 'schlagworte'),
+      false,
+    );
     const sitemap = query.getSitemapEntries();
     const helloEn = sitemap.find(
       (item) => item.entryId === 'blog/hello-world' && item.locale === 'en',

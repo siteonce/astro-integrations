@@ -1,6 +1,6 @@
 /**
- * Compile a routed entry's runtime `path` (URL tail after the locale prefix).
- * `pathPrefix` is a compile helper, not routing config.
+ * Join one already-resolved prefix and one leaf into the public tail
+ * after the locale prefix.
  */
 
 export function normalizeSlug(slug: string): string {
@@ -8,27 +8,22 @@ export function normalizeSlug(slug: string): string {
   return slug.replace(/^\/+/u, '').replace(/\/+$/u, '');
 }
 
-export function prefixFor(
-  pathPrefix: string | Record<string, string> | undefined,
-  locale: string,
-): string | undefined {
-  if (pathPrefix === undefined) return undefined;
-  if (typeof pathPrefix === 'string') return pathPrefix;
-  return pathPrefix[locale];
+/** Section prefix. `undefined` when the value is empty or `/`. */
+export function normalizePrefix(value: string): string | undefined {
+  if (value === '/') return undefined;
+  const stripped = value.replace(/^\/+|\/+$/gu, '');
+  return stripped === '' ? undefined : stripped;
 }
 
-export function compilePath(
-  pathPrefix: string | Record<string, string> | undefined,
-  locale: string,
-  slug: string,
-): string {
-  const normalized = normalizeSlug(slug);
-  const prefix = prefixFor(pathPrefix, locale);
-  if (prefix === undefined) return normalized;
-  if (normalized === '/') {
-    throw new Error(`@repo/astro-intl: slug "/" cannot combine with pathPrefix "${prefix}".`);
+export function compilePath(prefix: string, slug: string): string {
+  const normalized = normalizePrefix(prefix);
+  if (!normalized) {
+    throw new Error(`@repo/astro-intl: prefix "${prefix}" is empty or "/".`);
   }
-  return `${prefix.replace(/\/+$/u, '')}/${normalized}`;
+  if (slug === '' || slug === '/' || slug.includes('/')) {
+    throw new Error(`@repo/astro-intl: slug "${slug}" is not one segment.`);
+  }
+  return `${normalized}/${slug}`;
 }
 
 /** Path argument for `getAbsoluteLocaleUrl` / `getRelativeLocaleUrl`. */

@@ -1,13 +1,14 @@
 ---
-// CMS catch-all. Params are document-owned compiled paths
-// (prefixDefaultLocale: true). Looks up the entry, runs the missing-locale
-// chain, and globs a `_pages` file from collection / page type. intl does not
-// know page types; this map is catch-all convention. Does not compose blocks.
+// CMS catch-all. Params are compiled public tails (prefixDefaultLocale: true).
+// A standalone route loads its joined entry and picks a `_pages` file from
+// pageType. A collection entry uses the collection map. Otherwise the
+// missing-locale chain runs. intl does not know page types.
 
 import { getRelativeLocaleUrl } from 'astro:i18n';
 import {
   getContentByPath,
   getPairedSlugs,
+  getRouteByPath,
   missingLocaleChain,
   setIntlConfig,
 } from '@repo/astro-intl';
@@ -39,7 +40,13 @@ const path = Array.isArray(pathParam)
   ? pathParam.filter(Boolean).join('/') || '/'
   : (pathParam ?? '/');
 
+const route = await getRouteByPath(locale, path);
 const entry = await getContentByPath(locale, path);
+
+if (route && !entry) {
+  throw new Error(`starter: no content for route "${route.id}".`);
+}
+
 if (!entry) {
   const result = await missingLocaleChain({
     locale,
@@ -52,10 +59,7 @@ if (!entry) {
   return Astro.rewrite('/404');
 }
 
-const name =
-  entry.collection === 'pages'
-    ? String(entry.data.pageType ?? '')
-    : (file[entry.collection ?? ''] ?? '');
+const name = route ? String(entry.data.pageType ?? '') : (file[entry.collection ?? ''] ?? '');
 const load = pages[`../_pages/${name}.astro`];
 if (!load) {
   throw new Error(`starter: no _pages file for "${name}".`);
@@ -63,4 +67,4 @@ if (!load) {
 const { default: Page } = await load();
 ---
 
-<Page locale={locale} entry={entry as never} />
+<Page locale={locale} path={path} entry={entry as never} />

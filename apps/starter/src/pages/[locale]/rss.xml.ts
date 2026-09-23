@@ -1,7 +1,7 @@
 import { getCollection } from 'astro:content';
 import { getAbsoluteLocaleUrl } from 'astro:i18n';
 import rss from '@astrojs/rss';
-import { getAlternatePathsForPath, getSitemapEntries, setIntlConfig } from '@repo/astro-intl';
+import { getAlternatePaths, getSitemapEntries, setIntlConfig } from '@repo/astro-intl';
 import { persistIntlSitemapEntries } from '@repo/astro-intl-sitemap';
 import type { APIRoute } from 'astro';
 import intlConfig from '../../intl.config.ts';
@@ -33,14 +33,17 @@ export const GET: APIRoute = async (context) => {
 
   const items = await Promise.all(
     posts.map(async (post) => {
-      const tails = await getAlternatePathsForPath(locale, post.data.slug);
-      const tail = tails[locale];
-      const loc = byPath.get(post.data.slug)?.loc;
+      const tails = await getAlternatePaths(`blog/${post.data.id}`);
+      const compiled = tails[locale];
+      if (!compiled) {
+        throw new Error(`starter: no compiled path for "blog/${post.data.id}" in "${locale}".`);
+      }
+      const loc = byPath.get(compiled)?.loc;
       return {
         title: post.data.seoTitle,
         description: post.data.excerpt,
         pubDate: post.data.pubDate,
-        link: loc ?? (tail ? getAbsoluteLocaleUrl(locale, tail) : getAbsoluteLocaleUrl(locale)),
+        link: loc ?? getAbsoluteLocaleUrl(locale, compiled),
       };
     }),
   );

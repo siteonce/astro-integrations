@@ -35,6 +35,7 @@ export type IntlQuery = {
   pairing: PairingIndex;
   collections: Readonly<Record<string, CollectionEntryLike[]>>;
   getContentByPath: (locale: string, path: string) => CollectionEntryLike | undefined;
+  getRouteByPath: (locale: string, path: string) => { id: string; path: string } | undefined;
   getContentById: (locale: string, entryId: string) => CollectionEntryLike | undefined;
   getAlternatePaths: (entryId: string) => Record<string, string>;
   getAlternatePathsForPath: (locale: string, path: string) => Record<string, string>;
@@ -99,6 +100,10 @@ export function createIntlQuery(options: CreateIntlQueryOptions): IntlQuery {
   function getContentByPath(locale: string, path: string): CollectionEntryLike | undefined {
     const normalized = normalizeSlug(path);
     return pairing.byLocalePath.get(localePathKey(locale, normalized))?.entry;
+  }
+
+  function getRouteByPath(locale: string, path: string): { id: string; path: string } | undefined {
+    return pairing.byLocaleRoute.get(localePathKey(locale, normalizeSlug(path)));
   }
 
   function getContentById(locale: string, entryId: string): CollectionEntryLike | undefined {
@@ -193,6 +198,7 @@ export function createIntlQuery(options: CreateIntlQueryOptions): IntlQuery {
     pairing,
     collections: options.collections,
     getContentByPath,
+    getRouteByPath,
     getContentById,
     getAlternatePaths,
     getAlternatePathsForPath,

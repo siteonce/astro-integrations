@@ -1,20 +1,21 @@
 ---
-// Post page. Receives locale + the blog-collection entry. Owns render(),
-// related-post query, and Article + RelatedPosts composition. Wraps SiteLayout.
-// No section UI beyond Measure / Flow on <main>.
+// Post page. Receives locale, the compiled path, and the blog-collection
+// entry. Owns render(), related-post query, and Article + RelatedPosts
+// composition. Wraps SiteLayout. No section UI beyond Measure / Flow on <main>.
 import { getCollection, render } from 'astro:content';
 import { getRelativeLocaleUrl } from 'astro:i18n';
 import {
+  getAlternatePaths,
   getAlternatePathsForPath,
   getRelated,
   localeSwitcherLinks,
   type Relation,
 } from '@repo/astro-intl';
 import { Hreflang } from '@repo/astro-intl/components';
+import { ogImageFor } from '@repo/astro-og-image/utils/og-image-for';
 import { Article, RelatedPosts, Schema, Seo } from '@repo/astro-site/components';
 import { isLocal, isPreview } from '@repo/astro-site/utils/deploy-env';
 import { getRelatedContent } from '@repo/astro-site/utils/related-content';
-import { ogImageFor } from '@repo/astro-og-image/utils/og-image-for';
 import { deployConfig } from '../../deploy.config.ts';
 import intlConfig from '../../intl.config.ts';
 import SiteLayout from '../../layouts/site-layout.astro';
@@ -26,12 +27,13 @@ import { localeFolder } from '../../utils/locale-folder.ts';
 
 interface Props {
   locale: string;
+  path: string;
   entry: {
     id: string;
     filePath?: string;
     body?: string;
     data: {
-      slug?: string;
+      id: string;
       seoTitle: string;
       seoDesc: string;
       pubDate: Date;
@@ -46,9 +48,8 @@ interface Props {
   };
 }
 
-const { locale, entry } = Astro.props;
+const { locale, path, entry } = Astro.props;
 const t = useTranslations(locale);
-const path = entry.data.slug ?? '/';
 const alternates = await getAlternatePathsForPath(locale, path);
 const switcher = localeSwitcherLinks(intlConfig.locales, locale, alternates, (code, tail) =>
   tail ? getRelativeLocaleUrl(code, tail) : getRelativeLocaleUrl(code),
@@ -66,22 +67,43 @@ const showDrafts = isLocal(deployConfig) || isPreview(deployConfig);
 const posts = (await getCollection('blog'))
   .filter((post) => post.data.locale === locale && (post.data.status === 'published' || showDrafts))
   .sort((a, b) => b.data.pubDate.valueOf() - a.data.pubDate.valueOf());
-const tagSlug = new Map(
-  (await getCollection('tags'))
-    .filter((tag) => tag.data.locale === locale)
-    .map((tag) => [localeFolder(tag), tag.data.slug]),
-);
+
+async function compiledPath(collection: string, id: string): Promise<string> {
+  const compiled = (await getAlternatePaths(`${collection}/${id}`))[locale];
+  if (!compiled) {
+    throw new Error(`starter: no compiled path for "${collection}/${id}" in "${locale}".`);
+  }
+  return compiled;
+}
+
+const tagSlug = new Map<string, string>();
+for (const tag of (await getCollection('tags')).filter((tag) => tag.data.locale === locale)) {
+  tagSlug.set(localeFolder(tag), await compiledPath('tags', tag.data.id));
+}
+const postPath = new Map<string, string>();
+for (const post of posts) {
+  postPath.set(post.data.id, await compiledPath('blog', post.data.id));
+}
+
+function documentHref(paths: Map<string, string>, collection: string, id: string): string {
+  const compiled = paths.get(id);
+  if (!compiled) {
+    throw new Error(`starter: no compiled path for "${collection}/${id}" in "${locale}".`);
+  }
+  return getRelativeLocaleUrl(locale, compiled);
+}
+
 const dateFmt = new Intl.DateTimeFormat(locale, { dateStyle: 'long' });
 const terms = entry.data.tags.map((id) => {
   const key = `taxonomy.blogTags.${id}`;
   const value = t(key);
   return {
-    href: getRelativeLocaleUrl(locale, tagSlug.get(id) ?? id),
+    href: documentHref(tagSlug, 'tags', id),
     label: value === key ? id : value,
   };
 });
 const related = getRelatedContent(entry, posts).map((post) => ({
-  href: getRelativeLocaleUrl(locale, post.data.slug),
+  href: documentHref(postPath, 'blog', post.data.id),
   title: post.data.seoTitle,
 }));
 const featSrc = entry.data.featImage

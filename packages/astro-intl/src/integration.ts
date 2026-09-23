@@ -17,7 +17,12 @@ import { setIntlConfig, setRouteTails } from './runtime.ts';
 import { sitemapI18nIsSet } from './sitemap-i18n.ts';
 
 export { createT } from './create-t.ts';
-export { type CollectionConfig, defineIntl, type IntlConfig } from './define-intl.ts';
+export {
+  type CollectionConfig,
+  defineIntl,
+  type IntlConfig,
+  type RouteConfig,
+} from './define-intl.ts';
 export { id, locale, slug } from './fragments.ts';
 export type { DocumentHead, PairedSlug, SitemapEntry } from './helpers.ts';
 export {
@@ -28,11 +33,11 @@ export {
   getDocumentHead,
   getPairedSlugs,
   getRelated,
+  getRouteByPath,
   getSitemapEntries,
   hreflangLinks,
 } from './helpers.ts';
-export type { LocaleSectionList, LocaleSectionMap } from './locale-section.ts';
-export { listingLocaleSection, localeSection } from './locale-section.ts';
+export { leafSlug } from './locale-section.ts';
 export type { LocaleSwitcherLink } from './locale-switcher.ts';
 export { localeSwitcherLinks } from './locale-switcher.ts';
 export type { MissingLocaleResult } from './missing-locale.ts';

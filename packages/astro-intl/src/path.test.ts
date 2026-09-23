@@ -1,35 +1,28 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
-import { compilePath, localeUrlPath, normalizeSlug, prefixFor } from './path.ts';
+import { compilePath, localeUrlPath, normalizeSlug } from './path.ts';
 
 describe('compilePath', () => {
-  it('uses slug as the path when there is no prefix', () => {
-    assert.equal(compilePath(undefined, 'en', 'legal/privacy'), 'legal/privacy');
-    assert.equal(compilePath(undefined, 'en', '/'), '/');
+  it('joins a prefix and a leaf', () => {
+    assert.equal(compilePath('blog', 'hello-world'), 'blog/hello-world');
+    assert.equal(compilePath('artikel', 'hallo-welt'), 'artikel/hallo-welt');
   });
 
-  it('joins a string prefix in every locale', () => {
-    assert.equal(compilePath('blog', 'en', 'hello-world'), 'blog/hello-world');
-    assert.equal(compilePath('blog', 'de', 'hallo-welt'), 'blog/hallo-welt');
-  });
-
-  it('joins a per-locale prefix map', () => {
-    const prefix = { en: 'blog', de: 'artikel' };
-    assert.equal(compilePath(prefix, 'en', 'hello-world'), 'blog/hello-world');
-    assert.equal(compilePath(prefix, 'de', 'hallo-welt'), 'artikel/hallo-welt');
-  });
-
-  it('rejects homepage slug combined with pathPrefix', () => {
+  it('rejects an empty prefix, "/", and a slashed leaf', () => {
+    assert.throws(() => compilePath('', 'hello-world'), /prefix "" is empty or "\/"/);
+    assert.throws(() => compilePath('/', 'hello-world'), /prefix "\/" is empty or "\/"/);
+    assert.throws(() => compilePath('blog', '/'), /slug "\/" is not one segment/);
     assert.throws(
-      () => compilePath('blog', 'en', '/'),
-      /slug "\/" cannot combine with pathPrefix "blog"/,
+      () => compilePath('artikel', 'artikel/hallo-welt'),
+      /slug "artikel\/hallo-welt" is not one segment/,
     );
   });
+});
 
-  it('normalizes empty slug to homepage', () => {
+describe('normalizeSlug', () => {
+  it('maps an empty slug to the homepage path', () => {
     assert.equal(normalizeSlug(''), '/');
     assert.equal(localeUrlPath('/'), '');
     assert.equal(localeUrlPath('blog/hello-world'), 'blog/hello-world');
-    assert.equal(prefixFor('blog', 'de'), 'blog');
   });
 });

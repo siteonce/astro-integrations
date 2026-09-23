@@ -30,6 +30,7 @@ function withQuery(collections: Record<string, CollectionEntryLike[]>, loaded?: 
     locales: ['en', 'de'],
     defaultLocale: 'en',
     routing: { prefixDefaultLocale: true },
+    routes: [{ id: 'posts', slug: { en: 'blog', de: 'artikel' }, collection: 'blog' }],
     collections: {
       blog: { slugField: 'slug' },
       authors: {},
@@ -53,8 +54,9 @@ describe('getSitemapEntries / getAlternatePaths / Hreflang', () => {
       locales: ['en', 'de'],
       defaultLocale: 'en',
       routing: { prefixDefaultLocale: true },
+      routes: [{ id: 'posts', slug: { en: 'blog', de: 'artikel' }, collection: 'blog' }],
       collections: {
-        blog: { pathPrefix: 'blog' },
+        blog: { slugField: 'slug' },
         authors: {},
       },
     });
@@ -80,14 +82,14 @@ describe('getSitemapEntries / getAlternatePaths / Hreflang', () => {
     try {
       assert.deepEqual(await getAlternatePaths('blog/hello-world'), {
         en: 'blog/hello-world',
-        de: 'blog/hallo-welt',
+        de: 'artikel/hallo-welt',
       });
       const sitemap = await getSitemapEntries();
       assert.equal(sitemap.length, 2);
       const head = await getDocumentHead({ locale: 'en', path: 'blog/hello-world' });
       const links = hreflangLinks(head);
       assert.ok(links.some((link) => link.hreflang === 'x-default'));
-      assert.ok(links.some((link) => link.href.includes('/de/blog/hallo-welt')));
+      assert.ok(links.some((link) => link.href.includes('/de/artikel/hallo-welt')));
     } finally {
       setIntlLoaders(undefined);
       setIntlConfig(undefined);
@@ -103,7 +105,7 @@ describe('getRelated', () => {
       data: {
         id: 'hello-world',
         locale: 'en',
-        slug: 'blog/hello-world',
+        slug: 'hello-world',
         author: authorRel,
         client: clientRel,
         role: roleRel,
@@ -114,7 +116,7 @@ describe('getRelated', () => {
       data: {
         id: 'hello-world',
         locale: 'de',
-        slug: 'artikel/hallo-welt',
+        slug: 'hallo-welt',
         author: authorRel,
         client: clientRel,
         role: roleRel,
@@ -192,7 +194,7 @@ describe('getRelated', () => {
             data: {
               id: 'hello-world',
               locale: 'en',
-              slug: 'blog/hello-world',
+              slug: 'hello-world',
               author: authorRel,
               lookalike: { collection: 'ghost', id: 'nope' },
             },

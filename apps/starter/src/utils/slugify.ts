@@ -10,7 +10,7 @@ const german: Readonly<Record<string, string>> = {
   Ü: 'ue',
 };
 
-/** Starter public-tail rest: German map, then astro-site `slugify`. */
+/** Starter leaf slug: German map, then astro-site `slugify`. */
 export function slugify(value: string): string {
   return siteSlugify(value, german);
 }

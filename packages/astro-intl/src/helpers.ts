@@ -119,6 +119,13 @@ export async function getContentByPath(
   return (await loadQuery()).getContentByPath(locale, path);
 }
 
+export async function getRouteByPath(
+  locale: string,
+  path: string,
+): Promise<{ id: string; path: string } | undefined> {
+  return (await loadQuery()).getRouteByPath(locale, path);
+}
+
 export async function getContentById(
   locale: string,
   entryId: string,
