@@ -21,8 +21,6 @@ const pages = defineCollection({
   schema: seo.extend({
     id,
     locale,
-    // Starter convention. intl does not know page types.
-    pageType: z.enum(['home', 'listing']),
   }),
 });
 

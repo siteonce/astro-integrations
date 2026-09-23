@@ -1,5 +1,5 @@
 import * as z from 'zod';
-import { normalizePrefix } from './path.ts';
+import { patternSection } from './path.ts';
 
 const DEFAULT_MESSAGES_DIR = 'messages';
 
@@ -12,63 +12,90 @@ export const collectionConfigSchema = z.strictObject({
 export type CollectionConfig = z.infer<typeof collectionConfigSchema>;
 
 export const routeConfigSchema = z.strictObject({
-  id: z.string().min(1),
+  collection: z.string().min(1),
   slug: z.record(z.string(), z.string()),
-  collection: z.string().min(1).optional(),
+  entry: z.string().min(1).optional(),
 });
 
 export type RouteConfig = z.infer<typeof routeConfigSchema>;
 
+type RouteRule = {
+  slug: Readonly<Record<string, string>>;
+  collection: string;
+  entry?: string | undefined;
+};
+
 type RouteRulesConfig = {
   locales: readonly string[];
-  routes?: readonly {
-    id: string;
-    slug: Readonly<Record<string, string>>;
-    collection?: string | undefined;
-  }[];
+  routes?: readonly RouteRule[];
   collections?: Readonly<Record<string, { slugField?: string | undefined }>>;
 };
 
-/** Structural route rules. Entry collisions are checked while pairing. */
+function routeWhere(route: RouteRule): string {
+  return route.entry
+    ? `collection "${route.collection}" entry "${route.entry}"`
+    : `collection "${route.collection}"`;
+}
+
+/** Structural route rules. Compiled-path collisions are checked while pairing. */
 export function routeConfigIssues(config: RouteRulesConfig): string[] {
   const issues: string[] = [];
-  const seenIds = new Set<string>();
-  const seenCollections = new Set<string>();
+  const seenEntries = new Set<string>();
+  const seenPatterns = new Set<string>();
+  const seenSections = new Set<string>();
   const listed = config.collections ?? {};
 
   for (const route of config.routes ?? []) {
-    if (seenIds.has(route.id)) {
-      issues.push(`route id "${route.id}" repeats`);
+    if (route.entry) {
+      const key = `${route.collection}/${route.entry}`;
+      if (seenEntries.has(key)) {
+        issues.push(`entry "${route.entry}" repeats in collection "${route.collection}"`);
+      }
+      seenEntries.add(key);
+    } else if (seenPatterns.has(route.collection)) {
+      issues.push(`two pattern rows name collection "${route.collection}"`);
+    } else {
+      seenPatterns.add(route.collection);
     }
-    seenIds.add(route.id);
 
-    if (route.collection) {
-      if (seenCollections.has(route.collection)) {
-        issues.push(`two routes name collection "${route.collection}"`);
-      }
-      seenCollections.add(route.collection);
-      const collection = listed[route.collection];
-      if (!collection) {
-        issues.push(`route "${route.id}" collection "${route.collection}" is not listed`);
-      } else if (!collection.slugField) {
-        issues.push(`route "${route.id}" collection "${route.collection}" has no slugField`);
-      }
+    const collection = listed[route.collection];
+    if (!collection) {
+      issues.push(`collection "${route.collection}" is not listed`);
+    } else if (route.entry && collection.slugField) {
+      issues.push(`entry row on collection "${route.collection}" which has slugField`);
+    } else if (!route.entry && !collection.slugField) {
+      issues.push(`pattern row on collection "${route.collection}" which has no slugField`);
     }
 
     for (const locale of config.locales) {
       if (!(locale in route.slug)) {
-        issues.push(`route "${route.id}" slug missing locale "${locale}"`);
+        issues.push(`route ${routeWhere(route)} slug missing locale "${locale}"`);
         continue;
       }
-      if (!route.collection) continue;
-      if (!normalizePrefix(route.slug[locale] ?? '')) {
-        issues.push(`route "${route.id}" prefix for locale "${locale}" is empty or "/"`);
+      const slug = route.slug[locale] ?? '';
+      if (route.entry) {
+        if (slug === '' || slug.includes('{slug}')) {
+          issues.push(`route ${routeWhere(route)} slug for locale "${locale}" is not a fixed tail`);
+        }
+        continue;
       }
+      const section = patternSection(slug);
+      if (!section) {
+        issues.push(
+          `route ${routeWhere(route)} slug for locale "${locale}" must use {slug} as the final segment`,
+        );
+        continue;
+      }
+      const sectionKey = `${locale}\0${section}`;
+      if (seenSections.has(sectionKey)) {
+        issues.push(`duplicate section "${section}" for locale "${locale}"`);
+      }
+      seenSections.add(sectionKey);
     }
   }
 
   for (const [name, collection] of Object.entries(listed)) {
-    if (collection.slugField && !seenCollections.has(name)) {
+    if (collection.slugField && !seenPatterns.has(name)) {
       issues.push(`collections.${name} slugField has no route row`);
     }
   }

@@ -8,7 +8,12 @@ export default defineIntl({
     prefixDefaultLocale: true,
   },
   messages: { dir: 'messages' },
-  routes,
+  // `page` names a starter template. Intl receives the pairing fields.
+  routes: routes.map(({ slug, collection, entry }) => ({
+    collection,
+    slug,
+    ...(entry ? { entry } : {}),
+  })),
   collections: {
     pages: { idField: 'id', localeField: 'locale' },
     blog: { idField: 'id', localeField: 'locale', slugField: 'slug' },

@@ -1,27 +1,58 @@
 ---
 // CMS catch-all. Params are compiled public tails (prefixDefaultLocale: true).
-// A standalone route loads its joined entry and picks a `_pages` file from
-// pageType. A collection entry uses the collection map. Otherwise the
-// missing-locale chain runs. intl does not know page types.
+// The matching route row names the `_pages` file. A path with no entry follows
+// the missing-locale chain. intl does not know template names.
 
 import { getRelativeLocaleUrl } from 'astro:i18n';
 import {
   getContentByPath,
   getPairedSlugs,
-  getRouteByPath,
   missingLocaleChain,
   setIntlConfig,
 } from '@repo/astro-intl';
 import type { AstroInstance } from 'astro';
 import intlConfig from '../../intl.config.ts';
-
-// Collection name and `_pages` file differ for these two. Pages use pageType.
-const file: Record<string, string> = { blog: 'post', tags: 'term' };
+import { routes } from '../_routes.ts';
 
 const pages = import.meta.glob<AstroInstance>('../_pages/*.astro');
 
 // Page bundles do not share the integration's in-memory runtime.
 setIntlConfig(intlConfig);
+
+function publicTail(value: string): string {
+  if (value === '' || value === '/') return '/';
+  return value.replace(/^\/+/u, '').replace(/\/+$/u, '');
+}
+
+function pageFile(
+  locale: string,
+  path: string,
+  entry: { collection?: string; data: Record<string, unknown> },
+): string | undefined {
+  const collection = entry.collection;
+  if (!collection) return undefined;
+  const normalized = publicTail(path);
+  const idField = intlConfig.collections?.[collection]?.idField ?? 'id';
+  const dataId = entry.data[idField];
+  for (const route of routes) {
+    if (route.collection !== collection) continue;
+    const slug = route.slug[locale];
+    if (slug === undefined) continue;
+    if (route.entry) {
+      if (route.entry !== dataId) continue;
+      if (publicTail(slug) === normalized) return route.page;
+      continue;
+    }
+    const pattern = publicTail(slug);
+    const marker = '/{slug}';
+    if (!pattern.endsWith(marker)) continue;
+    const section = pattern.slice(0, -marker.length);
+    if (!normalized.startsWith(`${section}/`)) continue;
+    const leaf = normalized.slice(section.length + 1);
+    if (leaf.length > 0 && !leaf.includes('/')) return route.page;
+  }
+  return undefined;
+}
 
 export async function getStaticPaths() {
   setIntlConfig(intlConfig);
@@ -40,13 +71,7 @@ const path = Array.isArray(pathParam)
   ? pathParam.filter(Boolean).join('/') || '/'
   : (pathParam ?? '/');
 
-const route = await getRouteByPath(locale, path);
 const entry = await getContentByPath(locale, path);
-
-if (route && !entry) {
-  throw new Error(`starter: no content for route "${route.id}".`);
-}
-
 if (!entry) {
   const result = await missingLocaleChain({
     locale,
@@ -59,7 +84,10 @@ if (!entry) {
   return Astro.rewrite('/404');
 }
 
-const name = route ? String(entry.data.pageType ?? '') : (file[entry.collection ?? ''] ?? '');
+const name = pageFile(locale, path, entry);
+if (!name) {
+  throw new Error(`starter: no route row for "${path}".`);
+}
 const load = pages[`../_pages/${name}.astro`];
 if (!load) {
   throw new Error(`starter: no _pages file for "${name}".`);

@@ -15,6 +15,24 @@ export function normalizePrefix(value: string): string | undefined {
   return stripped === '' ? undefined : stripped;
 }
 
+const SLUG_TOKEN = '{slug}';
+
+/**
+ * Section in front of a final `{slug}` segment.
+ * `undefined` when `{slug}` is missing, repeated, or not the whole last segment.
+ */
+export function patternSection(slug: string): string | undefined {
+  const normalized = normalizeSlug(slug);
+  const marker = `/${SLUG_TOKEN}`;
+  if (!normalized.endsWith(marker)) return undefined;
+  if (normalized.indexOf(SLUG_TOKEN) !== normalized.length - SLUG_TOKEN.length) return undefined;
+  const section = normalizePrefix(normalized.slice(0, -marker.length));
+  if (!section || section.split('/').some((part) => part.length === 0 || part.includes('{'))) {
+    return undefined;
+  }
+  return section;
+}
+
 export function compilePath(prefix: string, slug: string): string {
   const normalized = normalizePrefix(prefix);
   if (!normalized) {

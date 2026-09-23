@@ -1,6 +1,6 @@
 import { type IntlConfig, routeConfigIssues } from './define-intl.ts';
 import { resolveEntryId } from './entry-id.ts';
-import { compilePath, normalizePrefix, normalizeSlug } from './path.ts';
+import { compilePath, normalizeSlug, patternSection } from './path.ts';
 
 /** Entry shape pairing and relations read. The content source fills `id` and `data`. `filePath` is optional. */
 export type CollectionEntryLike = {
@@ -14,9 +14,9 @@ export type PairedDocument = {
   collection: string;
   entryId: string;
   locale: string;
+  /** Leaf for a pattern row. Public tail for an entry row. */
   slug: string;
   path: string;
-  /** Absent when a standalone route has no joined record. */
   entry?: CollectionEntryLike;
 };
 
@@ -32,8 +32,6 @@ export type PairingIndex = {
   records: PairedRecord[];
   byLocalePath: Map<string, PairedDocument>;
   byLocaleEntryId: Map<string, PairedDocument | PairedRecord>;
-  /** Standalone routes only. Prefix rows are not indexed. */
-  byLocaleRoute: Map<string, { id: string; path: string }>;
   warnings: string[];
 };
 
@@ -62,35 +60,30 @@ type Leaf = {
   slug: string;
 };
 
-type Attachable = {
-  locale: string;
-  dataId: string;
-  record: PairedRecord;
-};
-
-function prefixesByCollection(config: IntlConfig): Map<string, Map<string, string>> {
-  const prefixes = new Map<string, Map<string, string>>();
+function sectionsByCollection(config: IntlConfig): Map<string, Map<string, string>> {
+  const sections = new Map<string, Map<string, string>>();
   for (const route of config.routes ?? []) {
-    if (!route.collection) continue;
+    if (route.entry) continue;
     const perLocale = new Map<string, string>();
     for (const locale of config.locales) {
-      const prefix = normalizePrefix(route.slug[locale] ?? '');
-      if (!prefix) {
+      const section = patternSection(route.slug[locale] ?? '');
+      if (!section) {
         throw new Error(
-          `@repo/astro-intl: route "${route.id}" prefix for locale "${locale}" is empty or "/".`,
+          `@repo/astro-intl: route collection "${route.collection}" slug for locale "${locale}" must use {slug} as the final segment.`,
         );
       }
-      perLocale.set(locale, prefix);
+      perLocale.set(locale, section);
     }
-    prefixes.set(route.collection, perLocale);
+    sections.set(route.collection, perLocale);
   }
-  return prefixes;
+  return sections;
 }
 
 /**
  * Pair listed collections: read id + locale from entry data, prefix the
- * collection name, compile leaf paths from route rows, and index standalone
- * routes. Aborts on route-rule, uniqueness, and reserved-path failures.
+ * collection name, and compile public tails from route rows. An entry row
+ * publishes one named document. A pattern row joins a section and a leaf.
+ * Aborts on route-rule, uniqueness, and reserved-path failures.
  */
 export function pairCollections(
   config: IntlConfig,
@@ -108,14 +101,13 @@ export function pairCollections(
   const locales = new Set(config.locales);
   const byLocalePath = new Map<string, PairedDocument>();
   const byLocaleEntryId = new Map<string, PairedDocument | PairedRecord>();
-  const byLocaleRoute = new Map<string, { id: string; path: string }>();
   const routed: PairedDocument[] = [];
   const records: PairedRecord[] = [];
   const warnings: string[] = [];
   const leaves: Leaf[] = [];
-  const attachable: Attachable[] = [];
+  const recordByKey = new Map<string, PairedRecord>();
   const seenIds = new Map<string, string>();
-  const prefixes = prefixesByCollection(config);
+  const sections = sectionsByCollection(config);
 
   for (const name of Object.keys(listed)) {
     if (!(name in collections)) {
@@ -195,47 +187,43 @@ export function pairCollections(
           `@repo/astro-intl: id field "${idField}" is missing on ${describeEntry(name, entry)}.`,
         );
       }
-      attachable.push({ locale, dataId, record });
+      recordByKey.set(`${name}\0${locale}\0${dataId}`, record);
     }
   }
 
+  const missingEntryRows: string[] = [];
   for (const route of config.routes ?? []) {
-    if (route.collection) continue;
+    if (!route.entry) continue;
+    let published = false;
     for (const locale of config.locales) {
+      const record = recordByKey.get(`${route.collection}\0${locale}\0${route.entry}`);
+      if (!record) continue;
+      published = true;
       const path = normalizeSlug(route.slug[locale] ?? '');
-      const matches = attachable.filter(
-        (item) => item.locale === locale && item.dataId === route.id,
-      );
-      if (matches.length > 1) {
-        throw new Error(
-          `@repo/astro-intl: two records match route "${route.id}" in locale "${locale}".`,
-        );
-      }
-      const match = matches[0];
       const document: PairedDocument = {
-        collection: match?.record.collection ?? route.id,
-        entryId: route.id,
+        collection: route.collection,
+        entryId: record.entryId,
         locale,
         slug: path,
         path,
-        entry: match?.record.entry,
+        entry: record.entry,
       };
-      const label = match ? describeEntry(match.record.collection, match.record.entry) : route.id;
-      claim(document, label);
-      byLocaleRoute.set(localePathKey(locale, path), { id: route.id, path });
+      claim(document, describeEntry(route.collection, record.entry));
+      byLocaleEntryId.set(localeEntryKey(locale, record.entryId), document);
     }
+    if (!published) missingEntryRows.push(`${route.collection}/${route.entry}`);
   }
 
   for (const leaf of leaves) {
-    const prefix = prefixes.get(leaf.name)?.get(leaf.locale);
-    if (!prefix) {
+    const section = sections.get(leaf.name)?.get(leaf.locale);
+    if (!section) {
       throw new Error(
-        `@repo/astro-intl: collections.${leaf.name} has no prefix for locale "${leaf.locale}".`,
+        `@repo/astro-intl: collections.${leaf.name} has no section for locale "${leaf.locale}".`,
       );
     }
     let path: string;
     try {
-      path = compilePath(prefix, leaf.slug);
+      path = compilePath(section, leaf.slug);
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       throw new Error(`${message} (${describeEntry(leaf.name, leaf.entry)})`);
@@ -264,6 +252,11 @@ export function pairCollections(
       `default-locale sibling missing for entryId "${entryId}" (defaultLocale "${config.defaultLocale}").`,
     );
   }
+  for (const entryId of missingEntryRows) {
+    warnings.push(
+      `default-locale sibling missing for entryId "${entryId}" (defaultLocale "${config.defaultLocale}").`,
+    );
+  }
 
-  return { routed, records, byLocalePath, byLocaleEntryId, byLocaleRoute, warnings };
+  return { routed, records, byLocalePath, byLocaleEntryId, warnings };
 }

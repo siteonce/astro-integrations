@@ -52,19 +52,17 @@ A snapshot monorepo that is the foundation for every Astro **content site** buil
 
 **CMS**: A content system outside this snapshot that can supply a **content source**. _Avoid_: an **astro-intl** package; calling **starter** a CMS
 
-**slug** (entry field): The public tail after the locale prefix. Homepage is `/`. Not the pairing `id` and not Astro’s collection id. _Avoid_: authored path, per-entry pathPrefix
+**slug** (entry field): One public segment of a routed document. Not the pairing `id`, not the locale prefix, and not the **section** in front of it. _Avoid_: full public tail, authored path, per-entry pathPrefix
 
 **pairing `id`**: Shared key that joins locale siblings of one document. Authored on the entry (`data.id` by default). Distinct from the public `slug` and from Astro’s per-file collection `id`. Intl prefixes the collection name. _Avoid_: using slug as the group key; treating `entry.id` as the pairing key; generating the key from the folder tree; minting a second internal key
 
-**section**: A locale-specific prefix of a routed collection’s public tail (`blog` vs `artikel`, or a multi-segment prefix such as `about/history` vs `ueber-uns/geschichte`). Listing slug equals a section; an entry slug is that section plus one rest segment. _Avoid_: pathPrefix (as a document field), catalog key (for this)
+**section**: A locale-specific prefix in front of an entry **slug** (`blog` vs `artikel`, or several segments such as `about/history`). _Avoid_: pathPrefix (as a document field), catalog key (for this)
 
 **routed collection**: A listed collection whose entries have a public URL (`slug`). _Avoid_: giving records a slug
 
 **record**: A translated collection entry with no public URL. _Avoid_: routed (for this)
 
 **relation**: A pointer from an entry to another collection by pairing `id`. Authored as that id string; after parse `{ collection, id }`. Resolve uses the current locale. _Avoid_: `reference()` (for this helper); treating Astro’s collection file id as the stored pointer
-
-**page type**: Starter convention on the pages collection (`home` | `listing`). Intl does not know page types. _Avoid_: collection role (as an intl concept)
 
 ### Content schemas
 

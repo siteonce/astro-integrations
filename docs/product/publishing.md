@@ -6,7 +6,7 @@ Who emits URLs. Intl joins documents. The app lists the pages. Astro matches the
 
 List helpers return pairing (`locale` + `slug`), not route params. The app’s `getStaticPaths` maps those to params, including homepage `/` → no path param.
 
-Translated **sections** live on the entry’s `slug`, checked against that locale’s section in the app schema. A pathnames map or `routing: "manual"` is an explicit request, not the default.
+A **section** is per locale. The entry `slug` is the leaf after that section. A pathnames map or `routing: "manual"` is an explicit request, not the default.
 
 Reserved tails come from Astro’s resolved routes, plus any the app names. The document catch-all is ignored. A file route wins over a paired document on the same tail. A dummy file route is not required to prove a reserved tail.
 

@@ -33,7 +33,6 @@ export {
   getDocumentHead,
   getPairedSlugs,
   getRelated,
-  getRouteByPath,
   getSitemapEntries,
   hreflangLinks,
 } from './helpers.ts';
