@@ -1,9 +1,10 @@
-import { defineIntl } from '@repo/astro-intl';
+import { defineIntl, setListingEntries } from '@repo/astro-intl';
 import { routes } from './routes.config.ts';
-import { bindListingQuery } from './utils/listing.ts';
+import { listingQuery } from './utils/listing.ts';
 
-// Listing chunks use the starter listing query.
-bindListingQuery();
+// Blog listing pages: that locale's published posts, drafts in local/preview,
+// newest first. Other collections keep that locale.
+setListingEntries(listingQuery);
 
 export default defineIntl({
   locales: ['en', 'de'],

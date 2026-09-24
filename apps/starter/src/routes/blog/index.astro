@@ -20,9 +20,9 @@ import {
   listingPage,
   listingPageNumber,
   listingTail,
-  matchStarterRoute,
 } from '../../utils/listing.ts';
 import { localeFolder } from '../../utils/locale-folder.ts';
+import { matchRoute } from '../../utils/routes.ts';
 import { useTranslations } from '../../utils/t.ts';
 
 interface Props {
@@ -41,7 +41,7 @@ const title = t('blog.title');
 const description = t('blog.description');
 const ogImage = ogImageFor(Astro.url.pathname, ogConfig);
 
-const route = matchStarterRoute(locale, path, false);
+const route = matchRoute(locale, path, false);
 if (!route) {
   throw new Error(`starter: no listing route for "${path}".`);
 }

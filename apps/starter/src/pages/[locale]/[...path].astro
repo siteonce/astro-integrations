@@ -12,19 +12,21 @@ import {
   getPairedSlugs,
   setIntlConfig,
 } from '@repo/astro-intl';
-import type { AstroInstance } from 'astro';
 import intlConfig from '../../intl.config.ts';
-import { createCatchAll } from '../../utils/catch-all.ts';
-
-const routedPages = import.meta.glob<AstroInstance>('../../routes/**/*.astro');
-const catchAll = createCatchAll(routedPages);
+import {
+  assertRoutedPages,
+  loadRoutedPage,
+  matchRoute,
+  pageName,
+  publicTail,
+} from '../../utils/routes.ts';
 
 // Page bundles do not share the integration's in-memory runtime.
 setIntlConfig(intlConfig);
 
 export async function getStaticPaths() {
   setIntlConfig(intlConfig);
-  catchAll.assertRoutedPages();
+  assertRoutedPages();
   return (await getPairedSlugs()).map(({ locale, slug }) => ({
     params: { locale, path: slug === '/' ? undefined : slug },
   }));
@@ -46,7 +48,7 @@ if (!published) {
   const fallback = await getContentByPath(intlConfig.defaultLocale, path);
   // Already on the default-locale tail. Redirecting would repeat this URL.
   if (fallback && locale !== intlConfig.defaultLocale) {
-    const tail = catchAll.publicTail(path);
+    const tail = publicTail(path);
     const href =
       tail === '/'
         ? getRelativeLocaleUrl(intlConfig.defaultLocale)
@@ -56,15 +58,11 @@ if (!published) {
   return Astro.rewrite('/404');
 }
 
-const route = catchAll.matchRoute(locale, path, Boolean(entry));
+const route = matchRoute(locale, path, Boolean(entry));
 if (!route) {
   throw new Error(`starter: no route row for "${path}".`);
 }
-const load = routedPages[catchAll.moduleKey(catchAll.pageName(route, locale))];
-if (!load) {
-  throw new Error(`starter: routed page "${catchAll.pageName(route, locale)}" has no file.`);
-}
-const { default: Page } = await load();
+const { default: Page } = await loadRoutedPage(pageName(route, locale));
 ---
 
 {

@@ -13,6 +13,7 @@ export const routes: StarterRoute[] = [
     page: 'home',
   },
   {
+    // Posts that fill these pages come from `listingQuery` in `utils/listing.ts`.
     slug: { en: 'blog', de: 'artikel' },
     collection: 'blog',
     page: 'blog',

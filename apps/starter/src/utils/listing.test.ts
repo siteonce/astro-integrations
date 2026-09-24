@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
-import { listingEntries, listingPage, listingPageNumber, matchStarterRoute } from './listing.ts';
+import { listingEntries, listingPage, listingPageNumber } from './listing.ts';
 
 function href(page: number): string {
   return page === 1 ? '/en/blog' : `/en/blog/${page}`;
@@ -78,18 +78,5 @@ describe('listingPage', () => {
     assert.equal(page.lastPage, 1);
     assert.equal(page.data.length, 25);
     assert.equal(page.url.next, undefined);
-  });
-});
-
-describe('matchStarterRoute', () => {
-  it('sends a numbered tail to the listing and an entry leaf to the post', () => {
-    assert.equal(matchStarterRoute('en', 'blog', false)?.page, 'blog');
-    assert.equal(matchStarterRoute('en', 'blog/2', false)?.page, 'blog');
-    assert.equal(matchStarterRoute('de', 'artikel/3', false)?.page, 'blog');
-    assert.equal(matchStarterRoute('en', 'blog/1', false), undefined);
-    assert.equal(matchStarterRoute('en', 'blog/2', true)?.page, 'blog/post');
-    assert.equal(matchStarterRoute('en', 'blog/hello-world', true)?.page, 'blog/post');
-    assert.equal(matchStarterRoute('en', 'tags/design', true)?.page, 'tags/term');
-    assert.equal(matchStarterRoute('en', '/', false)?.page, 'home');
   });
 });

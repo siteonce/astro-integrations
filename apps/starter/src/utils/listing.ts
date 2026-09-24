@@ -1,7 +1,6 @@
-import { listingPageCount, listingTail, setListingEntries } from '@repo/astro-intl';
+import { type ListingEntries, listingPageCount, listingTail } from '@repo/astro-intl';
 import { isLocal, isPreview } from '@repo/astro-site/utils/deploy-env';
 import { deployConfig } from '../deploy.config.ts';
-import { routes, type StarterRoute } from '../routes.config.ts';
 
 export type ListingPage<T> = {
   data: T[];
@@ -28,7 +27,7 @@ type DatedEntry = {
   };
 };
 
-export function publicTail(value: string): string {
+function publicTail(value: string): string {
   if (value === '' || value === '/') return '/';
   return value.replace(/^\/+/u, '').replace(/\/+$/u, '');
 }
@@ -105,56 +104,17 @@ export function listingPage<T>(
   };
 }
 
-export function matchStarterRoute(
-  locale: string,
-  path: string,
-  hasEntry: boolean,
-): StarterRoute | undefined {
-  const normalized = publicTail(path);
-  if (!hasEntry) {
-    for (const route of routes) {
-      const slug = route.slug[locale];
-      if (slug === undefined || slug.includes('{slug}')) continue;
-      if (publicTail(slug) === normalized) return route;
-    }
-    for (const route of routes) {
-      if (route.pageSize === undefined || route.entry) continue;
-      const slug = route.slug[locale];
-      if (slug === undefined || slug.includes('{slug}')) continue;
-      const page = listingPageNumber(slug, normalized);
-      if (page !== undefined && page > 1) return route;
-    }
-    return undefined;
-  }
+const showDrafts = isLocal(deployConfig) || isPreview(deployConfig);
 
-  for (const route of routes) {
-    const slug = route.slug[locale];
-    if (slug === undefined || !route.entry || slug.includes('{slug}')) continue;
-    if (publicTail(slug) === normalized) return route;
+/**
+ * Which posts fill a listing tail. Blog: that locale's published posts, drafts
+ * in local or preview, newest first. Other collections: that locale.
+ */
+export const listingQuery: ListingEntries = (collection, locale, entries) => {
+  if (collection !== 'blog') {
+    return entries.filter((entry) => entry.data.locale === locale);
   }
-  for (const route of routes) {
-    const slug = route.slug[locale];
-    if (slug === undefined) continue;
-    const pattern = publicTail(slug);
-    const marker = '/{slug}';
-    if (!pattern.endsWith(marker)) continue;
-    const section = pattern.slice(0, -marker.length);
-    if (!normalized.startsWith(`${section}/`)) continue;
-    const leaf = normalized.slice(section.length + 1);
-    if (leaf.length > 0 && !leaf.includes('/')) return route;
-  }
-  return undefined;
-}
-
-/** Chunk membership for pairing. Blog uses the listing query; other collections keep that locale. */
-export function bindListingQuery(): void {
-  const showDrafts = isLocal(deployConfig) || isPreview(deployConfig);
-  setListingEntries((collection, locale, entries) => {
-    if (collection !== 'blog') {
-      return entries.filter((entry) => entry.data.locale === locale);
-    }
-    return listingEntries(entries, locale, showDrafts);
-  });
-}
+  return listingEntries(entries, locale, showDrafts);
+};
 
 export { listingTail };
