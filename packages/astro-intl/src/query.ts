@@ -1,6 +1,7 @@
 import type { IntlConfig } from './define-intl.ts';
 import {
   type CollectionEntryLike,
+  type ListingEntries,
   localeEntryKey,
   localePathKey,
   type PairedDocument,
@@ -51,6 +52,7 @@ export type CreateIntlQueryOptions = {
   reservedTails?: string[];
   fileRouteTails?: string[];
   getAbsoluteLocaleUrl: AbsoluteLocaleUrl;
+  listingEntries?: ListingEntries;
 };
 
 function locFor(absolute: AbsoluteLocaleUrl, locale: string, path: string): string {
@@ -93,7 +95,12 @@ function compareLocalePath(
 
 /** Query helpers over a paired snapshot of collection entries. */
 export function createIntlQuery(options: CreateIntlQueryOptions): IntlQuery {
-  const pairing = pairCollections(options.config, options.collections, options.reservedTails ?? []);
+  const pairing = pairCollections(
+    options.config,
+    options.collections,
+    options.reservedTails ?? [],
+    options.listingEntries,
+  );
   const absolute = options.getAbsoluteLocaleUrl;
   const { config } = options;
   const fileRouteTails = options.fileRouteTails ?? [];

@@ -17,7 +17,9 @@
   "blog": {
     "title": "Blog",
     "description": "Latest posts from this site.",
-    "related": "Related"
+    "related": "Related",
+    "previous": "Previous",
+    "next": "Next"
   },
   "taxonomy": {
     "blogTags": {

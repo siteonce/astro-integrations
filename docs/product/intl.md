@@ -31,7 +31,15 @@ Intl makes translation work on top of Astro for either source. **Catalogs**, **p
 
 Pairing reads `data[idField]` and `data[localeField]` (defaults `id` / `locale`) and prefixes the collection name. Pairing key = collection name + `/` + `data[idField]`. One `PairingIndex` (`byLocalePath`, `byLocaleEntryId`). Those fields are the contract for both content sources. File layout belongs to the app.
 
-Pairing is on `id`. A collection with a slug publishes one URL per entry: that locale’s **section** plus the one-segment **slug**. A collection with no slug stays **records**, except an entry a route names. A row that names no entry publishes those tails with no pairing `id`. Its alternates are the other locales on that row. Intl does not know routed-page names.
+Pairing is on `id`. A `{slug}` row publishes one URL per entry: that locale’s **section** plus the one-segment **slug**. Naming an entry on that row publishes that entry alone. A collection with a slug still needs a `{slug}` row.
+
+A row that names an entry and no `{slug}` publishes the written tail. That entry’s slug is unused. The `{slug}` row does not publish that entry again.
+
+A collection named without `{slug}` supplies its entries to the written tail and publishes no entry URL. `pageSize` is how many entries fill one chunk. Omit it and the row stays that one tail. The row does not store a page count. The written tail is page 1. Later pages append the number. Each locale publishes as many pages as its listing fills. A page’s alternates are the locales that publish that same page. `blog/1` is not published. An entry slug that matches a published page number on that section aborts the build.
+
+The chunk count uses the app’s listing. The starter listing is that locale’s published posts, drafts in local and preview, newest first. A CMS supplies that same ordered list. A CMS page size is separate from `pageSize`.
+
+A collection with no slug stays **records**, except an entry a route names. A tail with no entry has no pairing `id`. Its alternates are the locales that publish that tail. Intl does not know routed-page names.
 
 Intl returns the default-locale entry at that same tail. It does not choose a fallback URL.
 

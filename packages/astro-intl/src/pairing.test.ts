@@ -117,7 +117,7 @@ describe('routeConfigIssues', () => {
     assert.ok(issues.some((issue) => issue.includes('pattern row') && issue.includes('pages')));
   });
 
-  it('rejects an entry row on a collection with slugField', () => {
+  it('allows an entry row beside a {slug} row on a slugField collection', () => {
     const issues = routeConfigIssues({
       locales,
       routes: [
@@ -126,11 +126,38 @@ describe('routeConfigIssues', () => {
       ],
       collections: { blog: { slugField: 'slug' } },
     });
-    assert.ok(issues.some((issue) => issue.includes('entry row') && issue.includes('blog')));
-    assert.equal(
-      issues.some((issue) => issue.includes('has no route row')),
-      false,
-    );
+    assert.deepEqual(issues, []);
+  });
+
+  it('allows a collection tail with pageSize beside one {slug} row', () => {
+    const issues = routeConfigIssues({
+      locales,
+      routes: [
+        { slug: { en: 'blog', de: 'artikel' }, collection: 'blog', pageSize: 10 },
+        { slug: { en: 'blog/{slug}', de: 'artikel/{slug}' }, collection: 'blog' },
+      ],
+      collections: { blog: { slugField: 'slug' } },
+    });
+    assert.deepEqual(issues, []);
+  });
+
+  it('rejects pageSize on a {slug} row and a non-positive pageSize', () => {
+    const onPattern = routeConfigIssues({
+      locales,
+      routes: [
+        { slug: { en: 'blog/{slug}', de: 'artikel/{slug}' }, collection: 'blog', pageSize: 10 },
+      ],
+      collections: { blog: { slugField: 'slug' } },
+    });
+    assert.ok(onPattern.some((issue) => issue.includes('pageSize requires a collection tail')));
+    const parsed = intlConfigSchema.safeParse({
+      locales: ['en', 'de'],
+      defaultLocale: 'en',
+      routing: { prefixDefaultLocale: true },
+      routes: [{ slug: { en: 'blog', de: 'artikel' }, collection: 'blog', pageSize: 0 }],
+      collections: { blog: { slugField: 'slug' } },
+    });
+    assert.equal(parsed.success, false);
   });
 
   it('rejects two pattern rows for one collection', () => {
@@ -688,6 +715,232 @@ describe('published tails with no entry', () => {
     assert.ok(
       query.getPairedSlugs().some((item) => item.locale === 'de' && item.slug === 'artikel'),
     );
+  });
+
+  it('publishes an entry row at the written tail and does not reuse its slug', () => {
+    const imprint = defineIntl({
+      locales: ['en', 'de'],
+      defaultLocale: 'en',
+      routing: { prefixDefaultLocale: true },
+      routes: [
+        { slug: { en: 'imprint', de: 'impressum' }, collection: 'pages', entry: 'imprint' },
+        { slug: { en: 'pages/{slug}', de: 'seiten/{slug}' }, collection: 'pages' },
+      ],
+      collections: { pages: { slugField: 'slug' } },
+    });
+    const paired = pairCollections(imprint, {
+      pages: [
+        entry('pages', 'imprint-en', { id: 'imprint', locale: 'en', slug: 'legal' }),
+        entry('pages', 'imprint-de', { id: 'imprint', locale: 'de', slug: 'rechtliches' }),
+        entry('pages', 'other-en', { id: 'other', locale: 'en', slug: 'other' }),
+      ],
+    });
+    const named = paired.routed.filter((item) => item.entryId === 'pages/imprint');
+    assert.deepEqual(named.map((item) => item.path).sort(), ['impressum', 'imprint']);
+    assert.equal(
+      paired.routed.some(
+        (item) => item.path === 'pages/legal' || item.path === 'seiten/rechtliches',
+      ),
+      false,
+    );
+    assert.equal(paired.routed.find((item) => item.entryId === 'pages/other')?.path, 'pages/other');
+  });
+
+  it('publishes one tail when {slug} names an entry', () => {
+    const careers = defineIntl({
+      locales: ['en', 'de'],
+      defaultLocale: 'en',
+      routing: { prefixDefaultLocale: true },
+      routes: [
+        {
+          slug: { en: 'careers/{slug}', de: 'karriere/{slug}' },
+          collection: 'pages',
+          entry: 'designer',
+        },
+      ],
+      collections: { pages: { slugField: 'slug' } },
+    });
+    const paired = pairCollections(careers, {
+      pages: [
+        entry('pages', 'designer-en', { id: 'designer', locale: 'en', slug: 'designer' }),
+        entry('pages', 'designer-de', { id: 'designer', locale: 'de', slug: 'gestalter' }),
+        entry('pages', 'other-en', { id: 'other', locale: 'en', slug: 'other' }),
+      ],
+    });
+    assert.deepEqual(paired.routed.map((item) => item.path).sort(), [
+      'careers/designer',
+      'karriere/gestalter',
+    ]);
+    assert.ok(paired.records.some((item) => item.entryId === 'pages/other'));
+    assert.equal(
+      paired.routed.some((item) => item.entryId === 'pages/other'),
+      false,
+    );
+  });
+
+  it('publishes listing chunks per locale and omits page 1 as a number', () => {
+    const posts: ReturnType<typeof entry>[] = [];
+    for (let index = 0; index < 25; index += 1) {
+      posts.push(
+        entry('blog', `en-${index}`, { id: `en-${index}`, locale: 'en', slug: `en-${index}` }),
+      );
+    }
+    for (let index = 0; index < 12; index += 1) {
+      posts.push(
+        entry('blog', `de-${index}`, { id: `de-${index}`, locale: 'de', slug: `de-${index}` }),
+      );
+    }
+    const paged = defineIntl({
+      locales: ['en', 'de'],
+      defaultLocale: 'en',
+      routing: { prefixDefaultLocale: true },
+      routes: [
+        { slug: { en: 'blog', de: 'artikel' }, collection: 'blog', pageSize: 10 },
+        { slug: { en: 'blog/{slug}', de: 'artikel/{slug}' }, collection: 'blog' },
+      ],
+      collections: { blog: { slugField: 'slug' } },
+    });
+    const query = createIntlQuery({
+      config: paged,
+      collections: { blog: posts },
+      getAbsoluteLocaleUrl: absolute,
+    });
+    const slugs = query.getPairedSlugs();
+    for (const path of ['blog', 'blog/2', 'blog/3', 'artikel', 'artikel/2']) {
+      assert.equal(
+        slugs.some((item) => item.slug === path),
+        true,
+        path,
+      );
+    }
+    assert.equal(
+      slugs.some(
+        (item) => item.slug === 'blog/1' || item.slug === 'artikel/1' || item.slug === 'artikel/3',
+      ),
+      false,
+    );
+    assert.deepEqual(query.getAlternatePathsForPath('en', 'blog/3'), { en: 'blog/3' });
+    assert.deepEqual(query.getAlternatePathsForPath('en', 'blog/2'), {
+      en: 'blog/2',
+      de: 'artikel/2',
+    });
+    assert.equal(query.getContentByPath('en', 'blog/2'), undefined);
+    const page3 = query.getSitemapEntries().find((item) => item.path === 'blog/3');
+    assert.deepEqual(page3?.alternates, { en: 'https://example.com/en/blog/3' });
+    assert.equal(page3?.entryId, undefined);
+  });
+
+  it('counts the listing query, not every stored entry', () => {
+    const posts: ReturnType<typeof entry>[] = [];
+    for (let index = 0; index < 15; index += 1) {
+      posts.push(
+        entry('blog', `pub-${index}`, {
+          id: `pub-${index}`,
+          locale: 'en',
+          slug: `pub-${index}`,
+          status: 'published',
+        }),
+      );
+    }
+    for (let index = 0; index < 10; index += 1) {
+      posts.push(
+        entry('blog', `draft-${index}`, {
+          id: `draft-${index}`,
+          locale: 'en',
+          slug: `draft-${index}`,
+          status: 'draft',
+        }),
+      );
+    }
+    posts.push(
+      entry('blog', 'de-only', {
+        id: 'de-only',
+        locale: 'de',
+        slug: 'de-only',
+        status: 'published',
+      }),
+    );
+    const paged = defineIntl({
+      locales: ['en', 'de'],
+      defaultLocale: 'en',
+      routing: { prefixDefaultLocale: true },
+      routes: [
+        { slug: { en: 'blog', de: 'artikel' }, collection: 'blog', pageSize: 10 },
+        { slug: { en: 'blog/{slug}', de: 'artikel/{slug}' }, collection: 'blog' },
+      ],
+      collections: { blog: { slugField: 'slug' } },
+    });
+    const paired = pairCollections(paged, { blog: posts }, [], (_collection, locale, entries) =>
+      entries.filter((item) => item.data.locale === locale && item.data.status !== 'draft'),
+    );
+    const tails = paired.tails.map((item) => `${item.locale}:${item.path}`).sort();
+    assert.deepEqual(tails, ['de:artikel', 'en:blog', 'en:blog/2']);
+    assert.ok(paired.routed.some((item) => item.path === 'blog/draft-0'));
+  });
+
+  it('aborts when an entry slug matches a published page number', () => {
+    const posts = [entry('blog', 'page-number', { id: 'page-number', locale: 'en', slug: '2' })];
+    for (let index = 0; index < 10; index += 1) {
+      posts.push(
+        entry('blog', `en-${index}`, { id: `en-${index}`, locale: 'en', slug: `en-${index}` }),
+      );
+    }
+    const paged = defineIntl({
+      locales: ['en', 'de'],
+      defaultLocale: 'en',
+      routing: { prefixDefaultLocale: true },
+      routes: [
+        { slug: { en: 'blog', de: 'artikel' }, collection: 'blog', pageSize: 10 },
+        { slug: { en: 'blog/{slug}', de: 'artikel/{slug}' }, collection: 'blog' },
+      ],
+      collections: { blog: { slugField: 'slug' } },
+    });
+    assert.throws(
+      () => pairCollections(paged, { blog: posts }),
+      /entry slug "2" matches published page 2 on section "blog"/,
+    );
+  });
+
+  it('keeps a numeric slug when that page number is not published', () => {
+    const paged = defineIntl({
+      locales: ['en', 'de'],
+      defaultLocale: 'en',
+      routing: { prefixDefaultLocale: true },
+      routes: [
+        { slug: { en: 'blog', de: 'artikel' }, collection: 'blog', pageSize: 10 },
+        { slug: { en: 'blog/{slug}', de: 'artikel/{slug}' }, collection: 'blog' },
+      ],
+      collections: { blog: { slugField: 'slug' } },
+    });
+    const paired = pairCollections(paged, {
+      blog: [entry('blog', 'two', { id: 'two', locale: 'en', slug: '2' })],
+    });
+    assert.equal(paired.routed.find((item) => item.entryId === 'blog/two')?.path, 'blog/2');
+    assert.equal(
+      paired.tails.some((item) => item.path === 'blog/2'),
+      false,
+    );
+  });
+
+  it('omits pageSize and publishes the one written tail', () => {
+    const posts: ReturnType<typeof entry>[] = [];
+    for (let index = 0; index < 25; index += 1) {
+      posts.push(
+        entry('blog', `en-${index}`, { id: `en-${index}`, locale: 'en', slug: `en-${index}` }),
+      );
+    }
+    const once = defineIntl({
+      locales: ['en', 'de'],
+      defaultLocale: 'en',
+      routing: { prefixDefaultLocale: true },
+      routes: [
+        { slug: { en: 'blog', de: 'artikel' }, collection: 'blog' },
+        { slug: { en: 'blog/{slug}', de: 'artikel/{slug}' }, collection: 'blog' },
+      ],
+      collections: { blog: { slugField: 'slug' } },
+    });
+    const paired = pairCollections(once, { blog: posts });
+    assert.deepEqual(paired.tails.map((item) => item.path).sort(), ['artikel', 'blog']);
   });
 
   it('aborts when a tail collides with an entry', () => {

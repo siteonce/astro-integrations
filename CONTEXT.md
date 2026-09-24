@@ -56,9 +56,13 @@ A snapshot monorepo that is the foundation for every Astro **content site** buil
 
 **pairing `id`**: Shared key that joins locale siblings of one **entry**. Authored on the entry (`data.id` by default). Distinct from the public `slug` and from Astro’s per-file collection `id`. Intl prefixes the collection name. _Avoid_: using slug as the group key; treating `entry.id` as the pairing key; generating the key from the folder tree; minting a second internal key
 
-**section**: A locale-specific prefix in front of an entry **slug** (`blog` vs `artikel`, or several segments such as `about/history`). _Avoid_: pathPrefix (as an entry field), catalog key (for this)
+**section**: A locale-specific prefix in front of an entry **slug** (`blog` vs `artikel`, or several segments such as `about/history`). On a route row it is the text before `{slug}`. _Avoid_: pathPrefix (as an entry field), catalog key (for this)
 
-**routed collection**: A listed collection whose entries have a public URL (`slug`). _Avoid_: giving records a slug
+**`{slug}`**: The route-row token that publishes an entry tail. The text before it is the **section**. The entry **slug** is the last segment. _Avoid_: a movable capture; renaming the brace; a page number
+
+**`pageSize`**: How many entries one chunk of a collection tail holds. A positive integer on that route row. The written tail is page 1. The row does not store a page count. _Avoid_: pages (as a count of URLs); a CMS API page size
+
+**routed collection**: A listed collection whose entries have a public URL. A `{slug}` row publishes that URL: the **section** plus the **slug**. _Avoid_: giving records a slug; treating a collection tail as an entry URL
 
 **entry**: One item in a collection. Locale siblings share one pairing `id`. _Avoid_: document; a **routed page** that no collection claims
 

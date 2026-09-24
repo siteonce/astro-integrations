@@ -35,10 +35,13 @@ export {
   getRelated,
   getSitemapEntries,
   hreflangLinks,
+  type ListingEntries,
+  setListingEntries,
 } from './helpers.ts';
 export { leafSlug } from './locale-section.ts';
 export type { LocaleSwitcherLink } from './locale-switcher.ts';
 export { localeSwitcherLinks } from './locale-switcher.ts';
+export { listingPageCount, listingTail } from './path.ts';
 export type { Relation } from './relation.ts';
 export { localized, localizedValue, relation } from './relation.ts';
 export { getIntlRuntime, setIntlConfig } from './runtime.ts';

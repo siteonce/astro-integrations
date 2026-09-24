@@ -1,6 +1,6 @@
 ---
 // Listing. Locale and public tail. No collection entry. The HTML title comes
-// from the catalog. Queries the blog collection, maps view-models, and
+// from the catalog. Queries the blog collection, slices one chunk, and
 // composes Hero + PostList. Wraps SiteLayout.
 import { getCollection } from 'astro:content';
 import { getRelativeLocaleUrl } from 'astro:i18n';
@@ -14,9 +14,16 @@ import intlConfig from '../../intl.config.ts';
 import SiteLayout from '../../layouts/site-layout.astro';
 import { ogConfig } from '../../og.config.ts';
 import { siteConfig } from '../../site.config.ts';
-import { useTranslations } from '../../utils/t.ts';
 import { resolveFeatImage } from '../../utils/feat-image.ts';
+import {
+  listingEntries,
+  listingPage,
+  listingPageNumber,
+  listingTail,
+  matchStarterRoute,
+} from '../../utils/listing.ts';
 import { localeFolder } from '../../utils/locale-folder.ts';
+import { useTranslations } from '../../utils/t.ts';
 
 interface Props {
   locale: string;
@@ -34,10 +41,24 @@ const title = t('blog.title');
 const description = t('blog.description');
 const ogImage = ogImageFor(Astro.url.pathname, ogConfig);
 
+const route = matchStarterRoute(locale, path, false);
+if (!route) {
+  throw new Error(`starter: no listing route for "${path}".`);
+}
+const written = route.slug[locale];
+if (!written) {
+  throw new Error(`starter: listing route has no tail for "${locale}".`);
+}
+const currentPage = listingPageNumber(written, path);
+if (currentPage === undefined) {
+  throw new Error(`starter: "${path}" is not a page of "${written}".`);
+}
 const showDrafts = isLocal(deployConfig) || isPreview(deployConfig);
-const posts = (await getCollection('blog'))
-  .filter((post) => post.data.locale === locale && (post.data.status === 'published' || showDrafts))
-  .sort((a, b) => b.data.pubDate.valueOf() - a.data.pubDate.valueOf());
+const posts = listingEntries(await getCollection('blog'), locale, showDrafts);
+const page = listingPage(posts, route.pageSize, currentPage, (pageNumber) => {
+  const tail = listingTail(written, pageNumber);
+  return tail === '/' ? getRelativeLocaleUrl(locale) : getRelativeLocaleUrl(locale, tail);
+});
 
 async function compiledPath(collection: string, id: string): Promise<string> {
   const compiled = (await getAlternatePaths(`${collection}/${id}`))[locale];
@@ -52,7 +73,7 @@ for (const tag of (await getCollection('tags')).filter((tag) => tag.data.locale 
   tagSlug.set(localeFolder(tag), await compiledPath('tags', tag.data.id));
 }
 const postPath = new Map<string, string>();
-for (const post of posts) {
+for (const post of page.data) {
   postPath.set(post.data.id, await compiledPath('blog', post.data.id));
 }
 
@@ -65,7 +86,7 @@ function documentHref(paths: Map<string, string>, collection: string, id: string
 }
 
 const dateFmt = new Intl.DateTimeFormat(locale, { dateStyle: 'long' });
-const items = posts.map((post) => {
+const items = page.data.map((post) => {
   const keyFor = (id: string) => `taxonomy.blogTags.${id}`;
   const src = resolveFeatImage(localeFolder(post), post.data.featImage);
   return {
@@ -106,5 +127,13 @@ const items = posts.map((post) => {
       <p>{description}</p>
     </Hero>
     <PostList items={items} />
+    {
+      (page.url.prev !== undefined || page.url.next !== undefined) && (
+        <nav>
+          {page.url.prev !== undefined && <a href={page.url.prev}>{t('blog.previous')}</a>}
+          {page.url.next !== undefined && <a href={page.url.next}>{t('blog.next')}</a>}
+        </nav>
+      )
+    }
   </main>
 </SiteLayout>

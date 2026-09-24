@@ -56,7 +56,7 @@ if (!published) {
   return Astro.rewrite('/404');
 }
 
-const route = catchAll.matchRoute(locale, path);
+const route = catchAll.matchRoute(locale, path, Boolean(entry));
 if (!route) {
   throw new Error(`starter: no route row for "${path}".`);
 }

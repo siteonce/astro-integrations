@@ -1,24 +1,20 @@
 import type { AstroInstance } from 'astro';
 import intlConfig from '../intl.config.ts';
 import { routes, type StarterRoute } from '../pages/_routes.ts';
+import { matchStarterRoute, publicTail } from './listing.ts';
 
 export type CatchAll = {
   publicTail(value: string): string;
   moduleKey(name: string): string;
   pageName(route: StarterRoute, locale: string): string;
   assertRoutedPages(): void;
-  matchRoute(locale: string, path: string): StarterRoute | undefined;
+  matchRoute(locale: string, path: string, hasEntry: boolean): StarterRoute | undefined;
 };
 
 /** `routedPages` keys come from the catch-all page glob and stay relative to that file. */
 export function createCatchAll(
   routedPages: Record<string, () => Promise<AstroInstance>>,
 ): CatchAll {
-  function publicTail(value: string): string {
-    if (value === '' || value === '/') return '/';
-    return value.replace(/^\/+/u, '').replace(/\/+$/u, '');
-  }
-
   function assertPageToken(name: string): void {
     if (name.endsWith('.astro')) {
       throw new Error(`starter: routed page "${name}" includes a file extension.`);
@@ -74,24 +70,8 @@ export function createCatchAll(
     }
   }
 
-  function matchRoute(locale: string, path: string): StarterRoute | undefined {
-    const normalized = publicTail(path);
-    for (const route of routes) {
-      const slug = route.slug[locale];
-      if (slug === undefined) continue;
-      const pattern = publicTail(slug);
-      if (route.collection && !route.entry) {
-        const marker = '/{slug}';
-        if (!pattern.endsWith(marker)) continue;
-        const section = pattern.slice(0, -marker.length);
-        if (!normalized.startsWith(`${section}/`)) continue;
-        const leaf = normalized.slice(section.length + 1);
-        if (leaf.length > 0 && !leaf.includes('/')) return route;
-        continue;
-      }
-      if (pattern === normalized) return route;
-    }
-    return undefined;
+  function matchRoute(locale: string, path: string, hasEntry: boolean): StarterRoute | undefined {
+    return matchStarterRoute(locale, path, hasEntry);
   }
 
   return {

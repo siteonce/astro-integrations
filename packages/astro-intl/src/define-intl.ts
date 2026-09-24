@@ -15,6 +15,8 @@ export const routeConfigSchema = z.strictObject({
   collection: z.string().min(1).optional(),
   slug: z.record(z.string(), z.string()),
   entry: z.string().min(1).optional(),
+  /** Entries in one chunk of a collection tail. Omitted, the row is that one tail. */
+  pageSize: z.number().int().positive().optional(),
 });
 
 export type RouteConfig = z.infer<typeof routeConfigSchema>;
@@ -23,6 +25,7 @@ type RouteRule = {
   slug: Readonly<Record<string, string>>;
   collection?: string | undefined;
   entry?: string | undefined;
+  pageSize?: number | undefined;
 };
 
 type RouteRulesConfig = {
@@ -35,6 +38,12 @@ function routeWhere(collection: string, entry?: string): string {
   return entry ? `collection "${collection}" entry "${entry}"` : `collection "${collection}"`;
 }
 
+function pageSizeIssue(pageSize: number | undefined): string | undefined {
+  if (pageSize === undefined) return undefined;
+  if (!Number.isInteger(pageSize) || pageSize < 1) return 'pageSize must be a positive integer';
+  return undefined;
+}
+
 /** Structural route rules. Compiled-path collisions are checked while pairing. */
 export function routeConfigIssues(config: RouteRulesConfig): string[] {
   const issues: string[] = [];
@@ -44,8 +53,12 @@ export function routeConfigIssues(config: RouteRulesConfig): string[] {
   const listed = config.collections ?? {};
 
   for (const route of config.routes ?? []) {
+    const sizeIssue = pageSizeIssue(route.pageSize);
+    if (sizeIssue) issues.push(sizeIssue);
+
     if (!route.collection) {
       if (route.entry) issues.push('entry row has no collection');
+      if (route.pageSize !== undefined) issues.push('pageSize requires a collection tail');
       for (const locale of config.locales) {
         if (!(locale in route.slug)) {
           issues.push(`route with no collection slug missing locale "${locale}"`);
@@ -65,44 +78,65 @@ export function routeConfigIssues(config: RouteRulesConfig): string[] {
 
     const collectionName = route.collection;
     const where = routeWhere(collectionName, route.entry);
+    const wantsPattern = config.locales.some((locale) =>
+      (route.slug[locale] ?? '').includes('{slug}'),
+    );
+    const collection = listed[collectionName];
+    if (!collection) issues.push(`collection "${collectionName}" is not listed`);
+
     if (route.entry) {
       const key = `${collectionName}/${route.entry}`;
       if (seenEntries.has(key)) {
         issues.push(`entry "${route.entry}" repeats in collection "${collectionName}"`);
       }
       seenEntries.add(key);
-    } else if (seenPatterns.has(collectionName)) {
+    }
+
+    if (!wantsPattern) {
+      if (route.pageSize !== undefined && route.entry) {
+        issues.push(`pageSize requires a collection tail (${where})`);
+      }
+      for (const locale of config.locales) {
+        if (!(locale in route.slug)) {
+          issues.push(`route ${where} slug missing locale "${locale}"`);
+          continue;
+        }
+        const slug = route.slug[locale] ?? '';
+        if (slug === '') {
+          issues.push(`route ${where} slug for locale "${locale}" is not a fixed tail`);
+        }
+      }
+      continue;
+    }
+
+    if (route.pageSize !== undefined) {
+      issues.push(`pageSize requires a collection tail (${where})`);
+    }
+    if (collection && !collection.slugField) {
+      issues.push(`pattern row on collection "${collectionName}" which has no slugField`);
+    }
+    let addedPattern = false;
+    if (seenPatterns.has(collectionName)) {
       issues.push(`two pattern rows name collection "${collectionName}"`);
     } else {
       seenPatterns.add(collectionName);
+      addedPattern = true;
     }
 
-    const collection = listed[collectionName];
-    if (!collection) {
-      issues.push(`collection "${collectionName}" is not listed`);
-    } else if (route.entry && collection.slugField) {
-      issues.push(`entry row on collection "${collectionName}" which has slugField`);
-    } else if (!route.entry && !collection.slugField) {
-      issues.push(`pattern row on collection "${collectionName}" which has no slugField`);
-    }
-
+    let patternOk = true;
     for (const locale of config.locales) {
       if (!(locale in route.slug)) {
         issues.push(`route ${where} slug missing locale "${locale}"`);
+        patternOk = false;
         continue;
       }
       const slug = route.slug[locale] ?? '';
-      if (route.entry) {
-        if (slug === '' || slug.includes('{slug}')) {
-          issues.push(`route ${where} slug for locale "${locale}" is not a fixed tail`);
-        }
-        continue;
-      }
       const section = patternSection(slug);
       if (!section) {
         issues.push(
           `route ${where} slug for locale "${locale}" must use {slug} as the final segment`,
         );
+        patternOk = false;
         continue;
       }
       const sectionKey = `${locale}\0${section}`;
@@ -111,6 +145,7 @@ export function routeConfigIssues(config: RouteRulesConfig): string[] {
       }
       seenSections.add(sectionKey);
     }
+    if (!patternOk && addedPattern) seenPatterns.delete(collectionName);
   }
 
   for (const [name, collection] of Object.entries(listed)) {

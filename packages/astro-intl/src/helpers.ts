@@ -1,4 +1,9 @@
-import type { CollectionEntryLike } from './pairing.ts';
+import {
+  type CollectionEntryLike,
+  currentListingEntries,
+  type ListingEntries,
+  setListingEntriesFn,
+} from './pairing.ts';
 import {
   createIntlQuery,
   type DocumentHead,
@@ -38,6 +43,14 @@ export function resetIntlQuery(): void {
   cached = undefined;
   cachedGeneration = -1;
 }
+
+/** Listing chunk membership. Pairing calls this when a collection tail sets pageSize. */
+export function setListingEntries(fn: ListingEntries | undefined): void {
+  setListingEntriesFn(fn);
+  resetIntlQuery();
+}
+
+export type { ListingEntries };
 
 async function defaultLoaders(): Promise<IntlLoaders> {
   const { getCollection } = await import('astro:content');
@@ -86,6 +99,7 @@ async function loadQuery(): Promise<IntlQuery> {
     reservedTails: runtime.reservedTails,
     fileRouteTails: runtime.routeTails,
     getAbsoluteLocaleUrl: loaders.getAbsoluteLocaleUrl,
+    listingEntries: currentListingEntries(),
   });
   assertRelations({
     locales: runtime.config.locales,

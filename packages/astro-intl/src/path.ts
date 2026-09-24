@@ -44,6 +44,23 @@ export function compilePath(prefix: string, slug: string): string {
   return `${normalized}/${slug}`;
 }
 
+/** Page 1 is the written tail. Later pages append the number. A `/` tail’s page 2 is `2`. */
+export function listingTail(tail: string, page: number): string {
+  const base = normalizeSlug(tail);
+  if (page <= 1) return base;
+  if (base === '/') return String(page);
+  return `${base}/${page}`;
+}
+
+/** How many tails a list fills. The written tail is always page 1. */
+export function listingPageCount(entryCount: number, pageSize: number): number {
+  if (!Number.isInteger(pageSize) || pageSize < 1) {
+    throw new Error(`@repo/astro-intl: pageSize "${pageSize}" must be a positive integer.`);
+  }
+  if (entryCount <= 0) return 1;
+  return Math.ceil(entryCount / pageSize);
+}
+
 /** Path argument for `getAbsoluteLocaleUrl` / `getRelativeLocaleUrl`. */
 export function localeUrlPath(path: string): string {
   return path === '/' ? '' : path;
