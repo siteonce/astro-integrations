@@ -14,96 +14,17 @@ import {
 } from '@repo/astro-intl';
 import type { AstroInstance } from 'astro';
 import intlConfig from '../../intl.config.ts';
-import { type StarterRoute, routes } from '../_routes.ts';
+import { createCatchAll } from '../../utils/catch-all.ts';
 
 const routedPages = import.meta.glob<AstroInstance>('../_pages/**/*.astro');
+const catchAll = createCatchAll(routedPages);
 
 // Page bundles do not share the integration's in-memory runtime.
 setIntlConfig(intlConfig);
 
-function publicTail(value: string): string {
-  if (value === '' || value === '/') return '/';
-  return value.replace(/^\/+/u, '').replace(/\/+$/u, '');
-}
-
-function assertPageToken(name: string): void {
-  if (name.endsWith('.astro')) {
-    throw new Error(`starter: routed page "${name}" includes a file extension.`);
-  }
-  const parts = name.split('/');
-  if (parts.some((part) => part.length === 0 || part === '.' || part === '..')) {
-    throw new Error(`starter: routed page "${name}" is not a path.`);
-  }
-}
-
-function moduleKey(name: string): string {
-  assertPageToken(name);
-  const file = `../_pages/${name}.astro`;
-  const index = `../_pages/${name}/index.astro`;
-  const hasFile = file in routedPages;
-  const hasIndex = index in routedPages;
-  if (hasFile && hasIndex) {
-    throw new Error(
-      `starter: routed page "${name}" has both "${name}.astro" and "${name}/index.astro".`,
-    );
-  }
-  if (hasFile) return file;
-  if (hasIndex) return index;
-  throw new Error(`starter: routed page "${name}" has no file.`);
-}
-
-function pageName(route: StarterRoute, locale: string): string {
-  if (typeof route.page === 'string') return route.page;
-  const name = route.page[locale];
-  if (!name) throw new Error(`starter: locale "${locale}" has a tail and no routed page.`);
-  return name;
-}
-
-function assertRoutedPages(): void {
-  const locales = [...intlConfig.locales];
-  for (const route of routes) {
-    if (typeof route.page === 'string') {
-      moduleKey(route.page);
-      continue;
-    }
-    const keys = Object.keys(route.page).sort();
-    const expected = [...locales].sort();
-    if (keys.join('\0') !== expected.join('\0')) {
-      throw new Error(
-        `starter: routed page keys must be the configured locales (${expected.join(', ')}).`,
-      );
-    }
-    for (const locale of locales) {
-      const name = route.page[locale];
-      if (!name) throw new Error(`starter: locale "${locale}" has a tail and no routed page.`);
-      moduleKey(name);
-    }
-  }
-}
-
-function matchRoute(locale: string, path: string): StarterRoute | undefined {
-  const normalized = publicTail(path);
-  for (const route of routes) {
-    const slug = route.slug[locale];
-    if (slug === undefined) continue;
-    const pattern = publicTail(slug);
-    if (route.collection && !route.entry) {
-      const marker = '/{slug}';
-      if (!pattern.endsWith(marker)) continue;
-      const section = pattern.slice(0, -marker.length);
-      if (!normalized.startsWith(`${section}/`)) continue;
-      const leaf = normalized.slice(section.length + 1);
-      if (leaf.length > 0 && !leaf.includes('/')) return route;
-      continue;
-    }
-    if (pattern === normalized) return route;
-  }
-  return undefined;
-}
-
 export async function getStaticPaths() {
   setIntlConfig(intlConfig);
-  assertRoutedPages();
+  catchAll.assertRoutedPages();
   return (await getPairedSlugs()).map(({ locale, slug }) => ({
     params: { locale, path: slug === '/' ? undefined : slug },
   }));
@@ -125,7 +46,7 @@ if (!published) {
   const fallback = await getContentByPath(intlConfig.defaultLocale, path);
   // Already on the default-locale tail. Redirecting would repeat this URL.
   if (fallback && locale !== intlConfig.defaultLocale) {
-    const tail = publicTail(path);
+    const tail = catchAll.publicTail(path);
     const href =
       tail === '/'
         ? getRelativeLocaleUrl(intlConfig.defaultLocale)
@@ -135,13 +56,13 @@ if (!published) {
   return Astro.rewrite('/404');
 }
 
-const route = matchRoute(locale, path);
+const route = catchAll.matchRoute(locale, path);
 if (!route) {
   throw new Error(`starter: no route row for "${path}".`);
 }
-const load = routedPages[moduleKey(pageName(route, locale))];
+const load = routedPages[catchAll.moduleKey(catchAll.pageName(route, locale))];
 if (!load) {
-  throw new Error(`starter: routed page "${pageName(route, locale)}" has no file.`);
+  throw new Error(`starter: routed page "${catchAll.pageName(route, locale)}" has no file.`);
 }
 const { default: Page } = await load();
 ---
