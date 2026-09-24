@@ -44,7 +44,7 @@ export function resetIntlQuery(): void {
   cachedGeneration = -1;
 }
 
-/** Listing chunk membership. Pairing calls this when a collection tail sets pageSize. */
+/** The app registers the listing callback. Pairing uses it when a collection tail sets pageSize. */
 export function setListingEntries(fn: ListingEntries | undefined): void {
   setListingEntriesFn(fn);
   resetIntlQuery();

@@ -150,7 +150,7 @@ export function routeConfigIssues(config: RouteRulesConfig): string[] {
 
   for (const [name, collection] of Object.entries(listed)) {
     if (collection.slugField && !seenPatterns.has(name)) {
-      issues.push(`collections.${name} slugField has no route row`);
+      issues.push(`collections.${name} has no {slug} row`);
     }
   }
 

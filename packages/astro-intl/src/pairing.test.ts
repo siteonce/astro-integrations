@@ -286,14 +286,17 @@ describe('pairCollections', () => {
     );
   });
 
-  it('aborts when slugField has no route row', () => {
+  it('aborts when slugField has no {slug} row', () => {
     const bare = defineIntl({
       locales: ['en', 'de'],
       defaultLocale: 'en',
       routing: { prefixDefaultLocale: true },
       collections: { blog: { slugField: 'slug' } },
     });
-    assert.throws(() => pairCollections(bare, { blog: [] }), /slugField has no route/);
+    assert.throws(
+      () => pairCollections(bare, { blog: [] }),
+      /collections\.blog has no \{slug\} row/,
+    );
   });
 
   it('routes an entry row only inside its collection', () => {
