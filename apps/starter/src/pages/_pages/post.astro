@@ -39,7 +39,7 @@ interface Props {
       pubDate: Date;
       tags: string[];
       author?: Relation;
-      client?: Relation;
+      source?: Relation;
       role?: Relation;
       featImage?: string;
       featImageAlt?: string;
@@ -113,12 +113,22 @@ const image =
   featSrc && entry.data.featImageAlt ? { src: featSrc, alt: entry.data.featImageAlt } : undefined;
 
 const authorEntry = entry.data.author ? await getRelated(locale, entry.data.author) : undefined;
-const clientEntry = entry.data.client ? await getRelated(locale, entry.data.client) : undefined;
+const sourceEntry = entry.data.source ? await getRelated(locale, entry.data.source) : undefined;
 const roleEntry = entry.data.role ? await getRelated(locale, entry.data.role) : undefined;
 const authorName = authorEntry?.data.name as string | undefined;
-const clientName = clientEntry?.data.name as string | undefined;
+const sourceName = sourceEntry?.data.name as string | undefined;
+const sourceUrl = sourceEntry?.data.url as string | undefined;
 const roleName = roleEntry?.data.name as string | undefined;
-const byline = [authorName, roleName, clientName].filter(Boolean).join(' · ');
+const byline = [authorName, roleName].filter(Boolean).join(' · ');
+const source =
+  sourceName && sourceUrl
+    ? {
+        href: sourceUrl,
+        label: sourceName,
+        external:
+          new URL(sourceUrl, siteConfig.siteUrl).origin !== new URL(siteConfig.siteUrl).origin,
+      }
+    : undefined;
 ---
 
 <SiteLayout locale={locale} switcher={switcher}>
@@ -153,6 +163,7 @@ const byline = [authorName, roleName, clientName].filter(Boolean).join(' · ');
       dateLabel={dateFmt.format(entry.data.pubDate)}
       image={image}
       terms={terms}
+      source={source}
     >
       {Content ? <Content /> : null}
     </Article>

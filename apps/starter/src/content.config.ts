@@ -24,7 +24,7 @@ const posts = defineCollection({
       locale,
       slug,
       author: relation('authors').optional(),
-      client: relation('clients').optional(),
+      source: relation('sources').optional(),
       role: relation('roles').optional(),
     })
     .superRefine(leafSlug({ slugify })),
@@ -53,10 +53,11 @@ const authors = defineCollection({
   }),
 });
 
-const clients = defineCollection({
+// Cited pages. Locale-free: the id is the filename, and name and url stay the same in every language.
+const sources = defineCollection({
   loader: glob({
     pattern: '*.json',
-    base: './src/content/clients',
+    base: './src/content/sources',
     generateId: entryFileId,
   }),
   schema: z.object({
@@ -76,4 +77,4 @@ const roles = defineCollection({
   }),
 });
 
-export const collections = { blog: posts, tags, authors, clients, roles };
+export const collections = { blog: posts, tags, authors, sources, roles };

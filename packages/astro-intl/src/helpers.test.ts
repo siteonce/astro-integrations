@@ -18,7 +18,7 @@ import { setIntlConfig } from './runtime.ts';
 
 const locales = ['en', 'de'] as const;
 const authorRel = relation('authors').parse('ada');
-const clientRel = relation('clients').parse('acme');
+const sourceRel = relation('sources').parse('astro');
 const roleRel = relation('roles').parse('editor');
 const roleName = localized(z.string().min(1), locales).parse({
   en: 'Editor',
@@ -107,7 +107,7 @@ describe('getRelated', () => {
         locale: 'en',
         slug: 'hello-world',
         author: authorRel,
-        client: clientRel,
+        source: sourceRel,
         role: roleRel,
       },
     },
@@ -118,7 +118,7 @@ describe('getRelated', () => {
         locale: 'de',
         slug: 'hallo-welt',
         author: authorRel,
-        client: clientRel,
+        source: sourceRel,
         role: roleRel,
       },
     },
@@ -127,16 +127,16 @@ describe('getRelated', () => {
     { id: 'ada-en', data: { id: 'ada', locale: 'en', name: 'Ada' } },
     { id: 'ada-de', data: { id: 'ada', locale: 'de', name: 'Ada DE' } },
   ];
-  const clients = [{ id: 'acme', data: { name: 'Acme' } }];
+  const sources = [{ id: 'astro', data: { name: 'Astro' } }];
   const roles = [{ id: 'editor', data: { name: roleName } }];
 
   it('returns locale-resolved fields for listed, locale-free, and inline-map targets', async () => {
-    withQuery({ blog, authors, clients, roles });
+    withQuery({ blog, authors, sources, roles });
     try {
       const author = await getRelated('de', authorRel);
       assert.equal(author.data.name, 'Ada DE');
-      const client = await getRelated('de', clientRel);
-      assert.equal(client.data.name, 'Acme');
+      const source = await getRelated('de', sourceRel);
+      assert.equal(source.data.name, 'Astro');
       const role = await getRelated('de', roleRel);
       assert.equal(role.data.name, 'Redakteur');
     } finally {
@@ -147,7 +147,7 @@ describe('getRelated', () => {
   });
 
   it('fails when a listed sibling is missing in the source locale', async () => {
-    withQuery({ blog, authors: [authors[0]], clients, roles });
+    withQuery({ blog, authors: [authors[0]], sources, roles });
     try {
       await assert.rejects(getPairedSlugs, /relation authors\/ada is missing locale "de"/);
     } finally {
@@ -158,9 +158,9 @@ describe('getRelated', () => {
   });
 
   it('fails when a locale-free id is missing', async () => {
-    withQuery({ blog, authors, clients: [], roles });
+    withQuery({ blog, authors, sources: [], roles });
     try {
-      await assert.rejects(getPairedSlugs, /relation clients\/acme is missing/);
+      await assert.rejects(getPairedSlugs, /relation sources\/astro is missing/);
     } finally {
       setIntlLoaders(undefined);
       setIntlConfig(undefined);
@@ -172,11 +172,11 @@ describe('getRelated', () => {
     withQuery({
       blog,
       authors,
-      clients: [{ id: 'file-acme', data: { id: 'acme', name: 'Acme' } }],
+      sources: [{ id: 'file-astro', data: { id: 'astro', name: 'Astro' } }],
       roles,
     });
     try {
-      await assert.rejects(getPairedSlugs, /relation clients\/acme is missing/);
+      await assert.rejects(getPairedSlugs, /relation sources\/astro is missing/);
     } finally {
       setIntlLoaders(undefined);
       setIntlConfig(undefined);
@@ -201,7 +201,7 @@ describe('getRelated', () => {
           },
         ],
         authors: [authors[0]],
-        clients,
+        sources,
         roles,
       },
       loaded,
@@ -218,7 +218,7 @@ describe('getRelated', () => {
 
   it('does not fetch a collection that was not loaded at assert time', async () => {
     const loaded: string[] = [];
-    withQuery({ blog, authors, clients, roles }, loaded);
+    withQuery({ blog, authors, sources, roles }, loaded);
     try {
       await getPairedSlugs();
       const count = loaded.length;
