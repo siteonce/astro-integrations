@@ -1,6 +1,6 @@
 # Publishing
 
-Who emits URLs. Intl joins documents. The app lists the pages. Astro matches the file. Contract for joining: [`intl.md`](intl.md).
+Who emits URLs. Intl joins entries. The app lists the pages. Astro matches the file. Contract for joining: [`intl.md`](intl.md).
 
 ## Content URLs
 
@@ -8,23 +8,25 @@ List helpers return pairing (`locale` + `slug`), not route params. The app’s `
 
 A **section** is per locale. The entry `slug` is the leaf after that section. A pathnames map or `routing: "manual"` is an explicit request, not the default.
 
-Reserved tails come from Astro’s resolved routes, plus any the app names. The document catch-all is ignored. A file route wins over a paired document on the same tail. A dummy file route is not required to prove a reserved tail.
+Reserved tails come from Astro’s resolved routes, plus any the app names. The catch-all is ignored. A file route wins over a paired entry on the same tail. A dummy file route is not required to prove a reserved tail.
 
-## Missing locale
+## Missing entry
 
-Missing-locale is an intl helper. It is not a router and it does not emit extra URLs.
+The app owns a path whose entry is absent. Intl returns the default-locale entry at that same tail. The app chooses the redirect or not-found.
 
-It redirects to the default-locale document at the same tail, then to home in the requested locale. If neither exists, the helper returns not-found and the app rewrites the 404 route.
+A published tail with no entry is still a URL.
 
 ## Sitemap
 
-The app installs and registers `@astrojs/sitemap`. `@repo/astro-intl-sitemap` is glue the app passes in: document locs from pairing, a filter, and alternates.
+The app installs and registers `@astrojs/sitemap`. `@repo/astro-intl-sitemap` is glue the app passes in: published locs, a filter, and alternates.
 
 The glue does not call `sitemap()`, does not enable the sitemap `i18n` option, and does not emit extra URLs.
 
-The filter drops `rss.xml`, `robots.txt`, and `/_og`. Alternates and `x-default` come from pairing. `x-default` is the default locale.
+A published tail with no entry is still a URL. The sitemap lists it. Its alternates are the other locales on that row.
 
-Alternate-language tags are the app’s to print. Switcher data is pairing. Chrome policy is the app’s. See [`site.md`](site.md).
+The filter drops `rss.xml`, `robots.txt`, and `/_og`. Alternates and `x-default` for an entry come from pairing. `x-default` is the default locale.
+
+Alternate-language tags are the app’s to print. For a tail with no entry they use the other locales on that row. Switcher data for an entry is pairing. Chrome policy is the app’s. See [`site.md`](site.md).
 
 Drafts stay out of the production sitemap because those routes are not built.
 

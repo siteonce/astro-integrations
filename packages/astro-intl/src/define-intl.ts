@@ -12,7 +12,7 @@ export const collectionConfigSchema = z.strictObject({
 export type CollectionConfig = z.infer<typeof collectionConfigSchema>;
 
 export const routeConfigSchema = z.strictObject({
-  collection: z.string().min(1),
+  collection: z.string().min(1).optional(),
   slug: z.record(z.string(), z.string()),
   entry: z.string().min(1).optional(),
 });
@@ -21,7 +21,7 @@ export type RouteConfig = z.infer<typeof routeConfigSchema>;
 
 type RouteRule = {
   slug: Readonly<Record<string, string>>;
-  collection: string;
+  collection?: string | undefined;
   entry?: string | undefined;
 };
 
@@ -31,10 +31,8 @@ type RouteRulesConfig = {
   collections?: Readonly<Record<string, { slugField?: string | undefined }>>;
 };
 
-function routeWhere(route: RouteRule): string {
-  return route.entry
-    ? `collection "${route.collection}" entry "${route.entry}"`
-    : `collection "${route.collection}"`;
+function routeWhere(collection: string, entry?: string): string {
+  return entry ? `collection "${collection}" entry "${entry}"` : `collection "${collection}"`;
 }
 
 /** Structural route rules. Compiled-path collisions are checked while pairing. */
@@ -46,43 +44,64 @@ export function routeConfigIssues(config: RouteRulesConfig): string[] {
   const listed = config.collections ?? {};
 
   for (const route of config.routes ?? []) {
-    if (route.entry) {
-      const key = `${route.collection}/${route.entry}`;
-      if (seenEntries.has(key)) {
-        issues.push(`entry "${route.entry}" repeats in collection "${route.collection}"`);
+    if (!route.collection) {
+      if (route.entry) issues.push('entry row has no collection');
+      for (const locale of config.locales) {
+        if (!(locale in route.slug)) {
+          issues.push(`route with no collection slug missing locale "${locale}"`);
+          continue;
+        }
+        const slug = route.slug[locale] ?? '';
+        if (slug.includes('{slug}')) {
+          issues.push('{slug} pattern has no collection');
+          continue;
+        }
+        if (slug === '') {
+          issues.push(`route with no collection slug for locale "${locale}" is not a fixed tail`);
+        }
       }
-      seenEntries.add(key);
-    } else if (seenPatterns.has(route.collection)) {
-      issues.push(`two pattern rows name collection "${route.collection}"`);
-    } else {
-      seenPatterns.add(route.collection);
+      continue;
     }
 
-    const collection = listed[route.collection];
+    const collectionName = route.collection;
+    const where = routeWhere(collectionName, route.entry);
+    if (route.entry) {
+      const key = `${collectionName}/${route.entry}`;
+      if (seenEntries.has(key)) {
+        issues.push(`entry "${route.entry}" repeats in collection "${collectionName}"`);
+      }
+      seenEntries.add(key);
+    } else if (seenPatterns.has(collectionName)) {
+      issues.push(`two pattern rows name collection "${collectionName}"`);
+    } else {
+      seenPatterns.add(collectionName);
+    }
+
+    const collection = listed[collectionName];
     if (!collection) {
-      issues.push(`collection "${route.collection}" is not listed`);
+      issues.push(`collection "${collectionName}" is not listed`);
     } else if (route.entry && collection.slugField) {
-      issues.push(`entry row on collection "${route.collection}" which has slugField`);
+      issues.push(`entry row on collection "${collectionName}" which has slugField`);
     } else if (!route.entry && !collection.slugField) {
-      issues.push(`pattern row on collection "${route.collection}" which has no slugField`);
+      issues.push(`pattern row on collection "${collectionName}" which has no slugField`);
     }
 
     for (const locale of config.locales) {
       if (!(locale in route.slug)) {
-        issues.push(`route ${routeWhere(route)} slug missing locale "${locale}"`);
+        issues.push(`route ${where} slug missing locale "${locale}"`);
         continue;
       }
       const slug = route.slug[locale] ?? '';
       if (route.entry) {
         if (slug === '' || slug.includes('{slug}')) {
-          issues.push(`route ${routeWhere(route)} slug for locale "${locale}" is not a fixed tail`);
+          issues.push(`route ${where} slug for locale "${locale}" is not a fixed tail`);
         }
         continue;
       }
       const section = patternSection(slug);
       if (!section) {
         issues.push(
-          `route ${routeWhere(route)} slug for locale "${locale}" must use {slug} as the final segment`,
+          `route ${where} slug for locale "${locale}" must use {slug} as the final segment`,
         );
         continue;
       }

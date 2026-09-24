@@ -90,7 +90,7 @@ A snapshot monorepo that is the foundation for every Astro **content site** buil
 
 **Astro page**: A file under `src/pages/` that Astro publishes as a route. _Avoid_: **routed page**
 
-**routed page**: A page the app’s route row selects, kept outside `src/pages/` so Astro does not route it. _Avoid_: template, page component, **Astro page**, document
+**routed page**: A page the app’s route row selects. It lives at `src/pages/_pages`. _Avoid_: template, page component, **Astro page**, document
 
 **`SiteLayout`**: The starter chrome component around **BaseLayout**.
 

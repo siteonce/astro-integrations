@@ -1,20 +1,19 @@
 import type { RouteConfig } from '@repo/astro-intl';
 
-// Data only. `page` names a file under `_pages/` and stays in the starter.
+// Data only. `page` names a routed page under `src/pages/_pages/` and stays in the starter.
+// A string names one routed page for every locale. An object names one per locale.
 // The leading underscore keeps Astro from treating this file as an endpoint.
-type StarterRoute = RouteConfig & { page: string };
+export type StarterRoute = RouteConfig & {
+  page: string | Record<string, string>;
+};
 
 export const routes: StarterRoute[] = [
   {
     slug: { en: '/', de: '/' },
-    collection: 'pages',
-    entry: 'home',
     page: 'home',
   },
   {
     slug: { en: 'blog', de: 'artikel' },
-    collection: 'pages',
-    entry: 'blog',
     page: 'listing',
   },
   {

@@ -12,18 +12,6 @@ function entryFileId({ entry }: { entry: string }) {
   return entry.replace(/\.(md|mdx|json)$/u, '');
 }
 
-const pages = defineCollection({
-  loader: glob({
-    pattern: '**/*.{md,mdx}',
-    base: './src/content/pages',
-    generateId: entryFileId,
-  }),
-  schema: seo.extend({
-    id,
-    locale,
-  }),
-});
-
 const posts = defineCollection({
   loader: glob({
     pattern: '**/*.{md,mdx}',
@@ -88,4 +76,4 @@ const roles = defineCollection({
   }),
 });
 
-export const collections = { pages, blog: posts, tags, authors, clients, roles };
+export const collections = { blog: posts, tags, authors, clients, roles };

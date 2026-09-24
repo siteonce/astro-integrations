@@ -8,14 +8,13 @@ export default defineIntl({
     prefixDefaultLocale: true,
   },
   messages: { dir: 'messages' },
-  // `page` names a starter template. Intl receives the pairing fields.
+  // `page` names the routed page. Intl receives tails, plus collection and entry when a collection claims the tail.
   routes: routes.map(({ slug, collection, entry }) => ({
-    collection,
     slug,
+    ...(collection ? { collection } : {}),
     ...(entry ? { entry } : {}),
   })),
   collections: {
-    pages: { idField: 'id', localeField: 'locale' },
     blog: { idField: 'id', localeField: 'locale', slugField: 'slug' },
     tags: { idField: 'id', localeField: 'locale', slugField: 'slug' },
     authors: { idField: 'id', localeField: 'locale' },

@@ -159,6 +159,22 @@ describe('routeConfigIssues', () => {
     }
   });
 
+  it('rejects a {slug} pattern with no collection', () => {
+    const issues = routeConfigIssues({
+      locales,
+      routes: [{ slug: { en: 'blog/{slug}', de: 'artikel/{slug}' } }],
+    });
+    assert.ok(issues.some((issue) => issue === '{slug} pattern has no collection'));
+  });
+
+  it('rejects an entry with no collection', () => {
+    const issues = routeConfigIssues({
+      locales,
+      routes: [{ slug: { en: '/', de: '/' }, entry: 'home' }],
+    });
+    assert.ok(issues.some((issue) => issue === 'entry row has no collection'));
+  });
+
   it('rejects a repeated section in one locale', () => {
     const issues = routeConfigIssues({
       locales,
@@ -603,5 +619,91 @@ describe('query helpers collection/id', () => {
       en: 'https://example.com/en/blog/hello-world',
       de: 'https://example.com/de/artikel/hallo-welt',
     });
+  });
+});
+
+describe('published tails with no entry', () => {
+  const tailConfig = defineIntl({
+    locales: ['en', 'de'],
+    defaultLocale: 'en',
+    routing: { prefixDefaultLocale: true },
+    routes: [
+      { slug: { en: '/', de: '/' } },
+      { slug: { en: 'blog', de: 'artikel' } },
+      { slug: { en: 'blog/{slug}', de: 'artikel/{slug}' }, collection: 'blog' },
+    ],
+    collections: { blog: { slugField: 'slug' } },
+  });
+  const blog = [
+    entry('blog', 'hello-en', { id: 'hello-world', locale: 'en', slug: 'hello-world' }),
+    entry('blog', 'hello-de', { id: 'hello-world', locale: 'de', slug: 'hallo-welt' }),
+    entry('blog', 'solo-en', { id: 'solo', locale: 'en', slug: 'solo' }),
+  ];
+  const query = createIntlQuery({
+    config: tailConfig,
+    collections: { blog },
+    getAbsoluteLocaleUrl: absolute,
+  });
+
+  it('returns each locale tail and no entry', () => {
+    assert.deepEqual(query.getAlternatePathsForPath('en', '/'), { en: '/', de: '/' });
+    assert.deepEqual(query.getAlternatePathsForPath('en', 'blog'), {
+      en: 'blog',
+      de: 'artikel',
+    });
+    assert.deepEqual(query.getAlternatePathsForPath('de', 'artikel'), {
+      en: 'blog',
+      de: 'artikel',
+    });
+    assert.equal(query.getContentByPath('en', '/'), undefined);
+    assert.equal(query.getContentByPath('en', 'blog'), undefined);
+    assert.equal(query.getContentByPath('de', 'artikel'), undefined);
+    assert.equal(query.getContentByPath('en', 'blog/solo')?.data.id, 'solo');
+    assert.equal(query.getContentByPath('de', 'blog/solo'), undefined);
+  });
+
+  it('lists the tail in the document head and the sitemap', () => {
+    const head = query.getDocumentHead({ locale: 'de', path: 'artikel' });
+    assert.deepEqual(head.alternates, [
+      { hreflang: 'de', href: 'https://example.com/de/artikel' },
+      { hreflang: 'en', href: 'https://example.com/en/blog' },
+    ]);
+    assert.equal(head.canonical, 'https://example.com/de/artikel');
+    assert.equal(head.xDefault, 'https://example.com/en/blog');
+
+    const sitemap = query.getSitemapEntries();
+    const listing = sitemap.find((item) => item.locale === 'en' && item.path === 'blog');
+    assert.equal(listing?.entryId, undefined);
+    assert.deepEqual(listing?.alternates, {
+      en: 'https://example.com/en/blog',
+      de: 'https://example.com/de/artikel',
+    });
+    const home = sitemap.find((item) => item.locale === 'en' && item.path === '/');
+    assert.equal(home?.entryId, undefined);
+    assert.deepEqual(home?.alternates, {
+      en: 'https://example.com/en',
+      de: 'https://example.com/de',
+    });
+    assert.ok(query.getPairedSlugs().some((item) => item.locale === 'en' && item.slug === '/'));
+    assert.ok(
+      query.getPairedSlugs().some((item) => item.locale === 'de' && item.slug === 'artikel'),
+    );
+  });
+
+  it('aborts when a tail collides with an entry', () => {
+    const clash = defineIntl({
+      locales: ['en', 'de'],
+      defaultLocale: 'en',
+      routing: { prefixDefaultLocale: true },
+      routes: [
+        { slug: { en: 'blog/hello-world', de: 'other' } },
+        { slug: { en: 'blog/{slug}', de: 'artikel/{slug}' }, collection: 'blog' },
+      ],
+      collections: { blog: { slugField: 'slug' } },
+    });
+    assert.throws(
+      () => pairCollections(clash, { blog }),
+      /\(locale, path\) "en" \/ "blog\/hello-world" collides/,
+    );
   });
 });

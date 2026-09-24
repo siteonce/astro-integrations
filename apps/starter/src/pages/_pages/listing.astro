@@ -1,9 +1,8 @@
 ---
-// Listing page. Receives locale, the compiled path, and the pages-collection
-// listing document. Queries the blog collection itself, maps view-models, and
-// composes Hero + PostList. Wraps SiteLayout. No section UI beyond Measure /
-// Flow on <main>.
-import { getCollection, render } from 'astro:content';
+// Listing. Locale and public tail. No collection entry. The HTML title comes
+// from the catalog. Queries the blog collection, maps view-models, and
+// composes Hero + PostList. Wraps SiteLayout.
+import { getCollection } from 'astro:content';
 import { getRelativeLocaleUrl } from 'astro:i18n';
 import { getAlternatePaths, getAlternatePathsForPath, localeSwitcherLinks } from '@repo/astro-intl';
 import { Hreflang } from '@repo/astro-intl/components';
@@ -22,28 +21,18 @@ import { localeFolder } from '../../utils/locale-folder.ts';
 interface Props {
   locale: string;
   path: string;
-  entry: {
-    body?: string;
-    data: {
-      seoTitle?: string;
-      seoDesc?: string;
-    };
-  };
 }
 
-const { locale, path, entry } = Astro.props;
+const { locale, path } = Astro.props;
 const t = useTranslations(locale);
 const alternates = await getAlternatePathsForPath(locale, path);
 const switcher = localeSwitcherLinks(intlConfig.locales, locale, alternates, (code, tail) =>
   tail ? getRelativeLocaleUrl(code, tail) : getRelativeLocaleUrl(code),
 );
 
-const title = entry.data.seoTitle ?? t('blog.title');
-const description = entry.data.seoDesc ?? t('blog.description');
+const title = t('blog.title');
+const description = t('blog.description');
 const ogImage = ogImageFor(Astro.url.pathname, ogConfig);
-
-const hasBody = typeof entry.body === 'string' && entry.body.length > 0;
-const Content = hasBody ? (await render(entry as never)).Content : undefined;
 
 const showDrafts = isLocal(deployConfig) || isPreview(deployConfig);
 const posts = (await getCollection('blog'))
@@ -114,7 +103,7 @@ const items = posts.map((post) => {
 
   <main class="measure measure-size-wide mx-auto flow flow-4">
     <Hero title={title}>
-      {Content ? <Content /> : <p>{description}</p>}
+      <p>{description}</p>
     </Hero>
     <PostList items={items} />
   </main>

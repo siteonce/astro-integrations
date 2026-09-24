@@ -17,6 +17,8 @@ export type SitemapEntry = {
   loc: string;
   alternates: Record<string, string>;
   entryId?: string;
+  /** Set for a file route the printer already discovers. Omitted for a published tail. */
+  fileRoute?: boolean;
 };
 
 export type DocumentHead = {
@@ -113,16 +115,31 @@ export function createIntlQuery(options: CreateIntlQueryOptions): IntlQuery {
     return paths;
   }
 
+  function tailPaths(tails: Record<string, string>): Record<string, string> {
+    return { ...tails };
+  }
+
+  function tailLocs(tails: Record<string, string>): Record<string, string> {
+    const alternates: Record<string, string> = {};
+    for (const [code, tail] of Object.entries(tails)) {
+      alternates[code] = locFor(absolute, code, tail);
+    }
+    return alternates;
+  }
+
   function getAlternatePathsForPath(locale: string, path: string): Record<string, string> {
-    const document = pairing.byLocalePath.get(localePathKey(locale, normalizeSlug(path)));
-    if (!document) return {};
-    return getAlternatePaths(document.entryId);
+    const key = localePathKey(locale, normalizeSlug(path));
+    const document = pairing.byLocalePath.get(key);
+    if (document) return getAlternatePaths(document.entryId);
+    const tail = pairing.byLocaleTail.get(key);
+    if (!tail) return {};
+    return tailPaths(tail.tails);
   }
 
   function getPairedSlugs(): PairedSlug[] {
-    return [...pairing.routed].sort(compareLocalePath).map((document) => ({
-      locale: document.locale,
-      slug: document.path,
+    return [...pairing.routed, ...pairing.tails].sort(compareLocalePath).map((item) => ({
+      locale: item.locale,
+      slug: item.path,
     }));
   }
 
@@ -137,7 +154,18 @@ export function createIntlQuery(options: CreateIntlQueryOptions): IntlQuery {
         entryId: document.entryId,
       };
     });
-    const claimed = new Set(pairing.routed.map((document) => document.path));
+    for (const tail of pairing.tails) {
+      entries.push({
+        locale: tail.locale,
+        path: tail.path,
+        loc: locFor(absolute, tail.locale, tail.path),
+        alternates: tailLocs(tail.tails),
+      });
+    }
+    const claimed = new Set<string>([
+      ...pairing.routed.map((document) => document.path),
+      ...pairing.tails.map((tail) => tail.path),
+    ]);
     for (const tail of fileRouteTails) {
       if (claimed.has(tail)) continue;
       const alternates = fileRouteAlternates(config.locales, tail, absolute);
@@ -147,6 +175,7 @@ export function createIntlQuery(options: CreateIntlQueryOptions): IntlQuery {
           path: tail,
           loc: locFor(absolute, locale, tail),
           alternates,
+          fileRoute: true,
         });
       }
     }
@@ -155,7 +184,8 @@ export function createIntlQuery(options: CreateIntlQueryOptions): IntlQuery {
 
   function getDocumentHead({ locale, path }: { locale: string; path: string }): DocumentHead {
     const normalized = normalizeSlug(path);
-    const document = pairing.byLocalePath.get(localePathKey(locale, normalized));
+    const key = localePathKey(locale, normalized);
+    const document = pairing.byLocalePath.get(key);
     if (document) {
       const siblings = documentsForEntryId(pairing, document.entryId);
       const defaultSibling = siblings.find((item) => item.locale === config.defaultLocale);
@@ -172,6 +202,21 @@ export function createIntlQuery(options: CreateIntlQueryOptions): IntlQuery {
         xDefault: defaultSibling
           ? locFor(absolute, defaultSibling.locale, defaultSibling.path)
           : undefined,
+      };
+    }
+    const tail = pairing.byLocaleTail.get(key);
+    if (tail) {
+      const defaultTail = tail.tails[config.defaultLocale];
+      return {
+        lang: locale,
+        canonical: locFor(absolute, locale, tail.path),
+        alternates: Object.entries(tail.tails)
+          .sort(([a], [b]) => a.localeCompare(b))
+          .map(([code, sibling]) => ({
+            hreflang: code,
+            href: locFor(absolute, code, sibling),
+          })),
+        xDefault: defaultTail ? locFor(absolute, config.defaultLocale, defaultTail) : undefined,
       };
     }
     const alternates = config.locales

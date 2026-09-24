@@ -8,7 +8,7 @@ Sit on Astro i18n. Enhance it.
 
 Astro already owns locale prefixing, `getRelativeLocaleUrl`, `Astro.currentLocale`, automatic routing, and content collections. Intl writes locale list and prefix policy into `defineConfig.i18n`. Callers use `astro:i18n` and `astro:content` under those names.
 
-The enhancement is what Astro does not own: **catalogs** (`t()`) and **pairing** documents across locales. A routed entry carries `id` (the same document across locales) and `locale` (which sibling this is). When the collection has a slug, `slug` is one segment. The **section** in front of that segment is per locale and is not a field on the entry. A document with no slug uses its whole public tail (`/` for the homepage). Folders, file routes vs a catch-all, chrome, and how a document is rendered are the app’s Astro.
+The enhancement is what Astro does not own: **catalogs** (`t()`) and **pairing** entries across locales. A routed entry carries `id` (the same entry across locales) and `locale` (which sibling this is). When the collection has a slug, `slug` is one segment. The **section** in front of that segment is per locale and is not a field on the entry. The public tail comes from the route row. Folders, the catch-all, chrome, and which routed page renders are the app’s.
 
 Automatic routing with `prefixDefaultLocale` is enough.
 
@@ -17,7 +17,7 @@ Automatic routing with `prefixDefaultLocale` is enough.
 ## Two jobs
 
 - **intl** (`@repo/astro-intl`) — locales written through to Astro `i18n`, catalogs, pairing, lookup by id and by locale and public tail. It does not own folders, page bodies, or which URLs the build emits. Who emits them: [`publishing.md`](publishing.md).
-- **starter** — an example **content site** using intl. Its **content source** is Astro content collections. It registers content URLs and RSS. Sitemap printer glue lives in `@repo/astro-intl-sitemap`. Missing-locale is an intl helper the catch-all may call.
+- **starter** — an example **content site** using intl. Its **content source** is Astro content collections. It registers content URLs and RSS. Sitemap printer glue lives in `@repo/astro-intl-sitemap`. The app owns a path whose entry is absent.
 
 The test: if deleting a piece would make the site look more like ordinary Astro and pairing still works, it was cost.
 
@@ -31,7 +31,9 @@ Intl makes translation work on top of Astro for either source. **Catalogs**, **p
 
 Pairing reads `data[idField]` and `data[localeField]` (defaults `id` / `locale`) and prefixes the collection name. Pairing key = collection name + `/` + `data[idField]`. One `PairingIndex` (`byLocalePath`, `byLocaleEntryId`). Those fields are the contract for both content sources. File layout belongs to the app.
 
-Pairing is on `id`. A collection with `slugField` publishes one URL per entry: that locale’s **section** plus the one-segment `slug`. A collection without `slugField` stays records, except a document a route names. The named document uses the same pairing key (`pages/home` for the homepage). Intl does not know template names.
+Pairing is on `id`. A collection with a slug publishes one URL per entry: that locale’s **section** plus the one-segment **slug**. A collection with no slug stays **records**, except an entry a route names. A row that names no entry publishes those tails with no pairing `id`. Its alternates are the other locales on that row. Intl does not know routed-page names.
+
+Intl returns the default-locale entry at that same tail. It does not choose a fallback URL.
 
 Intl keeps uniqueness of `(id, locale)` and of `(locale, path)`, lookup by locale and public tail, and sibling tails.
 

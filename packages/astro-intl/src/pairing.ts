@@ -27,10 +27,20 @@ export type PairedRecord = {
   entry: CollectionEntryLike;
 };
 
+/** A published tail with no collection entry and no pairing id. */
+export type RouteTail = {
+  locale: string;
+  path: string;
+  /** Public tail for every locale on the same row, including this one. */
+  tails: Record<string, string>;
+};
+
 export type PairingIndex = {
   routed: PairedDocument[];
   records: PairedRecord[];
+  tails: RouteTail[];
   byLocalePath: Map<string, PairedDocument>;
+  byLocaleTail: Map<string, RouteTail>;
   byLocaleEntryId: Map<string, PairedDocument | PairedRecord>;
   warnings: string[];
 };
@@ -63,7 +73,7 @@ type Leaf = {
 function sectionsByCollection(config: IntlConfig): Map<string, Map<string, string>> {
   const sections = new Map<string, Map<string, string>>();
   for (const route of config.routes ?? []) {
-    if (route.entry) continue;
+    if (!route.collection || route.entry) continue;
     const perLocale = new Map<string, string>();
     for (const locale of config.locales) {
       const section = patternSection(route.slug[locale] ?? '');
@@ -82,7 +92,8 @@ function sectionsByCollection(config: IntlConfig): Map<string, Map<string, strin
 /**
  * Pair listed collections: read id + locale from entry data, prefix the
  * collection name, and compile public tails from route rows. An entry row
- * publishes one named document. A pattern row joins a section and a leaf.
+ * publishes one named entry. A pattern row joins a section and a leaf.
+ * A row with no collection publishes those tails with no entry and no pairing id.
  * Aborts on route-rule, uniqueness, and reserved-path failures.
  */
 export function pairCollections(
@@ -100,9 +111,11 @@ export function pairCollections(
   const reserved = new Set(reservedTails);
   const locales = new Set(config.locales);
   const byLocalePath = new Map<string, PairedDocument>();
+  const byLocaleTail = new Map<string, RouteTail>();
   const byLocaleEntryId = new Map<string, PairedDocument | PairedRecord>();
   const routed: PairedDocument[] = [];
   const records: PairedRecord[] = [];
+  const tails: RouteTail[] = [];
   const warnings: string[] = [];
   const leaves: Leaf[] = [];
   const recordByKey = new Map<string, PairedRecord>();
@@ -130,6 +143,23 @@ export function pairCollections(
     }
     byLocalePath.set(pathKey, document);
     routed.push(document);
+  }
+
+  function claimTail(locale: string, path: string, siblings: Record<string, string>): void {
+    if (reserved.has(path)) {
+      throw new Error(`@repo/astro-intl: path "${path}" is shadowed by a file route (route tail).`);
+    }
+    const pathKey = localePathKey(locale, path);
+    const existing = byLocalePath.get(pathKey);
+    if (existing || byLocaleTail.has(pathKey)) {
+      const left = existing?.collection ?? 'route tail';
+      throw new Error(
+        `@repo/astro-intl: (locale, path) "${locale}" / "${path}" collides (${left} vs route tail).`,
+      );
+    }
+    const tail: RouteTail = { locale, path, tails: siblings };
+    byLocaleTail.set(pathKey, tail);
+    tails.push(tail);
   }
 
   for (const [name, collection] of Object.entries(listed)) {
@@ -193,7 +223,7 @@ export function pairCollections(
 
   const missingEntryRows: string[] = [];
   for (const route of config.routes ?? []) {
-    if (!route.entry) continue;
+    if (!route.entry || !route.collection) continue;
     let published = false;
     for (const locale of config.locales) {
       const record = recordByKey.get(`${route.collection}\0${locale}\0${route.entry}`);
@@ -240,6 +270,17 @@ export function pairCollections(
     byLocaleEntryId.set(localeEntryKey(leaf.locale, leaf.entryId), document);
   }
 
+  for (const route of config.routes ?? []) {
+    if (route.collection) continue;
+    const siblings: Record<string, string> = {};
+    for (const locale of config.locales) {
+      siblings[locale] = normalizeSlug(route.slug[locale] ?? '');
+    }
+    for (const locale of config.locales) {
+      claimTail(locale, siblings[locale] ?? '/', siblings);
+    }
+  }
+
   const localesByEntry = new Map<string, Set<string>>();
   for (const document of routed) {
     const present = localesByEntry.get(document.entryId) ?? new Set<string>();
@@ -258,5 +299,5 @@ export function pairCollections(
     );
   }
 
-  return { routed, records, byLocalePath, byLocaleEntryId, warnings };
+  return { routed, records, tails, byLocalePath, byLocaleTail, byLocaleEntryId, warnings };
 }

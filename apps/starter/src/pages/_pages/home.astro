@@ -1,8 +1,6 @@
 ---
-// Home page. Receives locale, the compiled path, and the pages-collection
-// entry. Owns remaining data, head, landmark frame, and block composition.
-// Wraps SiteLayout. No section UI beyond Measure / Flow on <main>.
-import { render } from 'astro:content';
+// Home. Locale and public tail. No collection entry. The HTML title falls
+// back to the site name. Copy comes from the catalog.
 import { getRelativeLocaleUrl } from 'astro:i18n';
 import { getAlternatePathsForPath, localeSwitcherLinks } from '@repo/astro-intl';
 import { Hreflang } from '@repo/astro-intl/components';
@@ -17,27 +15,17 @@ import { useTranslations } from '../../t.ts';
 interface Props {
   locale: string;
   path: string;
-  entry: {
-    body?: string;
-    data: {
-      seoTitle?: string;
-      seoDesc?: string;
-    };
-  };
 }
 
-const { locale, path, entry } = Astro.props;
+const { locale, path } = Astro.props;
 const t = useTranslations(locale);
 const alternates = await getAlternatePathsForPath(locale, path);
 const switcher = localeSwitcherLinks(intlConfig.locales, locale, alternates, (code, tail) =>
   tail ? getRelativeLocaleUrl(code, tail) : getRelativeLocaleUrl(code),
 );
 
-const description = entry.data.seoDesc ?? t('home.description');
+const description = t('home.description');
 const ogImage = ogImageFor(Astro.url.pathname, ogConfig);
-
-const hasBody = typeof entry.body === 'string' && entry.body.length > 0;
-const Content = hasBody ? (await render(entry as never)).Content : undefined;
 ---
 
 <SiteLayout locale={locale} switcher={switcher}>
@@ -55,7 +43,7 @@ const Content = hasBody ? (await render(entry as never)).Content : undefined;
 
   <main class="measure measure-size-wide mx-auto flow flow-4">
     <Hero title={siteConfig.siteName}>
-      {Content ? <Content /> : <p>{t('home.intro')}</p>}
+      <p>{t('home.intro')}</p>
     </Hero>
   </main>
 </SiteLayout>
