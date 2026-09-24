@@ -11,7 +11,6 @@ import SiteLayout from '../../layouts/site-layout.astro';
 import { ogConfig } from '../../og.config.ts';
 import type { StarterRoute } from '../../routes.config.ts';
 import { siteConfig } from '../../site.config.ts';
-import { localeFolder } from '../../utils/locale-folder.ts';
 import type { PageKit } from '../../utils/page-kit.ts';
 
 interface Props {
@@ -25,6 +24,7 @@ interface Props {
     filePath?: string;
     body?: string;
     data: {
+      id: string;
       seoTitle?: string;
       seoDesc?: string;
     };
@@ -34,15 +34,16 @@ interface Props {
 const { locale, path, switcher, kit, entry } = Astro.props;
 const t = kit.t;
 
-const termKey = localeFolder(entry);
-const title = entry.data.seoTitle ?? t(`taxonomy.blogTags.${termKey}`);
+const title = entry.data.seoTitle ?? t(`taxonomy.blogTags.${entry.data.id}`);
 const description = entry.data.seoDesc ?? title;
 const ogImage = ogImageFor(Astro.url.pathname, ogConfig);
 
 const hasBody = typeof entry.body === 'string' && entry.body.length > 0;
 const Content = hasBody ? (await render(entry as never)).Content : undefined;
 
-const posts = (await kit.posts()).filter((post) => post.data.tags.includes(termKey));
+const posts = (await kit.posts()).filter((post) =>
+  post.data.tags.some((tag) => tag.id === entry.data.id),
+);
 const items = await Promise.all(posts.map((post) => kit.postItem(post)));
 ---
 

@@ -1,6 +1,6 @@
 import { type CollectionEntry, getCollection } from 'astro:content';
 import { getRelativeLocaleUrl } from 'astro:i18n';
-import { getAlternatePaths, localeSwitcherLinks } from '@repo/astro-intl';
+import { getAlternatePaths, localeSwitcherLinks, type Relation } from '@repo/astro-intl';
 import { isLocal, isPreview } from '@repo/astro-site/utils/deploy-env';
 import { deployConfig } from '../deploy.config.ts';
 import intlConfig from '../intl.config.ts';
@@ -39,14 +39,14 @@ export function createPageKit(locale: string) {
     return getRelativeLocaleUrl(locale, compiled);
   }
 
-  async function terms(tagIds: readonly string[]) {
+  async function terms(tags: readonly Relation[]) {
     return Promise.all(
-      tagIds.map(async (id) => {
-        const catalogKey = `taxonomy.blogTags.${id}`;
+      tags.map(async (tag) => {
+        const catalogKey = `taxonomy.blogTags.${tag.id}`;
         const value = t(catalogKey);
         return {
-          href: await href('tags', id),
-          label: value === catalogKey ? id : value,
+          href: await href('tags', tag.id),
+          label: value === catalogKey ? tag.id : value,
         };
       }),
     );

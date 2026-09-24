@@ -26,6 +26,7 @@ const posts = defineCollection({
       author: relation('authors').optional(),
       source: relation('sources').optional(),
       role: relation('roles').optional(),
+      tags: z.array(relation('tags')).default([]),
     })
     .superRefine(leafSlug({ slugify })),
 });

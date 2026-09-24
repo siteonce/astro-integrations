@@ -31,7 +31,7 @@ interface Props {
       seoTitle: string;
       seoDesc: string;
       pubDate: Date;
-      tags: string[];
+      tags: Relation[];
       author?: Relation;
       source?: Relation;
       role?: Relation;
@@ -56,8 +56,13 @@ const Content = hasBody ? (await render(entry as never)).Content : undefined;
 const posts = await kit.posts();
 const dateFmt = new Intl.DateTimeFormat(locale, { dateStyle: 'long' });
 const terms = await kit.terms(entry.data.tags);
+// getRelatedContent compares tags as strings, so give it the tag ids.
+const withTagIds = <T extends { data: { tags: Relation[] } }>(post: T) => ({
+  ...post,
+  data: { ...post.data, tags: post.data.tags.map((tag) => tag.id) },
+});
 const related = await Promise.all(
-  getRelatedContent(entry, posts).map(async (post) => ({
+  getRelatedContent(withTagIds(entry), posts.map(withTagIds)).map(async (post) => ({
     href: await kit.href('blog', post.data.id),
     title: post.data.seoTitle,
   })),
