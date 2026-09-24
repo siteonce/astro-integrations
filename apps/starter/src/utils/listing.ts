@@ -27,7 +27,7 @@ type DatedEntry = {
   };
 };
 
-function publicTail(value: string): string {
+export function publicTail(value: string): string {
   if (value === '' || value === '/') return '/';
   return value.replace(/^\/+/u, '').replace(/\/+$/u, '');
 }

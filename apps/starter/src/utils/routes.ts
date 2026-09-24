@@ -1,12 +1,9 @@
 import type { AstroInstance } from 'astro';
 import intlConfig from '../intl.config.ts';
 import { routes, type StarterRoute } from '../routes.config.ts';
-import { listingPageNumber } from './listing.ts';
+import { listingPageNumber, publicTail } from './listing.ts';
 
-export function publicTail(value: string): string {
-  if (value === '' || value === '/') return '/';
-  return value.replace(/^\/+/u, '').replace(/\/+$/u, '');
-}
+export { publicTail };
 
 let cachedRoutedPages: Record<string, () => Promise<AstroInstance>> | undefined;
 

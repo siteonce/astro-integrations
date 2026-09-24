@@ -2,32 +2,26 @@
 // Post page. Receives locale, the compiled path, and the blog-collection
 // entry. Owns render(), related-post query, and Article + RelatedPosts
 // composition. Wraps SiteLayout. No section UI beyond Measure / Flow on <main>.
-import { getCollection, render } from 'astro:content';
-import { getRelativeLocaleUrl } from 'astro:i18n';
-import {
-  getAlternatePaths,
-  getAlternatePathsForPath,
-  getRelated,
-  localeSwitcherLinks,
-  type Relation,
-} from '@repo/astro-intl';
+import { render } from 'astro:content';
+import { type LocaleSwitcherLink, type Relation, getRelated } from '@repo/astro-intl';
 import { Hreflang } from '@repo/astro-intl/components';
 import { ogImageFor } from '@repo/astro-og-image/utils/og-image-for';
 import { Article, RelatedPosts, Schema, Seo } from '@repo/astro-site/components';
-import { isLocal, isPreview } from '@repo/astro-site/utils/deploy-env';
 import { getRelatedContent } from '@repo/astro-site/utils/related-content';
-import { deployConfig } from '../../deploy.config.ts';
-import intlConfig from '../../intl.config.ts';
 import SiteLayout from '../../layouts/site-layout.astro';
 import { ogConfig } from '../../og.config.ts';
+import type { StarterRoute } from '../../routes.config.ts';
 import { siteConfig } from '../../site.config.ts';
-import { useTranslations } from '../../utils/t.ts';
 import { resolveFeatImage } from '../../utils/feat-image.ts';
 import { localeFolder } from '../../utils/locale-folder.ts';
+import type { PageKit } from '../../utils/page-kit.ts';
 
 interface Props {
   locale: string;
   path: string;
+  route: StarterRoute;
+  switcher: LocaleSwitcherLink[];
+  kit: PageKit;
   entry: {
     id: string;
     filePath?: string;
@@ -48,12 +42,8 @@ interface Props {
   };
 }
 
-const { locale, path, entry } = Astro.props;
-const t = useTranslations(locale);
-const alternates = await getAlternatePathsForPath(locale, path);
-const switcher = localeSwitcherLinks(intlConfig.locales, locale, alternates, (code, tail) =>
-  tail ? getRelativeLocaleUrl(code, tail) : getRelativeLocaleUrl(code),
-);
+const { locale, path, switcher, kit, entry } = Astro.props;
+const t = kit.t;
 
 const title = entry.data.seoTitle;
 const description = entry.data.seoDesc;
@@ -63,49 +53,15 @@ const ogImage = ogImageFor(Astro.url.pathname, ogConfig);
 const hasBody = typeof entry.body === 'string' && entry.body.length > 0;
 const Content = hasBody ? (await render(entry as never)).Content : undefined;
 
-const showDrafts = isLocal(deployConfig) || isPreview(deployConfig);
-const posts = (await getCollection('blog'))
-  .filter((post) => post.data.locale === locale && (post.data.status === 'published' || showDrafts))
-  .sort((a, b) => b.data.pubDate.valueOf() - a.data.pubDate.valueOf());
-
-async function compiledPath(collection: string, id: string): Promise<string> {
-  const compiled = (await getAlternatePaths(`${collection}/${id}`))[locale];
-  if (!compiled) {
-    throw new Error(`starter: no compiled path for "${collection}/${id}" in "${locale}".`);
-  }
-  return compiled;
-}
-
-const tagSlug = new Map<string, string>();
-for (const tag of (await getCollection('tags')).filter((tag) => tag.data.locale === locale)) {
-  tagSlug.set(localeFolder(tag), await compiledPath('tags', tag.data.id));
-}
-const postPath = new Map<string, string>();
-for (const post of posts) {
-  postPath.set(post.data.id, await compiledPath('blog', post.data.id));
-}
-
-function documentHref(paths: Map<string, string>, collection: string, id: string): string {
-  const compiled = paths.get(id);
-  if (!compiled) {
-    throw new Error(`starter: no compiled path for "${collection}/${id}" in "${locale}".`);
-  }
-  return getRelativeLocaleUrl(locale, compiled);
-}
-
+const posts = await kit.posts();
 const dateFmt = new Intl.DateTimeFormat(locale, { dateStyle: 'long' });
-const terms = entry.data.tags.map((id) => {
-  const key = `taxonomy.blogTags.${id}`;
-  const value = t(key);
-  return {
-    href: documentHref(tagSlug, 'tags', id),
-    label: value === key ? id : value,
-  };
-});
-const related = getRelatedContent(entry, posts).map((post) => ({
-  href: documentHref(postPath, 'blog', post.data.id),
-  title: post.data.seoTitle,
-}));
+const terms = await kit.terms(entry.data.tags);
+const related = await Promise.all(
+  getRelatedContent(entry, posts).map(async (post) => ({
+    href: await kit.href('blog', post.data.id),
+    title: post.data.seoTitle,
+  })),
+);
 const featSrc = entry.data.featImage
   ? resolveFeatImage(localeFolder(entry), entry.data.featImage)
   : undefined;

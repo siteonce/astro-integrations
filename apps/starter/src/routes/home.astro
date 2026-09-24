@@ -1,28 +1,26 @@
 ---
 // Home. Locale and public tail. No collection entry. The HTML title falls
 // back to the site name. Copy comes from the catalog.
-import { getRelativeLocaleUrl } from 'astro:i18n';
-import { getAlternatePathsForPath, localeSwitcherLinks } from '@repo/astro-intl';
+import type { LocaleSwitcherLink } from '@repo/astro-intl';
 import { Hreflang } from '@repo/astro-intl/components';
 import { ogImageFor } from '@repo/astro-og-image/utils/og-image-for';
 import { Hero, Schema, Seo } from '@repo/astro-site/components';
-import intlConfig from '../intl.config.ts';
 import SiteLayout from '../layouts/site-layout.astro';
 import { ogConfig } from '../og.config.ts';
+import type { StarterRoute } from '../routes.config.ts';
 import { siteConfig } from '../site.config.ts';
-import { useTranslations } from '../utils/t.ts';
+import type { PageKit } from '../utils/page-kit.ts';
 
 interface Props {
   locale: string;
   path: string;
+  route: StarterRoute;
+  switcher: LocaleSwitcherLink[];
+  kit: PageKit;
 }
 
-const { locale, path } = Astro.props;
-const t = useTranslations(locale);
-const alternates = await getAlternatePathsForPath(locale, path);
-const switcher = localeSwitcherLinks(intlConfig.locales, locale, alternates, (code, tail) =>
-  tail ? getRelativeLocaleUrl(code, tail) : getRelativeLocaleUrl(code),
-);
+const { locale, path, switcher, kit } = Astro.props;
+const t = kit.t;
 
 const description = t('home.description');
 const ogImage = ogImageFor(Astro.url.pathname, ogConfig);

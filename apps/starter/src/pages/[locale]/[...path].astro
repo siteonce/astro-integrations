@@ -3,7 +3,8 @@
 // The matching route row names the routed page under src/routes. A published
 // tail with no entry renders that page. Any other path with no entry redirects
 // to the default-locale entry at that tail, or rewrites not-found.
-// Intl does not know routed-page names.
+// Intl does not know routed-page names. The matched row, the switcher, and a
+// page kit go to the routed page.
 
 import { getRelativeLocaleUrl } from 'astro:i18n';
 import {
@@ -13,6 +14,7 @@ import {
   setIntlConfig,
 } from '@repo/astro-intl';
 import intlConfig from '../../intl.config.ts';
+import { createPageKit } from '../../utils/page-kit.ts';
 import {
   assertRoutedPages,
   loadRoutedPage,
@@ -43,7 +45,8 @@ const path = Array.isArray(pathParam)
   : (pathParam ?? '/');
 
 const entry = await getContentByPath(locale, path);
-const published = Object.keys(await getAlternatePathsForPath(locale, path)).length > 0;
+const alternates = await getAlternatePathsForPath(locale, path);
+const published = Object.keys(alternates).length > 0;
 if (!published) {
   const fallback = await getContentByPath(intlConfig.defaultLocale, path);
   // Already on the default-locale tail. Redirecting would repeat this URL.
@@ -62,13 +65,22 @@ const route = matchRoute(locale, path, Boolean(entry));
 if (!route) {
   throw new Error(`starter: no route row for "${path}".`);
 }
+const kit = createPageKit(locale);
+const switcher = kit.switcher(alternates);
 const { default: Page } = await loadRoutedPage(pageName(route, locale));
 ---
 
 {
   entry ? (
-    <Page locale={locale} path={path} entry={entry as never} />
+    <Page
+      locale={locale}
+      path={path}
+      route={route}
+      switcher={switcher}
+      kit={kit}
+      entry={entry as never}
+    />
   ) : (
-    <Page locale={locale} path={path} />
+    <Page locale={locale} path={path} route={route} switcher={switcher} kit={kit} />
   )
 }
