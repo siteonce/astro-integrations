@@ -8,7 +8,7 @@ import { NotFound, Seo } from '@repo/astro-site/components';
 import intlConfig from '../intl.config.ts';
 import SiteLayout from '../layouts/site-layout.astro';
 import { siteConfig } from '../site.config.ts';
-import { useTranslations } from '../t.ts';
+import { useTranslations } from '../utils/t.ts';
 
 const locale = Astro.currentLocale ?? intlConfig.defaultLocale;
 const t = useTranslations(locale);

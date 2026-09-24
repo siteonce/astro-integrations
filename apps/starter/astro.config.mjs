@@ -18,7 +18,7 @@ import { deployConfig } from './src/deploy.config.ts';
 import intlConfig from './src/intl.config.ts';
 import { ogConfig } from './src/og.config.ts';
 import { siteConfig } from './src/site.config.ts';
-import { catalogs } from './src/t.ts';
+import { catalogs } from './src/utils/t.ts';
 
 // Allow the editorial-media host when MEDIA_BASE_URL is a valid origin.
 function mediaRemotePatterns() {
