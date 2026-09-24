@@ -78,7 +78,7 @@ A snapshot monorepo that is the foundation for every Astro **content site** buil
 
 **blog**: The composed collection schema for a blog: **seo** + **media** plus posting fields (pubDate, status, tags, excerpt, optional og). Lives in **astro-site** so a second site can import it. A directory composes fragments instead. _Avoid_: prose (for this schema)
 
-**term**: An item in a **taxonomy**, published as a paired **entry** (`id` + `locale` + `slug`). Posts match terms by folder id string. _Avoid_: tag (for this unit); locale-free slug as the collection entry id
+**term**: An item in a **taxonomy**, published as a paired **entry** (`id` + `locale` + `slug`). A post points at its terms with a **relation** per tag. _Avoid_: tag (for this unit); locale-free slug as the collection entry id; matching terms by folder name
 
 **taxonomy**: A named vocabulary of **terms**. Site-owned as a content collection when those terms own URLs. _Avoid_: tag registry, TaxonomyType
 
