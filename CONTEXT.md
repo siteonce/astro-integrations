@@ -52,15 +52,17 @@ A snapshot monorepo that is the foundation for every Astro **content site** buil
 
 **CMS**: A content system outside this snapshot that can supply a **content source**. _Avoid_: an **astro-intl** package; calling **starter** a CMS
 
-**slug** (entry field): One public segment of a routed document. Not the pairing `id`, not the locale prefix, and not the **section** in front of it. _Avoid_: full public tail, authored path, per-entry pathPrefix
+**slug** (entry field): One public segment of a routed **entry**. Not the pairing `id`, not the locale prefix, and not the **section** in front of it. _Avoid_: full public tail, authored path, per-entry pathPrefix
 
-**pairing `id`**: Shared key that joins locale siblings of one document. Authored on the entry (`data.id` by default). Distinct from the public `slug` and from Astro’s per-file collection `id`. Intl prefixes the collection name. _Avoid_: using slug as the group key; treating `entry.id` as the pairing key; generating the key from the folder tree; minting a second internal key
+**pairing `id`**: Shared key that joins locale siblings of one **entry**. Authored on the entry (`data.id` by default). Distinct from the public `slug` and from Astro’s per-file collection `id`. Intl prefixes the collection name. _Avoid_: using slug as the group key; treating `entry.id` as the pairing key; generating the key from the folder tree; minting a second internal key
 
-**section**: A locale-specific prefix in front of an entry **slug** (`blog` vs `artikel`, or several segments such as `about/history`). _Avoid_: pathPrefix (as a document field), catalog key (for this)
+**section**: A locale-specific prefix in front of an entry **slug** (`blog` vs `artikel`, or several segments such as `about/history`). _Avoid_: pathPrefix (as an entry field), catalog key (for this)
 
 **routed collection**: A listed collection whose entries have a public URL (`slug`). _Avoid_: giving records a slug
 
-**record**: A translated collection entry with no public URL. _Avoid_: routed (for this)
+**entry**: One item in a collection. Locale siblings share one pairing `id`. _Avoid_: document; a **routed page** that no collection claims
+
+**record**: A translated **entry** with no public URL. _Avoid_: routed (for this)
 
 **relation**: A pointer from an entry to another collection by pairing `id`. Authored as that id string; after parse `{ collection, id }`. Resolve uses the current locale. _Avoid_: `reference()` (for this helper); treating Astro’s collection file id as the stored pointer
 
@@ -72,7 +74,7 @@ A snapshot monorepo that is the foundation for every Astro **content site** buil
 
 **blog**: The composed collection schema for a blog: **seo** + **media** plus posting fields (pubDate, status, tags, excerpt, optional og). Lives in **astro-site** so a second site can import it. A directory composes fragments instead. _Avoid_: prose (for this schema)
 
-**term**: An item in a **taxonomy**, published as a paired **document** (`id` + `locale` + `slug`). Posts match terms by folder id string. _Avoid_: tag (for this unit); locale-free slug as the collection entry id
+**term**: An item in a **taxonomy**, published as a paired **entry** (`id` + `locale` + `slug`). Posts match terms by folder id string. _Avoid_: tag (for this unit); locale-free slug as the collection entry id
 
 **taxonomy**: A named vocabulary of **terms**. Site-owned as a content collection when those terms own URLs. _Avoid_: tag registry, TaxonomyType
 
@@ -84,9 +86,11 @@ A snapshot monorepo that is the foundation for every Astro **content site** buil
 
 ### Lifecycle & head
 
-**chrome**: Shared site shell around every page — styles, Favicon, Analytics, locale switcher, head pass-through. **SiteLayout** is chrome. _Avoid_: composing **blocks** or document landmarks in the layout
+**chrome**: Shared site shell around every page — styles, Favicon, Analytics, locale switcher, head pass-through. **SiteLayout** is chrome. _Avoid_: composing **blocks** or page landmarks in the layout
 
-**document**: A published page for a paired entry (home, listing, post, **term**). Owns landmarks and head tags. _Avoid_: treating 404 as a paired document
+**Astro page**: A file under `src/pages/` that Astro publishes as a route. _Avoid_: **routed page**
+
+**routed page**: A page the app’s route row selects, kept outside `src/pages/` so Astro does not route it. _Avoid_: template, page component, **Astro page**, document
 
 **`SiteLayout`**: The starter chrome component around **BaseLayout**.
 
