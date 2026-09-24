@@ -6,11 +6,11 @@ import { getAlternatePathsForPath, localeSwitcherLinks } from '@repo/astro-intl'
 import { Hreflang } from '@repo/astro-intl/components';
 import { ogImageFor } from '@repo/astro-og-image/utils/og-image-for';
 import { Hero, Schema, Seo } from '@repo/astro-site/components';
-import intlConfig from '../../intl.config.ts';
-import SiteLayout from '../../layouts/site-layout.astro';
-import { ogConfig } from '../../og.config.ts';
-import { siteConfig } from '../../site.config.ts';
-import { useTranslations } from '../../utils/t.ts';
+import intlConfig from '../intl.config.ts';
+import SiteLayout from '../layouts/site-layout.astro';
+import { ogConfig } from '../og.config.ts';
+import { siteConfig } from '../site.config.ts';
+import { useTranslations } from '../utils/t.ts';
 
 interface Props {
   locale: string;

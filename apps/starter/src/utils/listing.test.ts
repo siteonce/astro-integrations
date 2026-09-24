@@ -83,13 +83,13 @@ describe('listingPage', () => {
 
 describe('matchStarterRoute', () => {
   it('sends a numbered tail to the listing and an entry leaf to the post', () => {
-    assert.equal(matchStarterRoute('en', 'blog', false)?.page, 'listing');
-    assert.equal(matchStarterRoute('en', 'blog/2', false)?.page, 'listing');
-    assert.equal(matchStarterRoute('de', 'artikel/3', false)?.page, 'listing');
+    assert.equal(matchStarterRoute('en', 'blog', false)?.page, 'blog');
+    assert.equal(matchStarterRoute('en', 'blog/2', false)?.page, 'blog');
+    assert.equal(matchStarterRoute('de', 'artikel/3', false)?.page, 'blog');
     assert.equal(matchStarterRoute('en', 'blog/1', false), undefined);
-    assert.equal(matchStarterRoute('en', 'blog/2', true)?.page, 'post');
-    assert.equal(matchStarterRoute('en', 'blog/hello-world', true)?.page, 'post');
-    assert.equal(matchStarterRoute('en', 'tags/design', true)?.page, 'term');
+    assert.equal(matchStarterRoute('en', 'blog/2', true)?.page, 'blog/post');
+    assert.equal(matchStarterRoute('en', 'blog/hello-world', true)?.page, 'blog/post');
+    assert.equal(matchStarterRoute('en', 'tags/design', true)?.page, 'tags/term');
     assert.equal(matchStarterRoute('en', '/', false)?.page, 'home');
   });
 });

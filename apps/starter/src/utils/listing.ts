@@ -1,7 +1,7 @@
 import { listingPageCount, listingTail, setListingEntries } from '@repo/astro-intl';
 import { isLocal, isPreview } from '@repo/astro-site/utils/deploy-env';
 import { deployConfig } from '../deploy.config.ts';
-import { routes, type StarterRoute } from '../pages/_routes.ts';
+import { routes, type StarterRoute } from '../routes.config.ts';
 
 export type ListingPage<T> = {
   data: T[];

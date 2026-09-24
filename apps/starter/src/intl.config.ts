@@ -1,5 +1,5 @@
 import { defineIntl } from '@repo/astro-intl';
-import { routes } from './pages/_routes.ts';
+import { routes } from './routes.config.ts';
 import { bindListingQuery } from './utils/listing.ts';
 
 // Listing chunks use the starter listing query.

@@ -1,6 +1,6 @@
 ---
 // Catch-all. Params are compiled public tails (prefixDefaultLocale: true).
-// The matching route row names the routed page under src/pages/_pages. A published
+// The matching route row names the routed page under src/routes. A published
 // tail with no entry renders that page. Any other path with no entry redirects
 // to the default-locale entry at that tail, or rewrites not-found.
 // Intl does not know routed-page names.
@@ -16,7 +16,7 @@ import type { AstroInstance } from 'astro';
 import intlConfig from '../../intl.config.ts';
 import { createCatchAll } from '../../utils/catch-all.ts';
 
-const routedPages = import.meta.glob<AstroInstance>('../_pages/**/*.astro');
+const routedPages = import.meta.glob<AstroInstance>('../../routes/**/*.astro');
 const catchAll = createCatchAll(routedPages);
 
 // Page bundles do not share the integration's in-memory runtime.

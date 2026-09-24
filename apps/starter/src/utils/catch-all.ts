@@ -1,6 +1,6 @@
 import type { AstroInstance } from 'astro';
 import intlConfig from '../intl.config.ts';
-import { routes, type StarterRoute } from '../pages/_routes.ts';
+import { routes, type StarterRoute } from '../routes.config.ts';
 import { matchStarterRoute, publicTail } from './listing.ts';
 
 export type CatchAll = {
@@ -27,8 +27,8 @@ export function createCatchAll(
 
   function moduleKey(name: string): string {
     assertPageToken(name);
-    const file = `../_pages/${name}.astro`;
-    const index = `../_pages/${name}/index.astro`;
+    const file = `../../routes/${name}.astro`;
+    const index = `../../routes/${name}/index.astro`;
     const hasFile = file in routedPages;
     const hasIndex = index in routedPages;
     if (hasFile && hasIndex) {
