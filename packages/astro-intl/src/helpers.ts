@@ -24,7 +24,7 @@ import {
   listingPathsFor,
   missingPathsFor,
   routeFor,
-  staticPathsFor,
+  staticPropsFor,
 } from './routed-paths.ts';
 import { type CompiledRoute, compileRoutes } from './routing.ts';
 import { getIntlRuntime, runtimeGeneration } from './runtime.ts';
@@ -205,11 +205,14 @@ export async function listingPaths<T>(routePattern: string, paginate: PaginateFu
   );
 }
 
-/** The static path for the injected route at `routePattern`, or none. */
-export async function staticPaths<T>(routePattern: string) {
+/**
+ * Props for the injected static route at `routePattern`, or none.
+ * Call it at render. Astro does not call `getStaticPaths` for a static pattern.
+ */
+export async function staticProps<T>(routePattern: string) {
   const query = await loadQuery();
   const route = routeFor(compiledRoutes(), routePattern, 'static');
-  return staticPathsFor<T>(getIntlRuntime().config, query, route);
+  return staticPropsFor<T>(getIntlRuntime().config, query, route);
 }
 
 /** Missing-translation paths for the injected route at `routePattern`. */

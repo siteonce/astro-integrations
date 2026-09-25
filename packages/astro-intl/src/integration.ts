@@ -44,7 +44,7 @@ export {
   listingPaths,
   missingPaths,
   setListingEntries,
-  staticPaths,
+  staticProps,
 } from './helpers.ts';
 export { leafSlug } from './locale-section.ts';
 export type { LocaleSwitcherLink } from './locale-switcher.ts';

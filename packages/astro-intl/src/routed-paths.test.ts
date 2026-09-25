@@ -9,7 +9,7 @@ import {
   listingPathsFor,
   missingPathsFor,
   routeFor,
-  staticPathsFor,
+  staticPropsFor,
 } from './routed-paths.ts';
 import { type CompiledRoute, compileRoutes } from './routing.ts';
 
@@ -238,29 +238,24 @@ describe('listingPathsFor', () => {
   });
 });
 
-describe('staticPathsFor', () => {
+describe('staticPropsFor', () => {
   it('returns nothing for an entry unpublished in that locale', () => {
-    const paths = staticPathsFor(config, queryFor(), compiledRoute('/de/hervorgehoben', 'static'));
-    assert.deepEqual(paths, []);
+    const props = staticPropsFor(config, queryFor(), compiledRoute('/de/hervorgehoben', 'static'));
+    assert.equal(props, undefined);
   });
 
   it('returns the written tail with no entry', () => {
-    const paths = staticPathsFor<CollectionEntryLike>(
+    const props = staticPropsFor<CollectionEntryLike>(
       config,
       queryFor(),
       compiledRoute('/en/about', 'static'),
     );
-    assert.deepEqual(paths, [
-      {
-        params: {},
-        props: {
-          locale: 'en',
-          route: config.routes?.[0],
-          path: 'about',
-          entry: undefined,
-        },
-      },
-    ]);
+    assert.deepEqual(props, {
+      locale: 'en',
+      route: config.routes?.[0],
+      path: 'about',
+      entry: undefined,
+    });
   });
 });
 

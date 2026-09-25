@@ -1,11 +1,10 @@
 ---
 // Home. The site name and the catalog intro. No collection entry.
-// `staticPaths` supplies the locale root.
-import { getAlternatePathsForPath, setIntlConfig, staticPaths } from '@repo/astro-intl';
+// `staticProps` supplies the locale root at render.
+import { getAlternatePathsForPath, setIntlConfig, staticProps } from '@repo/astro-intl';
 import { Hreflang } from '@repo/astro-intl/components';
 import { ogImageFor } from '@repo/astro-og-image/utils/og-image-for';
 import { Hero, Schema, Seo } from '@repo/astro-site/components';
-import type { GetStaticPathsOptions, InferGetStaticPropsType } from 'astro';
 import intlConfig from '../intl.config.ts';
 import SiteLayout from '../layouts/site-layout.astro';
 import { ogConfig } from '../og.config.ts';
@@ -15,20 +14,10 @@ import { createPageKit } from '../utils/page-kit.ts';
 // Page bundles do not share the integration's in-memory runtime.
 setIntlConfig(intlConfig);
 
-export async function getStaticPaths({ routePattern }: GetStaticPathsOptions) {
-  setIntlConfig(intlConfig);
-  return staticPaths(routePattern);
-}
-
-type Props = InferGetStaticPropsType<typeof getStaticPaths>;
-
-// A static pattern is a pathname route. Astro does not call getStaticPaths for it,
-// and an empty `params` object is rejected when it does. The path comes from the helper.
-const rendered = (await staticPaths(Astro.routePattern))[0];
-if (!rendered) {
-  throw new Error(`starter: no path for "${Astro.routePattern}".`);
-}
-const { locale, path }: Props = rendered.props;
+const props = await staticProps(Astro.routePattern);
+// Not published in this locale: no file in the build, 404 in dev.
+if (!props) return new Response(null, { status: 404 });
+const { locale, path } = props;
 const kit = createPageKit(locale);
 const switcher = kit.switcher(await getAlternatePathsForPath(locale, path));
 const t = kit.t;
