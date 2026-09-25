@@ -196,12 +196,14 @@ export async function entryPaths<T>(routePattern: string) {
 export async function listingPaths<T>(routePattern: string, paginate: PaginateFunction) {
   const query = await loadQuery();
   const route = routeFor(compiledRoutes(), routePattern, 'listing');
+  const { getRelativeLocaleUrl } = await import('astro:i18n');
   return listingPathsFor<T>(
     getIntlRuntime().config,
     query,
     route,
     paginate,
     currentListingEntries(),
+    getRelativeLocaleUrl,
   );
 }
 

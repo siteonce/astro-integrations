@@ -55,7 +55,8 @@ export function entryPathsFor<T>(
 
 /**
  * One paginated row per listing tail pairing published for this route.
- * `path` is added per page. `paginate` shares one props object across pages.
+ * `path` is added per page. `page.url` comes from `relativeUrl`, not from `paginate`.
+ * `paginate` shares one props object across pages.
  */
 export function listingPathsFor<T>(
   config: IntlConfig,
@@ -63,6 +64,7 @@ export function listingPathsFor<T>(
   route: CompiledRoute,
   paginate: PaginateFunction,
   listEntries: ListingEntries | undefined,
+  relativeUrl: RelativeUrl,
 ) {
   const row = routeRow(config, route);
   const written = normalizeSlug(row.slug[route.locale] ?? '');
@@ -81,13 +83,29 @@ export function listingPathsFor<T>(
     pageSize: row.pageSize,
     props: { locale: route.locale, route: row },
   });
-  const results = pages.map((item) => ({
-    params: item.params,
-    props: {
-      ...item.props,
-      path: listingTail(written, item.props.page.currentPage),
-    },
-  }));
+  const href = (k: number) => relativeUrl(route.locale, localeUrlPath(listingTail(written, k)));
+  const results = pages.map((item) => {
+    const page = item.props.page;
+    const n = page.currentPage;
+    const last = page.lastPage;
+    return {
+      params: item.params,
+      props: {
+        ...item.props,
+        path: listingTail(written, n),
+        page: {
+          ...page,
+          url: {
+            current: href(n),
+            prev: n > 1 ? href(n - 1) : undefined,
+            next: n < last ? href(n + 1) : undefined,
+            first: n > 1 ? href(1) : undefined,
+            last: n < last ? href(last) : undefined,
+          },
+        },
+      },
+    };
+  });
   for (const item of results) {
     const key = localePathKey(route.locale, item.props.path);
     if (!query.pairing.byLocaleTail.has(key)) {

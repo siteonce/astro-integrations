@@ -62,6 +62,10 @@ function relativeUrl(locale: string, path = ''): string {
   return path === '' ? `/${locale}` : `/${locale}/${path}`;
 }
 
+function markedRelativeUrl(locale: string, path = ''): string {
+  return `/${locale}/${path ?? ''}#u`;
+}
+
 function paginate(
   data: readonly unknown[],
   args: { pageSize: number; props: { locale: string; route: RouteConfig } },
@@ -74,7 +78,7 @@ function paginate(
       props: {
         locale: args.props.locale,
         route: args.props.route,
-        page: { currentPage },
+        page: { currentPage, lastPage },
       },
     };
   });
@@ -140,6 +144,7 @@ describe('listingPathsFor', () => {
       compiledRoute('/en/blog/[...page]', 'listing'),
       paginateFn,
       undefined,
+      markedRelativeUrl,
     );
     assert.deepEqual(
       pages.map((item) => item.props.path),
@@ -147,6 +152,9 @@ describe('listingPathsFor', () => {
     );
     assert.equal(pages[0]?.params.page, undefined);
     assert.equal(pages[1]?.params.page, '2');
+    assert.equal(pages[0]?.props.page.url.next, markedRelativeUrl('en', 'blog/2'));
+    assert.equal(pages[1]?.props.page.url.prev, markedRelativeUrl('en', 'blog'));
+    assert.equal(pages[1]?.props.page.url.current, markedRelativeUrl('en', 'blog/2'));
   });
 
   it('numbers a root listing from the bare page', () => {
@@ -172,11 +180,13 @@ describe('listingPathsFor', () => {
       routeFor(compileRoutes(home), '/[...page]', 'listing'),
       paginateFn,
       undefined,
+      markedRelativeUrl,
     );
     assert.deepEqual(
       pages.map((item) => item.props.path),
       ['/', '2'],
     );
+    assert.equal(pages[0]?.props.page.url.current, markedRelativeUrl('en', ''));
   });
 
   it('does not count another row’s numeric tail under the listing', () => {
@@ -201,6 +211,7 @@ describe('listingPathsFor', () => {
       routeFor(compileRoutes(archive), '/en/blog/[...page]', 'listing'),
       paginateFn,
       undefined,
+      markedRelativeUrl,
     );
     assert.deepEqual(
       pages.map((item) => item.props.path),
@@ -232,6 +243,7 @@ describe('listingPathsFor', () => {
           compiledRoute('/en/blog/[...page]', 'listing'),
           extra,
           undefined,
+          markedRelativeUrl,
         ),
       /listing "blog" in "en" emits page 5, which pairing did not publish/,
     );
