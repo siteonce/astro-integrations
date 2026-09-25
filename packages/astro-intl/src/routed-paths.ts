@@ -4,13 +4,15 @@
  */
 
 import type { PaginateFunction } from 'astro';
-import type { IntlConfig, RouteConfig } from './define-intl.ts';
+import type { IntlConfig } from './define-intl.ts';
 import { type ListingEntries, listingSelection, localePathKey } from './pairing.ts';
 import { compilePath, listingTail, localeUrlPath, normalizeSlug, patternSection } from './path.ts';
 import type { IntlQuery } from './query.ts';
 import type { CompiledRoute } from './routing.ts';
 
 type RelativeUrl = (locale: string, path?: string) => string;
+
+type RouteRow = NonNullable<IntlConfig['routes']>[number];
 
 /**
  * The compiled route for one pattern and kind.
@@ -39,7 +41,7 @@ export function entryPathsFor<T>(
   route: CompiledRoute,
 ): {
   params: { slug: string };
-  props: { locale: string; route: RouteConfig; path: string; entry: T };
+  props: { locale: string; route: RouteRow; path: string; entry: T };
 }[] {
   const row = routeRow(config, route);
   return entryDocuments(query, row, route.locale).map((doc) => ({
@@ -132,7 +134,7 @@ export function staticPathsFor<T>(
   route: CompiledRoute,
 ): {
   params: { index: undefined };
-  props: { locale: string; route: RouteConfig; path: string; entry: T | undefined };
+  props: { locale: string; route: RouteRow; path: string; entry: T | undefined };
 }[] {
   const row = routeRow(config, route);
   const path = normalizeSlug(row.slug[route.locale] ?? '');
@@ -163,7 +165,7 @@ export function missingPathsFor<T>(
   relativeUrl: RelativeUrl,
 ): {
   params: { slug: string };
-  props: { locale: string; route: RouteConfig; path: string; target: string; entry: T };
+  props: { locale: string; route: RouteRow; path: string; target: string; entry: T };
 }[] {
   const row = routeRow(config, route);
   const section = patternSection(row.slug[route.locale] ?? '');
@@ -189,7 +191,7 @@ export function missingPathsFor<T>(
   return paths;
 }
 
-function routeRow(config: IntlConfig, route: CompiledRoute): RouteConfig {
+function routeRow(config: IntlConfig, route: CompiledRoute): RouteRow {
   const row = config.routes?.[route.rowIndex];
   if (!row) {
     throw new Error(
@@ -199,7 +201,7 @@ function routeRow(config: IntlConfig, route: CompiledRoute): RouteConfig {
   return row;
 }
 
-function entryDocuments(query: IntlQuery, row: RouteConfig, locale: string) {
+function entryDocuments(query: IntlQuery, row: RouteRow, locale: string) {
   const section = patternSection(row.slug[locale] ?? '');
   const collection = row.collection;
   if (!section || !collection) return [];

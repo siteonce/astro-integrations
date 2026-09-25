@@ -14,11 +14,10 @@ export default defineIntl({
   },
   messages: { dir: 'messages' },
   // `view` and `missingView` name views. Intl injects one route per row and locale.
-  routes: routes.map(({ slug, view, collection, entry, pageSize, missingView }) => ({
+  routes: routes.map(({ slug, view, collection, pageSize, missingView }) => ({
     slug,
     view,
     ...(collection ? { collection } : {}),
-    ...(entry ? { entry } : {}),
     ...(pageSize !== undefined ? { pageSize } : {}),
     ...(missingView ? { missingView } : {}),
   })),

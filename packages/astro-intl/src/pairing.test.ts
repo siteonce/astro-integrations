@@ -1,12 +1,12 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
-import { defineIntl, intlConfigSchema, routeConfigIssues } from './define-intl.ts';
+import { type IntlConfig, intlConfigSchema, routeConfigIssues } from './define-intl.ts';
 import { id, locale, slug } from './fragments.ts';
 import { hreflangLinks } from './hreflang.ts';
 import { type CollectionEntryLike, pairCollections } from './pairing.ts';
 import { createIntlQuery } from './query.ts';
 
-const config = defineIntl({
+const config: IntlConfig = {
   locales: ['en', 'de'],
   defaultLocale: 'en',
   routing: { prefixDefaultLocale: true },
@@ -20,7 +20,7 @@ const config = defineIntl({
     blog: { slugField: 'slug' },
     authors: {},
   },
-});
+};
 
 function entry(
   collection: string,
@@ -104,6 +104,62 @@ describe('intlConfigSchema collections', () => {
       collections: { pages: { entryId: 'frontmatter', slugField: 'slug' } },
     });
     assert.equal(perCollection.success, false);
+  });
+
+  it('normalizes a collection string and { name, entry? } to the flat pair', () => {
+    const base = {
+      locales: ['en', 'de'],
+      defaultLocale: 'en',
+      routing: { prefixDefaultLocale: true },
+      collections: { blog: {} },
+    };
+    const row = { slug: { en: 'blog', de: 'artikel' }, view: 'x' };
+    const asString = intlConfigSchema.safeParse({
+      ...base,
+      routes: [{ ...row, collection: 'blog' }],
+    });
+    const asName = intlConfigSchema.safeParse({
+      ...base,
+      routes: [{ ...row, collection: { name: 'blog' } }],
+    });
+    assert.equal(asString.success, true);
+    assert.equal(asName.success, true);
+    if (!asString.success || !asName.success) return;
+    const stringRoute = asString.data.routes?.[0];
+    const nameRoute = asName.data.routes?.[0];
+    assert.equal(stringRoute?.collection, 'blog');
+    assert.equal(stringRoute?.entry, undefined);
+    assert.deepEqual(
+      { collection: stringRoute?.collection, entry: stringRoute?.entry },
+      { collection: nameRoute?.collection, entry: nameRoute?.entry },
+    );
+
+    const named = intlConfigSchema.safeParse({
+      ...base,
+      routes: [{ ...row, collection: { name: 'blog', entry: 'hello' } }],
+    });
+    assert.equal(named.success, true);
+    if (!named.success) return;
+    assert.equal(named.data.routes?.[0]?.collection, 'blog');
+    assert.equal(named.data.routes?.[0]?.entry, 'hello');
+
+    const sibling = intlConfigSchema.safeParse({
+      ...base,
+      routes: [{ ...row, collection: 'blog', entry: 'hello' }],
+    });
+    assert.equal(sibling.success, false);
+
+    const missingName = intlConfigSchema.safeParse({
+      ...base,
+      routes: [{ ...row, collection: { entry: 'hello' } }],
+    });
+    assert.equal(missingName.success, false);
+
+    const empty = intlConfigSchema.safeParse({
+      ...base,
+      routes: [{ ...row, collection: {} }],
+    });
+    assert.equal(empty.success, false);
   });
 });
 
@@ -208,14 +264,6 @@ describe('routeConfigIssues', () => {
     assert.ok(issues.some((issue) => issue === '{slug} pattern has no collection'));
   });
 
-  it('rejects an entry with no collection', () => {
-    const issues = routeConfigIssues({
-      locales,
-      routes: [{ slug: { en: '/', de: '/' }, view: 'x', entry: 'home' }],
-    });
-    assert.ok(issues.some((issue) => issue === 'entry row has no collection'));
-  });
-
   it('rejects a repeated section in one locale', () => {
     const issues = routeConfigIssues({
       locales,
@@ -315,7 +363,7 @@ describe('pairCollections', () => {
   });
 
   it('aborts when an entry row path equals a compiled leaf', () => {
-    const clash = defineIntl({
+    const clash: IntlConfig = {
       locales: ['en', 'de'],
       defaultLocale: 'en',
       routing: { prefixDefaultLocale: true },
@@ -329,7 +377,7 @@ describe('pairCollections', () => {
         },
       ],
       collections: { blog: { slugField: 'slug' }, pages: {} },
-    });
+    };
     assert.throws(
       () =>
         pairCollections(clash, {
@@ -358,12 +406,12 @@ describe('pairCollections', () => {
   });
 
   it('aborts when slugField has no {slug} row', () => {
-    const bare = defineIntl({
+    const bare: IntlConfig = {
       locales: ['en', 'de'],
       defaultLocale: 'en',
       routing: { prefixDefaultLocale: true },
       collections: { blog: { slugField: 'slug' } },
-    });
+    };
     assert.throws(
       () => pairCollections(bare, { blog: [] }),
       /collections\.blog has no \{slug\} row/,
@@ -484,7 +532,7 @@ describe('pairCollections', () => {
 });
 
 describe('pairCollections field id', () => {
-  const fieldConfig = defineIntl({
+  const fieldConfig: IntlConfig = {
     locales: ['en', 'de'],
     defaultLocale: 'en',
     routing: { prefixDefaultLocale: true },
@@ -497,7 +545,7 @@ describe('pairCollections field id', () => {
       pages: {},
       blog: { slugField: 'slug' },
     },
-  });
+  };
 
   it('pairs siblings as collection/id and allows the same id in two collections', () => {
     const paired = pairCollections(fieldConfig, {
@@ -568,7 +616,7 @@ describe('pairCollections field id', () => {
   });
 
   it('reads custom idField and localeField', () => {
-    const custom = defineIntl({
+    const custom: IntlConfig = {
       locales: ['en', 'de'],
       defaultLocale: 'en',
       routing: { prefixDefaultLocale: true },
@@ -576,7 +624,7 @@ describe('pairCollections field id', () => {
       collections: {
         pages: { idField: 'docId', localeField: 'lang' },
       },
-    });
+    };
     const paired = pairCollections(custom, {
       pages: [entry('pages', 'home-en', { docId: 'home', lang: 'en' })],
     });
@@ -666,7 +714,7 @@ describe('query helpers', () => {
 });
 
 describe('query helpers collection/id', () => {
-  const fieldConfig = defineIntl({
+  const fieldConfig: IntlConfig = {
     locales: ['en', 'de'],
     defaultLocale: 'en',
     routing: { prefixDefaultLocale: true },
@@ -678,7 +726,7 @@ describe('query helpers collection/id', () => {
       blog: { slugField: 'slug' },
       tags: { slugField: 'slug' },
     },
-  });
+  };
   const collections = {
     blog: [
       entry('blog', 'hello-world/en', { id: 'hello-world', locale: 'en', slug: 'hello-world' }),
@@ -732,7 +780,7 @@ describe('query helpers collection/id', () => {
 });
 
 describe('published tails with no entry', () => {
-  const tailConfig = defineIntl({
+  const tailConfig: IntlConfig = {
     locales: ['en', 'de'],
     defaultLocale: 'en',
     routing: { prefixDefaultLocale: true },
@@ -742,7 +790,7 @@ describe('published tails with no entry', () => {
       { slug: { en: 'blog/{slug}', de: 'artikel/{slug}' }, view: 'x', collection: 'blog' },
     ],
     collections: { blog: { slugField: 'slug' } },
-  });
+  };
   const blog = [
     entry('blog', 'hello-en', { id: 'hello-world', locale: 'en', slug: 'hello-world' }),
     entry('blog', 'hello-de', { id: 'hello-world', locale: 'de', slug: 'hallo-welt' }),
@@ -800,7 +848,7 @@ describe('published tails with no entry', () => {
   });
 
   it('publishes an entry row at the written tail and does not reuse its slug', () => {
-    const imprint = defineIntl({
+    const imprint: IntlConfig = {
       locales: ['en', 'de'],
       defaultLocale: 'en',
       routing: { prefixDefaultLocale: true },
@@ -814,7 +862,7 @@ describe('published tails with no entry', () => {
         { slug: { en: 'pages/{slug}', de: 'seiten/{slug}' }, view: 'x', collection: 'pages' },
       ],
       collections: { pages: { slugField: 'slug' } },
-    });
+    };
     const paired = pairCollections(imprint, {
       pages: [
         entry('pages', 'imprint-en', { id: 'imprint', locale: 'en', slug: 'legal' }),
@@ -834,7 +882,7 @@ describe('published tails with no entry', () => {
   });
 
   it('publishes one tail when {slug} names an entry', () => {
-    const careers = defineIntl({
+    const careers: IntlConfig = {
       locales: ['en', 'de'],
       defaultLocale: 'en',
       routing: { prefixDefaultLocale: true },
@@ -847,7 +895,7 @@ describe('published tails with no entry', () => {
         },
       ],
       collections: { pages: { slugField: 'slug' } },
-    });
+    };
     const paired = pairCollections(careers, {
       pages: [
         entry('pages', 'designer-en', { id: 'designer', locale: 'en', slug: 'designer' }),
@@ -878,7 +926,7 @@ describe('published tails with no entry', () => {
         entry('blog', `de-${index}`, { id: `de-${index}`, locale: 'de', slug: `de-${index}` }),
       );
     }
-    const paged = defineIntl({
+    const paged: IntlConfig = {
       locales: ['en', 'de'],
       defaultLocale: 'en',
       routing: { prefixDefaultLocale: true },
@@ -887,7 +935,7 @@ describe('published tails with no entry', () => {
         { slug: { en: 'blog/{slug}', de: 'artikel/{slug}' }, view: 'x', collection: 'blog' },
       ],
       collections: { blog: { slugField: 'slug' } },
-    });
+    };
     const query = createIntlQuery({
       config: paged,
       collections: { blog: posts },
@@ -948,7 +996,7 @@ describe('published tails with no entry', () => {
         status: 'published',
       }),
     );
-    const paged = defineIntl({
+    const paged: IntlConfig = {
       locales: ['en', 'de'],
       defaultLocale: 'en',
       routing: { prefixDefaultLocale: true },
@@ -957,7 +1005,7 @@ describe('published tails with no entry', () => {
         { slug: { en: 'blog/{slug}', de: 'artikel/{slug}' }, view: 'x', collection: 'blog' },
       ],
       collections: { blog: { slugField: 'slug' } },
-    });
+    };
     const paired = pairCollections(paged, { blog: posts }, [], (_collection, locale, entries) =>
       entries.filter((item) => item.data.locale === locale && item.data.status !== 'draft'),
     );
@@ -973,7 +1021,7 @@ describe('published tails with no entry', () => {
         entry('blog', `en-${index}`, { id: `en-${index}`, locale: 'en', slug: `en-${index}` }),
       );
     }
-    const paged = defineIntl({
+    const paged: IntlConfig = {
       locales: ['en', 'de'],
       defaultLocale: 'en',
       routing: { prefixDefaultLocale: true },
@@ -982,7 +1030,7 @@ describe('published tails with no entry', () => {
         { slug: { en: 'blog/{slug}', de: 'artikel/{slug}' }, view: 'x', collection: 'blog' },
       ],
       collections: { blog: { slugField: 'slug' } },
-    });
+    };
     assert.throws(
       () => pairCollections(paged, { blog: posts }),
       /entry slug "2" matches published page 2 on section "blog"/,
@@ -990,7 +1038,7 @@ describe('published tails with no entry', () => {
   });
 
   it('keeps a numeric slug when that page number is not published', () => {
-    const paged = defineIntl({
+    const paged: IntlConfig = {
       locales: ['en', 'de'],
       defaultLocale: 'en',
       routing: { prefixDefaultLocale: true },
@@ -999,7 +1047,7 @@ describe('published tails with no entry', () => {
         { slug: { en: 'blog/{slug}', de: 'artikel/{slug}' }, view: 'x', collection: 'blog' },
       ],
       collections: { blog: { slugField: 'slug' } },
-    });
+    };
     const paired = pairCollections(paged, {
       blog: [entry('blog', 'two', { id: 'two', locale: 'en', slug: '2' })],
     });
@@ -1017,7 +1065,7 @@ describe('published tails with no entry', () => {
         entry('blog', `en-${index}`, { id: `en-${index}`, locale: 'en', slug: `en-${index}` }),
       );
     }
-    const once = defineIntl({
+    const once: IntlConfig = {
       locales: ['en', 'de'],
       defaultLocale: 'en',
       routing: { prefixDefaultLocale: true },
@@ -1026,13 +1074,13 @@ describe('published tails with no entry', () => {
         { slug: { en: 'blog/{slug}', de: 'artikel/{slug}' }, view: 'x', collection: 'blog' },
       ],
       collections: { blog: { slugField: 'slug' } },
-    });
+    };
     const paired = pairCollections(once, { blog: posts });
     assert.deepEqual(paired.tails.map((item) => item.path).sort(), ['artikel', 'blog']);
   });
 
   it('aborts when a tail collides with an entry', () => {
-    const clash = defineIntl({
+    const clash: IntlConfig = {
       locales: ['en', 'de'],
       defaultLocale: 'en',
       routing: { prefixDefaultLocale: true },
@@ -1041,7 +1089,7 @@ describe('published tails with no entry', () => {
         { slug: { en: 'blog/{slug}', de: 'artikel/{slug}' }, view: 'x', collection: 'blog' },
       ],
       collections: { blog: { slugField: 'slug' } },
-    });
+    };
     assert.throws(
       () => pairCollections(clash, { blog }),
       /\(locale, path\) "en" \/ "blog\/hello-world" collides/,

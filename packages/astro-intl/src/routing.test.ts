@@ -1,14 +1,14 @@
 import assert from 'node:assert/strict';
 import { join } from 'node:path';
 import { describe, it } from 'node:test';
-import { defineIntl } from './define-intl.ts';
+import type { IntlConfig } from './define-intl.ts';
 import { compileRoutes, viewEntrypoint } from './routing.ts';
 
 const locales = ['en', 'de'] as const;
 
 describe('compileRoutes', () => {
   it('compiles prefixed rows to patterns', () => {
-    const config = defineIntl({
+    const config: IntlConfig = {
       locales: [...locales],
       defaultLocale: 'en',
       routing: { prefixDefaultLocale: true },
@@ -32,7 +32,7 @@ describe('compileRoutes', () => {
           view: 'career',
         },
       ],
-    });
+    };
 
     assert.deepEqual(compileRoutes(config), [
       { pattern: '/en/[...index]', view: 'home', locale: 'en', rowIndex: 0, kind: 'static' },
@@ -73,7 +73,7 @@ describe('compileRoutes', () => {
   });
 
   it('drops the default-locale prefix and emits a missing route for other locales', () => {
-    const config = defineIntl({
+    const config: IntlConfig = {
       locales: ['de', 'en'],
       defaultLocale: 'en',
       routing: { prefixDefaultLocale: false },
@@ -87,7 +87,7 @@ describe('compileRoutes', () => {
           missingView: 'missing',
         },
       ],
-    });
+    };
 
     assert.deepEqual(compileRoutes(config), [
       { pattern: '/de/[...index]', view: 'home', locale: 'de', rowIndex: 0, kind: 'static' },
@@ -113,7 +113,7 @@ describe('compileRoutes', () => {
   });
 
   it('emits nothing for a locale with no slug or no view', () => {
-    const config = defineIntl({
+    const config: IntlConfig = {
       locales: [...locales],
       defaultLocale: 'en',
       routing: { prefixDefaultLocale: true },
@@ -121,7 +121,7 @@ describe('compileRoutes', () => {
         { slug: { en: 'about' }, view: 'about' },
         { slug: { en: 'blog', de: 'artikel' }, view: { en: 'blog' } },
       ],
-    });
+    };
 
     assert.deepEqual(compileRoutes(config), [
       { pattern: '/en/about/[...index]', view: 'about', locale: 'en', rowIndex: 0, kind: 'static' },
@@ -130,7 +130,7 @@ describe('compileRoutes', () => {
   });
 
   it('throws when one kind repeats a pattern', () => {
-    const config = defineIntl({
+    const config: IntlConfig = {
       locales: [...locales],
       defaultLocale: 'en',
       routing: { prefixDefaultLocale: true },
@@ -140,7 +140,7 @@ describe('compileRoutes', () => {
         { slug: { en: 'skip', de: 'weiter' }, view: 'c' },
         { slug: { en: 'about', de: 'ueber-uns' }, view: 'd' },
       ],
-    });
+    };
 
     assert.throws(() => compileRoutes(config), {
       message: '@repo/astro-intl: route pattern "/en/about/[...index]" repeats (rows 0 and 3).',

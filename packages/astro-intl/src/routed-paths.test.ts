@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 import type { PaginateFunction } from 'astro';
-import { defineIntl, type IntlConfig, type RouteConfig } from './define-intl.ts';
+import type { IntlConfig } from './define-intl.ts';
 import type { CollectionEntryLike } from './pairing.ts';
 import { createIntlQuery, type IntlQuery } from './query.ts';
 import {
@@ -12,6 +12,8 @@ import {
   staticPathsFor,
 } from './routed-paths.ts';
 import { type CompiledRoute, compileRoutes } from './routing.ts';
+
+type RouteRow = NonNullable<IntlConfig['routes']>[number];
 
 function entry(astroId: string, data: Record<string, unknown>): CollectionEntryLike {
   return { id: astroId, collection: 'blog', data };
@@ -24,7 +26,7 @@ const solo = entry('solo-en', { id: 'solo', locale: 'en', slug: 'solo' });
 const mehr = entry('mehr-de', { id: 'mehr', locale: 'de', slug: 'mehr' });
 const clash = entry('clash-en', { id: 'clash', locale: 'en', slug: 'mehr' });
 
-const config = defineIntl({
+const config: IntlConfig = {
   locales: ['en', 'de'],
   defaultLocale: 'en',
   routing: { prefixDefaultLocale: true },
@@ -45,7 +47,7 @@ const config = defineIntl({
     },
   ],
   collections: { blog: { slugField: 'slug' } },
-});
+};
 
 const blog = [pin, alphaEn, alphaDe, solo, mehr, clash];
 
@@ -68,7 +70,7 @@ function markedRelativeUrl(locale: string, path = ''): string {
 
 function paginate(
   data: readonly unknown[],
-  args: { pageSize: number; props: { locale: string; route: RouteConfig } },
+  args: { pageSize: number; props: { locale: string; route: RouteRow } },
 ) {
   const lastPage = Math.max(1, Math.ceil(data.length / args.pageSize));
   return Array.from({ length: lastPage }, (_, index) => {
@@ -155,13 +157,13 @@ describe('listingPathsFor', () => {
   });
 
   it('numbers a root listing from the bare page', () => {
-    const home = defineIntl({
+    const home: IntlConfig = {
       locales: ['en', 'de'],
       defaultLocale: 'en',
       routing: { prefixDefaultLocale: false },
       routes: [{ slug: { en: '/', de: '/' }, view: 'home', collection: 'posts', pageSize: 1 }],
       collections: { posts: {} },
-    });
+    };
     const posts = [
       { id: 'a', collection: 'posts', data: { id: 'a', locale: 'en' } },
       { id: 'b', collection: 'posts', data: { id: 'b', locale: 'en' } },
@@ -187,7 +189,7 @@ describe('listingPathsFor', () => {
   });
 
   it('does not count another row’s numeric tail under the listing', () => {
-    const archive = defineIntl({
+    const archive: IntlConfig = {
       locales: ['en'],
       defaultLocale: 'en',
       routing: { prefixDefaultLocale: true },
@@ -196,7 +198,7 @@ describe('listingPathsFor', () => {
         { slug: { en: 'blog/2024' }, view: 'archive' },
       ],
       collections: { blog: {} },
-    });
+    };
     const query = createIntlQuery({
       config: archive,
       collections: { blog: [entry('a-en', { id: 'a', locale: 'en' })] },
@@ -219,7 +221,7 @@ describe('listingPathsFor', () => {
   it('throws when paginate emits a page pairing did not publish', () => {
     const extra = ((
       data: readonly unknown[],
-      args: { pageSize: number; props: { locale: string; route: RouteConfig } },
+      args: { pageSize: number; props: { locale: string; route: RouteRow } },
     ) => {
       const pages = paginate(data, args);
       const last = pages.at(-1);

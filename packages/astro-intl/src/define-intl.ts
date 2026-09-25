@@ -11,19 +11,62 @@ export const collectionConfigSchema = z.strictObject({
 
 export type CollectionConfig = z.infer<typeof collectionConfigSchema>;
 
-export const routeConfigSchema = z.strictObject({
-  collection: z.string().min(1).optional(),
+const collectionRefSchema = z.union([
+  z.string().min(1),
+  z.strictObject({
+    name: z.string().min(1),
+    entry: z.string().min(1).optional(),
+  }),
+]);
+
+const routeAuthoringSchema = z.strictObject({
+  /** Collection key, or `{ name, entry? }` with the pairing id. */
+  collection: collectionRefSchema.optional(),
   slug: z.record(z.string(), z.string()),
   /** View name, or one name per locale. */
   view: z.union([z.string().min(1), z.record(z.string(), z.string().min(1))]),
-  entry: z.string().min(1).optional(),
   /** Entries in one chunk of a collection tail. Omitted, the row is that one tail. */
   pageSize: z.number().int().positive().optional(),
   /** View for a locale that has no translation. Only on a `{slug}` row. */
   missingView: z.string().min(1).optional(),
 });
 
-export type RouteConfig = z.infer<typeof routeConfigSchema>;
+type CollectionRef = string | { name: string; entry?: string | undefined };
+
+/** Collection key and optional pairing id. Checkers and pairing read this shape. */
+type FlatRoute = {
+  slug: Record<string, string>;
+  view: string | Record<string, string>;
+  collection?: string | undefined;
+  entry?: string | undefined;
+  pageSize?: number | undefined;
+  missingView?: string | undefined;
+};
+
+function flattenRoute(route: {
+  slug: FlatRoute['slug'];
+  view: FlatRoute['view'];
+  collection?: CollectionRef | undefined;
+  pageSize?: number | undefined;
+  missingView?: string | undefined;
+}): FlatRoute {
+  const { collection, slug, view, pageSize, missingView } = route;
+  const flat: FlatRoute = { slug, view };
+  if (pageSize !== undefined) flat.pageSize = pageSize;
+  if (missingView !== undefined) flat.missingView = missingView;
+  if (typeof collection === 'object' && collection !== null) {
+    flat.collection = collection.name;
+    if (collection.entry !== undefined) flat.entry = collection.entry;
+    return flat;
+  }
+  if (collection !== undefined) flat.collection = collection;
+  return flat;
+}
+
+export const routeConfigSchema = routeAuthoringSchema.transform((route) => flattenRoute(route));
+
+/** Route row an app writes. A sibling `entry` key is not part of this shape. */
+export type RouteConfig = z.input<typeof routeConfigSchema>;
 
 type RouteRule = {
   slug: Readonly<Record<string, string>>;
@@ -102,7 +145,6 @@ export function routeConfigIssues(config: RouteRulesConfig): string[] {
     if (sizeIssue) issues.push(sizeIssue);
 
     if (!route.collection) {
-      if (route.entry) issues.push('entry row has no collection');
       if (route.pageSize !== undefined) issues.push('pageSize requires a collection tail');
       for (const locale of config.locales) {
         if (!(locale in route.slug)) {
@@ -233,8 +275,28 @@ export const intlConfigSchema = z
 
 export type IntlConfig = z.infer<typeof intlConfigSchema>;
 
+export type IntlConfigInput = z.input<typeof intlConfigSchema>;
+
+/**
+ * Stores a collection object as its key and optional pairing id.
+ * A config that is already that pair is returned unchanged.
+ */
+export function flattenIntlConfig(config: IntlConfigInput | IntlConfig): IntlConfig {
+  if (
+    !config.routes?.some(
+      (route) => typeof route.collection === 'object' && route.collection !== null,
+    )
+  ) {
+    return config as IntlConfig;
+  }
+  return {
+    ...config,
+    routes: config.routes.map((route) => flattenRoute(route)),
+  } as IntlConfig;
+}
+
 /** Typed helper for `src/intl.config.ts`. Validation runs when `astroIntl()` loads the file. */
-export function defineIntl(config: IntlConfig): IntlConfig {
+export function defineIntl(config: IntlConfigInput): IntlConfigInput {
   return config;
 }
 
