@@ -70,17 +70,15 @@ const switcher = kit.switcher(alternates);
 const { default: Page } = await loadRoutedPage(pageName(route, locale));
 ---
 
-{
-  entry ? (
-    <Page
-      locale={locale}
-      path={path}
-      route={route}
-      switcher={switcher}
-      kit={kit}
-      entry={entry as never}
-    />
-  ) : (
-    <Page locale={locale} path={path} route={route} switcher={switcher} kit={kit} />
-  )
-}
+{entry ? (
+  <Page
+    locale={locale}
+    path={path}
+    route={route}
+    switcher={switcher}
+    kit={kit}
+    entry={entry as never}
+  />
+) : (
+  <Page locale={locale} path={path} route={route} switcher={switcher} kit={kit} />
+)}

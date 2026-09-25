@@ -64,13 +64,11 @@ const items = await Promise.all(page.data.map((post) => kit.postItem(post)));
       <p>{description}</p>
     </Hero>
     <PostList items={items} />
-    {
-      (page.url.prev !== undefined || page.url.next !== undefined) && (
-        <nav>
-          {page.url.prev !== undefined && <a href={page.url.prev}>{t('blog.previous')}</a>}
-          {page.url.next !== undefined && <a href={page.url.next}>{t('blog.next')}</a>}
-        </nav>
-      )
-    }
+    {(page.url.prev !== undefined || page.url.next !== undefined) && (
+      <nav>
+        {page.url.prev !== undefined && <a href={page.url.prev}>{t('blog.previous')}</a>}
+        {page.url.next !== undefined && <a href={page.url.next}>{t('blog.next')}</a>}
+      </nav>
+    )}
   </main>
 </SiteLayout>

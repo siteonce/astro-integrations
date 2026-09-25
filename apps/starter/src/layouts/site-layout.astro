@@ -41,23 +41,21 @@ const { class: bodyClass, 'class:list': bodyClassList, ...bodyRest } = body ?? {
   <header>
     <nav class="measure measure-size-wide mx-auto" aria-label={t('chrome.localeSwitcher')}>
       <ul>
-        {
-          switcher.map((item) => (
-            <li>
-              {item.locale === locale ? (
-                <span aria-current="page">{t(`locale.${item.locale}`)}</span>
-              ) : item.href ? (
-                <a href={item.href} hreflang={item.locale} lang={item.locale}>
-                  {t(`locale.${item.locale}`)}
-                </a>
-              ) : (
-                <span aria-disabled="true" lang={item.locale}>
-                  {t(`locale.${item.locale}`)}
-                </span>
-              )}
-            </li>
-          ))
-        }
+        {switcher.map((item) => (
+          <li>
+            {item.locale === locale ? (
+              <span aria-current="page">{t(`locale.${item.locale}`)}</span>
+            ) : item.href ? (
+              <a href={item.href} hreflang={item.locale} lang={item.locale}>
+                {t(`locale.${item.locale}`)}
+              </a>
+            ) : (
+              <span aria-disabled="true" lang={item.locale}>
+                {t(`locale.${item.locale}`)}
+              </span>
+            )}
+          </li>
+        ))}
       </ul>
     </nav>
   </header>

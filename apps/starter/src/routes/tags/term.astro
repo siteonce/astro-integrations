@@ -62,9 +62,7 @@ const items = await Promise.all(posts.map((post) => kit.postItem(post)));
   </Fragment>
 
   <main class="measure measure-size-wide mx-auto flow flow-4">
-    <Hero title={title}>
-      {Content ? <Content /> : <p>{description}</p>}
-    </Hero>
+    <Hero title={title}>{Content ? <Content /> : <p>{description}</p>}</Hero>
     <PostList items={items} />
   </main>
 </SiteLayout>
