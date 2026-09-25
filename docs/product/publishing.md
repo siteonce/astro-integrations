@@ -1,22 +1,30 @@
 # Publishing
 
-Who emits URLs. Intl joins entries. The app lists the pages. Astro matches the file. Contract for joining: [`intl.md`](intl.md).
+Who emits URLs. Intl joins entries and injects one route per row and locale. Each routed page lists its own URLs. Contract for joining and injection: [`intl.md`](intl.md).
 
 ## Content URLs
 
-List helpers return pairing (`locale` + `slug`), not route params. The app’s `getStaticPaths` maps those to params, one pair per published tail, including a numbered listing tail. Homepage `/` maps to no path param.
+There is no catch-all. Each routed page’s `getStaticPaths` returns intl’s helper for its route: one path per URL that locale publishes, including each numbered listing page. A locale that does not publish a row’s tail gets no page: no file in the build, a 404 in dev.
 
-The catch-all file is `[locale]/[...path].astro`. The listing page builds the page object for its chunk. `paginate()` does not publish these tails.
+Listing pages come from Astro’s `paginate()`. Intl rebuilds each page’s `page.url` through `astro:i18n`, so pager links match every other link.
 
 A **section** is per locale. On a `{slug}` row the entry `slug` is the leaf after that section. A pathnames map or `routing: "manual"` is an explicit request, not the default.
 
-Reserved tails come from Astro’s resolved routes, plus any the app names. The catch-all is ignored. A file route wins over a paired entry on the same tail. A dummy file route is not required to prove a reserved tail.
+Reserved tails come from Astro’s resolved routes, plus any the app names. Intl’s own injected routes reserve nothing, and neither does a file route with a dynamic segment after `[locale]`. A paired entry on a reserved tail aborts the build. A file route that would serve a URL an injected route emits aborts startup. A dummy file route is not required to prove a reserved tail.
 
 ## Missing entry
 
-The app owns a path whose entry is absent. Intl returns the default-locale entry at that same tail. The app chooses the redirect or not-found.
+A `{slug}` row names the app’s missing page (`missingPage`), or none. Intl publishes it in each other locale for default-locale entries without a sibling there, and passes the default-locale entry and its URL. The app chooses the redirect or a notice. Without `missingPage`, those URLs 404.
+
+The starter redirects to the default-locale entry. A static build writes a meta refresh with `noindex` and a canonical to the target. Dev answers with a 302.
 
 A published tail with no entry is still a URL.
+
+## URL form
+
+The starter sets `trailingSlash: "always"`. Intl builds every URL through `astro:i18n`, so links follow `trailingSlash` and `build.format`. Intl warns at startup when the two disagree.
+
+A URL typed in the other form is the host’s to redirect. Customers’ hosts are unknown, so the snapshot ships no redirect rules. Dev answers it with Astro’s 404 page, which links to the right form. Every page names its address with a canonical link, so a host that serves both forms creates no duplicate pages for search engines.
 
 ## Sitemap
 

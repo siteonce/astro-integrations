@@ -22,7 +22,7 @@ A snapshot monorepo that is the foundation for every Astro **content site** buil
 
 ### Packages
 
-**astro-intl**: Workspace package `@repo/astro-intl` — **catalogs**, collection pairing, locale list written through to Astro `i18n`. Factory `astroIntl()`.
+**astro-intl**: Workspace package `@repo/astro-intl` — **catalogs**, collection pairing, route injection, locale list written through to Astro `i18n`. Factory `astroIntl()`.
 
 **astro-intl-sitemap**: Workspace package `@repo/astro-intl-sitemap` — printer glue the app passes into `@astrojs/sitemap`.
 
@@ -66,6 +66,8 @@ A snapshot monorepo that is the foundation for every Astro **content site** buil
 
 **entry**: One item in a collection. Locale siblings share one pairing `id`. _Avoid_: document; a **routed page** that no collection claims
 
+**missing page**: The **routed page** a `{slug}` row names in `missingPage` for a locale without a translation. It receives the default-locale entry and its URL. Omitted, those URLs 404. _Avoid_: fallback, redirect page (it may show a notice)
+
 **record**: A translated **entry** with no public URL. _Avoid_: routed (for this)
 
 **relation**: A pointer from an entry to another collection by pairing `id`. Authored as that id string; after parse `{ target, id }`, where `target` is the collection name. Resolve uses the current locale. _Avoid_: `reference()` (for this helper); treating Astro’s collection file id as the stored pointer
@@ -94,7 +96,7 @@ A snapshot monorepo that is the foundation for every Astro **content site** buil
 
 **Astro page**: A file under `src/pages/` that Astro publishes as a route. _Avoid_: **routed page**
 
-**routed page**: A page the app’s route row selects. It lives under `src/routes/`; the row names it by its path there (`blog/post`). The rows live in `src/routes.config.ts`. _Avoid_: template, page component, **Astro page**, document
+**routed page**: A page the app’s route row names. It lives under `src/routes/`; the row names it by its path there (`blog/post`). The rows live in `src/routes.config.ts`. `astroIntl()` injects it as an Astro route for each locale, and its own `getStaticPaths` lists its URLs. _Avoid_: template, page component, **Astro page**, document, catch-all
 
 **`SiteLayout`**: The starter chrome component around **BaseLayout**.
 
