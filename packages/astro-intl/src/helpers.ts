@@ -1,3 +1,4 @@
+import type { PaginateFunction } from 'astro';
 import {
   type CollectionEntryLike,
   currentListingEntries,
@@ -18,6 +19,14 @@ import {
   relatedTargetNames,
   resolveRelation,
 } from './relation.ts';
+import {
+  entryPathsFor,
+  listingPathsFor,
+  missingPathsFor,
+  routeFor,
+  staticPathsFor,
+} from './routed-paths.ts';
+import { type CompiledRoute, compileRoutes } from './routing.ts';
 import { getIntlRuntime, runtimeGeneration } from './runtime.ts';
 
 export { hreflangLinks } from './hreflang.ts';
@@ -32,6 +41,8 @@ export type IntlLoaders = {
 let loadersOverride: IntlLoaders | undefined;
 let cached: IntlQuery | undefined;
 let cachedGeneration = -1;
+let cachedRoutes: CompiledRoute[] | undefined;
+let cachedRoutesGeneration = -1;
 
 export function setIntlLoaders(loaders: IntlLoaders | undefined): void {
   loadersOverride = loaders;
@@ -70,6 +81,14 @@ async function loadNamedCollection(
   } catch {
     throw new Error(`@repo/astro-intl: collections.${name} is not a content collection.`);
   }
+}
+
+function compiledRoutes(): CompiledRoute[] {
+  const generation = runtimeGeneration();
+  if (cachedRoutes && cachedRoutesGeneration === generation) return cachedRoutes;
+  cachedRoutes = compileRoutes(getIntlRuntime().config);
+  cachedRoutesGeneration = generation;
+  return cachedRoutes;
 }
 
 async function loadQuery(): Promise<IntlQuery> {
@@ -164,4 +183,39 @@ export async function getDocumentHead(args: {
   path: string;
 }): Promise<DocumentHead> {
   return (await loadQuery()).getDocumentHead(args);
+}
+
+/** Leaf paths for the injected `{slug}` route at `routePattern`. */
+export async function entryPaths<T>(routePattern: string) {
+  const query = await loadQuery();
+  const route = routeFor(compiledRoutes(), routePattern, 'entry');
+  return entryPathsFor<T>(getIntlRuntime().config, query, route);
+}
+
+/** Paginated paths for the injected listing route at `routePattern`. */
+export async function listingPaths<T>(routePattern: string, paginate: PaginateFunction) {
+  const query = await loadQuery();
+  const route = routeFor(compiledRoutes(), routePattern, 'listing');
+  return listingPathsFor<T>(
+    getIntlRuntime().config,
+    query,
+    route,
+    paginate,
+    currentListingEntries(),
+  );
+}
+
+/** The static path for the injected route at `routePattern`, or none. */
+export async function staticPaths<T>(routePattern: string) {
+  const query = await loadQuery();
+  const route = routeFor(compiledRoutes(), routePattern, 'static');
+  return staticPathsFor<T>(getIntlRuntime().config, query, route);
+}
+
+/** Missing-translation paths for the injected route at `routePattern`. */
+export async function missingPaths<T>(routePattern: string) {
+  const query = await loadQuery();
+  const route = routeFor(compiledRoutes(), routePattern, 'missing');
+  const { getRelativeLocaleUrl } = await import('astro:i18n');
+  return missingPathsFor<T>(getIntlRuntime().config, query, route, getRelativeLocaleUrl);
 }

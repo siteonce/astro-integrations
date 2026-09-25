@@ -21,6 +21,8 @@ function reservedTails(): string[] {
 }
 
 export function setIntlConfig(next: IntlConfig | undefined): void {
+  // Replacing the object rebuilds pairing. The same object does not.
+  if (next === config) return;
   config = next;
   generation += 1;
 }

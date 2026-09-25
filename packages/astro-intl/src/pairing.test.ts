@@ -125,7 +125,12 @@ describe('routeConfigIssues', () => {
     const issues = routeConfigIssues({
       locales,
       routes: [
-        { slug: { en: 'blog/{slug}', de: 'artikel/{slug}' }, page: 'x', collection: 'blog' },
+        {
+          slug: { en: 'blog/{slug}', de: 'artikel/{slug}' },
+          page: 'x',
+          collection: 'blog',
+          missingPage: 'missing',
+        },
         { slug: { en: 'hello', de: 'hallo' }, page: 'x', collection: 'blog', entry: 'hello' },
       ],
       collections: { blog: { slugField: 'slug' } },
@@ -229,6 +234,30 @@ describe('routeConfigIssues', () => {
     assert.equal(
       issues.some((issue) => issue.includes('artikel') || issue.includes('schlagworte')),
       false,
+    );
+  });
+
+  it('rejects missingPage on a row without {slug}', () => {
+    const issues = routeConfigIssues({
+      locales,
+      routes: [{ slug: { en: 'about', de: 'ueber' }, page: 'about', missingPage: 'missing' }],
+    });
+    assert.ok(issues.some((issue) => issue === 'missingPage needs a {slug} row'));
+
+    const named = routeConfigIssues({
+      locales,
+      routes: [
+        {
+          slug: { en: 'blog/{slug}', de: 'artikel/{slug}' },
+          page: 'post',
+          collection: 'blog',
+          missingPage: 'missing.astro',
+        },
+      ],
+      collections: { blog: { slugField: 'slug' } },
+    });
+    assert.ok(
+      named.some((issue) => issue === 'routed page "missing.astro" includes a file extension'),
     );
   });
 

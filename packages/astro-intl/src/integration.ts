@@ -2,10 +2,11 @@
  * Astro integration entry — named (and default) export `astroIntl()`.
  * Loads `src/intl.config.ts`, writes locale list and prefix policy through to
  * Astro `i18n`, and checks catalog files. Injects one route per compiled route
- * row and locale. Entrypoints are the routed pages under `src/routes/`, plus a
- * missing-translation redirect. Records reserved file-route tails for pairing
- * collisions, excluding those injected routes. Does not load catalog JSON and
- * does not create a virtual module.
+ * row and locale. Entrypoints are the routed pages under `src/routes/`. A row's
+ * missing page is injected for locales without a translation, and nothing is
+ * injected when the row names none. Records reserved file-route tails for
+ * pairing collisions, excluding those injected routes. Does not load catalog
+ * JSON and does not create a virtual module.
  */
 
 import { existsSync } from 'node:fs';
@@ -29,6 +30,7 @@ export {
 export { id, locale, slug } from './fragments.ts';
 export type { DocumentHead, PairedSlug, SitemapEntry } from './helpers.ts';
 export {
+  entryPaths,
   getAlternatePaths,
   getAlternatePathsForPath,
   getContentById,
@@ -39,7 +41,10 @@ export {
   getSitemapEntries,
   hreflangLinks,
   type ListingEntries,
+  listingPaths,
+  missingPaths,
   setListingEntries,
+  staticPaths,
 } from './helpers.ts';
 export { leafSlug } from './locale-section.ts';
 export type { LocaleSwitcherLink } from './locale-switcher.ts';
@@ -151,9 +156,6 @@ export function astroIntl(): AstroIntegration {
 
         setIntlConfig(intlConfig);
 
-        const redirectEntrypoint = fileURLToPath(
-          new URL('./routing/redirect.astro', import.meta.url),
-        );
         const srcDir = fileURLToPath(config.srcDir);
         const entrypointForPage = new Map<string, string>();
         const entrypoints = new Set<string>();
@@ -161,15 +163,10 @@ export function astroIntl(): AstroIntegration {
         try {
           compiled = compileRoutes(intlConfig);
           for (const route of compiled) {
-            let entrypoint = redirectEntrypoint;
-            if (route.kind !== 'redirect') {
-              const cached = entrypointForPage.get(route.page);
-              if (cached !== undefined) {
-                entrypoint = cached;
-              } else {
-                entrypoint = routedPageEntrypoint(srcDir, route.page, existsSync);
-                entrypointForPage.set(route.page, entrypoint);
-              }
+            let entrypoint = entrypointForPage.get(route.page);
+            if (entrypoint === undefined) {
+              entrypoint = routedPageEntrypoint(srcDir, route.page, existsSync);
+              entrypointForPage.set(route.page, entrypoint);
             }
             injectRoute({ pattern: route.pattern, entrypoint });
             entrypoints.add(entrypoint);

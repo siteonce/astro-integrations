@@ -243,7 +243,7 @@ export default { integrations: [sitemap({ i18n: { defaultLocale: 'en', locales: 
   routing: { prefixDefaultLocale: true },
   routes: [
     { slug: { en: 'about', de: 'ueber' }, page: 'about' },
-    { slug: { en: 'blog/{slug}', de: 'artikel/{slug}' }, collection: 'blog', page: 'post' },
+    { slug: { en: 'blog/{slug}', de: 'artikel/{slug}' }, collection: 'blog', page: 'post', missingPage: 'missing' },
     { slug: { en: 'blog', de: 'artikel' }, collection: 'blog', pageSize: 10, page: 'blog' },
   ],
   collections: { blog: { slugField: 'slug' } },
@@ -253,13 +253,12 @@ export default { integrations: [sitemap({ i18n: { defaultLocale: 'en', locales: 
     await writeCatalogs(srcDir, ['en', 'de']);
     const routesDir = path.join(srcDir, 'routes');
     await mkdir(routesDir, { recursive: true });
-    for (const name of ['about.astro', 'post.astro', 'blog.astro']) {
+    for (const name of ['about.astro', 'post.astro', 'blog.astro', 'missing.astro']) {
       await writeFile(path.join(routesDir, name), '');
     }
 
     const resolvedSrc = fileURLToPath(pathToFileURL(`${srcDir}/`));
     const page = (name: string) => path.join(resolvedSrc, 'routes', `${name}.astro`);
-    const redirect = fileURLToPath(new URL('./routing/redirect.astro', import.meta.url));
     const { injected } = await runSetup({ root });
 
     assert.deepEqual(
@@ -269,7 +268,7 @@ export default { integrations: [sitemap({ i18n: { defaultLocale: 'en', locales: 
         { pattern: '/de/ueber', entrypoint: page('about') },
         { pattern: '/en/blog/[slug]', entrypoint: page('post') },
         { pattern: '/de/artikel/[slug]', entrypoint: page('post') },
-        { pattern: '/de/artikel/[slug]', entrypoint: redirect },
+        { pattern: '/de/artikel/[slug]', entrypoint: page('missing') },
         { pattern: '/en/blog/[...page]', entrypoint: page('blog') },
         { pattern: '/de/artikel/[...page]', entrypoint: page('blog') },
       ],

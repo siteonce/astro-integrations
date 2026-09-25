@@ -19,6 +19,8 @@ export const routeConfigSchema = z.strictObject({
   entry: z.string().min(1).optional(),
   /** Entries in one chunk of a collection tail. Omitted, the row is that one tail. */
   pageSize: z.number().int().positive().optional(),
+  /** Routed page for a locale that has no translation. Only on a `{slug}` row. */
+  missingPage: z.string().min(1).optional(),
 });
 
 export type RouteConfig = z.infer<typeof routeConfigSchema>;
@@ -29,6 +31,7 @@ type RouteRule = {
   collection?: string | undefined;
   entry?: string | undefined;
   pageSize?: number | undefined;
+  missingPage?: string | undefined;
 };
 
 type RouteRulesConfig = {
@@ -87,6 +90,13 @@ export function routeConfigIssues(config: RouteRulesConfig): string[] {
 
   for (const route of config.routes ?? []) {
     issues.push(...routedPageIssues(route.page, config.locales));
+    if (route.missingPage !== undefined) {
+      issues.push(...pageNameIssues(route.missingPage));
+      const hasSlug = config.locales.some((locale) =>
+        (route.slug[locale] ?? '').includes('{slug}'),
+      );
+      if (!hasSlug) issues.push('missingPage needs a {slug} row');
+    }
 
     const sizeIssue = pageSizeIssue(route.pageSize);
     if (sizeIssue) issues.push(sizeIssue);

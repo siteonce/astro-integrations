@@ -55,20 +55,12 @@ describe('compileRoutes', () => {
       { pattern: '/de/mannschaft', page: 'person', locale: 'de', rowIndex: 5, kind: 'static' },
       { pattern: '/en/blog/[slug]', page: 'post', locale: 'en', rowIndex: 6, kind: 'entry' },
       { pattern: '/de/artikel/[slug]', page: 'post', locale: 'de', rowIndex: 6, kind: 'entry' },
-      { pattern: '/de/artikel/[slug]', page: 'post', locale: 'de', rowIndex: 6, kind: 'redirect' },
       { pattern: '/en/careers/[slug]', page: 'career', locale: 'en', rowIndex: 7, kind: 'entry' },
       { pattern: '/de/karriere/[slug]', page: 'career', locale: 'de', rowIndex: 7, kind: 'entry' },
-      {
-        pattern: '/de/karriere/[slug]',
-        page: 'career',
-        locale: 'de',
-        rowIndex: 7,
-        kind: 'redirect',
-      },
     ]);
   });
 
-  it('drops the default-locale prefix and emits no redirect for it', () => {
+  it('drops the default-locale prefix and emits a missing route for other locales', () => {
     const config = defineIntl({
       locales: ['de', 'en'],
       defaultLocale: 'en',
@@ -76,7 +68,12 @@ describe('compileRoutes', () => {
       routes: [
         { slug: { en: '/', de: '/' }, page: 'home' },
         { slug: { en: 'blog', de: 'artikel' }, page: 'blog' },
-        { slug: { en: 'blog/{slug}', de: 'artikel/{slug}' }, collection: 'blog', page: 'post' },
+        {
+          slug: { en: 'blog/{slug}', de: 'artikel/{slug}' },
+          collection: 'blog',
+          page: 'post',
+          missingPage: 'missing',
+        },
       ],
     });
 
@@ -86,7 +83,13 @@ describe('compileRoutes', () => {
       { pattern: '/de/artikel', page: 'blog', locale: 'de', rowIndex: 1, kind: 'static' },
       { pattern: '/blog', page: 'blog', locale: 'en', rowIndex: 1, kind: 'static' },
       { pattern: '/de/artikel/[slug]', page: 'post', locale: 'de', rowIndex: 2, kind: 'entry' },
-      { pattern: '/de/artikel/[slug]', page: 'post', locale: 'de', rowIndex: 2, kind: 'redirect' },
+      {
+        pattern: '/de/artikel/[slug]',
+        page: 'missing',
+        locale: 'de',
+        rowIndex: 2,
+        kind: 'missing',
+      },
       { pattern: '/blog/[slug]', page: 'post', locale: 'en', rowIndex: 2, kind: 'entry' },
     ]);
   });

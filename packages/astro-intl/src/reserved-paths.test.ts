@@ -49,7 +49,7 @@ describe('fileRouteCollision', () => {
 
   it('flags a file route that wins over the injected route', () => {
     assertCollision('/en/blog/[post]', entry);
-    assertCollision('/de/artikel/[id]', compiled('/de/artikel/[slug]', 'redirect', 'post'));
+    assertCollision('/de/artikel/[id]', compiled('/de/artikel/[slug]', 'missing', 'missing'));
     assertCollision('/en/about', compiled('/en/about', 'static', 'about'));
     assertCollision('/en/blog', listing);
     assertCollision('/en/blog/2', listing);
@@ -70,7 +70,7 @@ describe('fileRouteCollision', () => {
 
 describe('isIntlRoute', () => {
   const projectRoot = '/app';
-  const redirect = resolve(projectRoot, 'src/routing/redirect.astro');
+  const post = resolve(projectRoot, 'src/routes/post.astro');
   const patterns = new Set(['/de/artikel/[slug]']);
 
   it('rejects an external route that is not an intl entrypoint', () => {
@@ -81,7 +81,7 @@ describe('isIntlRoute', () => {
           entrypoint: '/pkg/astro-og-image/src/route.ts',
           pattern: '/_og/[...path].png',
         },
-        new Set([redirect]),
+        new Set([post]),
         projectRoot,
         patterns,
       ),
@@ -94,10 +94,10 @@ describe('isIntlRoute', () => {
       isIntlRoute(
         {
           origin: 'external',
-          entrypoint: 'src/routing/redirect.astro',
+          entrypoint: 'src/routes/post.astro',
           pattern: 'de/artikel/[slug]',
         },
-        new Set([redirect]),
+        new Set([post]),
         projectRoot,
         patterns,
       ),

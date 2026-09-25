@@ -7,7 +7,7 @@ export type CompiledRoute = {
   page: string;
   locale: string;
   rowIndex: number;
-  kind: 'static' | 'entry' | 'listing' | 'redirect';
+  kind: 'static' | 'entry' | 'listing' | 'missing';
 };
 
 type RouteRow = NonNullable<IntlConfig['routes']>[number];
@@ -16,7 +16,8 @@ const SLUG_TOKEN = '{slug}';
 
 /**
  * One pattern per row and locale, in that order.
- * A `{slug}` row also emits a redirect after that locale when it is not the default.
+ * A `{slug}` row that names `missingPage` also emits a missing route for each
+ * locale that is not the default. That route's page is `missingPage`.
  * The same kind and pattern from another row throws.
  */
 export function compileRoutes(config: IntlConfig): CompiledRoute[] {
@@ -43,8 +44,8 @@ export function compileRoutes(config: IntlConfig): CompiledRoute[] {
         kind,
       };
       pushRoute(compiled, seen, route);
-      if (kind === 'entry' && locale !== config.defaultLocale) {
-        pushRoute(compiled, seen, { ...route, kind: 'redirect' });
+      if (kind === 'entry' && locale !== config.defaultLocale && row.missingPage) {
+        pushRoute(compiled, seen, { ...route, kind: 'missing', page: row.missingPage });
       }
     }
   }

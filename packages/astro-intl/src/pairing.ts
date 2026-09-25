@@ -81,6 +81,19 @@ function readString(data: Record<string, unknown>, field: string): string | unde
   return typeof value === 'string' && value.length > 0 ? value : undefined;
 }
 
+/** Entries that fill one locale of a collection tail. A callback replaces the locale filter. */
+export function listingSelection(
+  collections: Readonly<Record<string, readonly CollectionEntryLike[]>>,
+  collection: string,
+  locale: string,
+  localeField: string,
+  listEntries: ListingEntries | undefined,
+): readonly CollectionEntryLike[] {
+  const source = collections[collection] ?? [];
+  if (listEntries) return listEntries(collection, locale, source);
+  return source.filter((entry) => readString(entry.data, localeField) === locale);
+}
+
 function describeEntry(collection: string, entry: CollectionEntryLike): string {
   return entry.filePath ?? `${collection}:${entry.id}`;
 }
@@ -383,12 +396,15 @@ export function pairCollections(
       continue;
     }
     const localeField = listed[route.collection]?.localeField ?? 'locale';
-    const source = collections[route.collection] ?? [];
     const pages = new Map<string, number>();
     for (const locale of config.locales) {
-      const selected = listEntries
-        ? listEntries(route.collection, locale, source)
-        : source.filter((entry) => readString(entry.data, localeField) === locale);
+      const selected = listingSelection(
+        collections,
+        route.collection,
+        locale,
+        localeField,
+        listEntries,
+      );
       pages.set(locale, listingPageCount(selected.length, route.pageSize));
     }
     const maxPage = Math.max(1, ...pages.values());
