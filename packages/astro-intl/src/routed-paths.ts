@@ -96,10 +96,10 @@ export function listingPathsFor<T>(
       );
     }
   }
-  const claimed = claimedListingPaths(query, route.locale, written);
-  if (results.length !== claimed.length) {
+  const published = publishedListingPages(query, route.locale, written);
+  if (results.length !== published) {
     throw new Error(
-      `@repo/astro-intl: listing "${written}" in "${route.locale}" emits ${results.length} pages, which pairing did not publish.`,
+      `@repo/astro-intl: listing "${written}" in "${route.locale}" emits ${results.length} pages; pairing published ${published}.`,
     );
   }
   return results;
@@ -196,18 +196,14 @@ function entryPath(section: string, slug: string): string | undefined {
   return compilePath(section, slug);
 }
 
-function claimedListingPaths(query: IntlQuery, locale: string, written: string): string[] {
-  const paths: string[] = [];
-  for (const tail of query.pairing.tails) {
-    if (tail.locale === locale && isListingPath(tail.path, written)) paths.push(tail.path);
+/**
+ * Pages pairing published for this listing, counted up from page 1 until a tail is missing.
+ * Another row's tail that looks like a page number (`blog/2024`) is not counted.
+ */
+function publishedListingPages(query: IntlQuery, locale: string, written: string): number {
+  let page = 0;
+  while (query.pairing.byLocaleTail.has(localePathKey(locale, listingTail(written, page + 1)))) {
+    page += 1;
   }
-  return paths;
-}
-
-function isListingPath(path: string, written: string): boolean {
-  if (path === written) return true;
-  if (written === '/') return /^[1-9]\d*$/u.test(path);
-  const prefix = `${written}/`;
-  if (!path.startsWith(prefix)) return false;
-  return /^[1-9]\d*$/u.test(path.slice(prefix.length));
+  return page;
 }

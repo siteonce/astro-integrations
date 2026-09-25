@@ -179,6 +179,35 @@ describe('listingPathsFor', () => {
     );
   });
 
+  it('does not count another row’s numeric tail under the listing', () => {
+    const archive = defineIntl({
+      locales: ['en'],
+      defaultLocale: 'en',
+      routing: { prefixDefaultLocale: true },
+      routes: [
+        { slug: { en: 'blog' }, page: 'index', collection: 'blog', pageSize: 10 },
+        { slug: { en: 'blog/2024' }, page: 'archive' },
+      ],
+      collections: { blog: {} },
+    });
+    const query = createIntlQuery({
+      config: archive,
+      collections: { blog: [entry('a-en', { id: 'a', locale: 'en' })] },
+      getAbsoluteLocaleUrl: () => '',
+    });
+    const pages = listingPathsFor(
+      archive,
+      query,
+      routeFor(compileRoutes(archive), '/en/blog/[...page]', 'listing'),
+      paginateFn,
+      undefined,
+    );
+    assert.deepEqual(
+      pages.map((item) => item.props.path),
+      ['blog'],
+    );
+  });
+
   it('throws when paginate emits a page pairing did not publish', () => {
     const extra = ((
       data: readonly unknown[],
