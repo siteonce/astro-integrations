@@ -5,8 +5,9 @@
  * row and locale. Entrypoints are the routed pages under `src/routes/`. A row's
  * missing page is injected for locales without a translation, and nothing is
  * injected when the row names none. Records reserved file-route tails for
- * pairing collisions, excluding those injected routes. Does not load catalog
- * JSON and does not create a virtual module.
+ * pairing collisions, excluding those injected routes. Warns when
+ * `trailingSlash` and `build.format` disagree. Does not load catalog JSON and
+ * does not create a virtual module.
  */
 
 import { existsSync } from 'node:fs';
@@ -19,6 +20,7 @@ import { fileRouteCollision, isIntlRoute, reservedTailsFromRoutes } from './rese
 import { type CompiledRoute, compileRoutes, routedPageEntrypoint } from './routing.ts';
 import { setIntlConfig, setRouteTails } from './runtime.ts';
 import { sitemapI18nIsSet } from './sitemap-i18n.ts';
+import { urlFormatMismatch } from './url-format.ts';
 
 export { createT } from './create-t.ts';
 export {
@@ -106,6 +108,9 @@ export function astroIntl(): AstroIntegration {
     name: '@repo/astro-intl',
     hooks: {
       'astro:config:setup': async ({ config, updateConfig, addWatchFile, injectRoute, logger }) => {
+        const mismatch = urlFormatMismatch(config.trailingSlash, config.build?.format);
+        if (mismatch) logger.warn(mismatch);
+
         const configPath = fileURLToPath(new URL(CONFIG_FILENAME, config.srcDir));
         if (!existsSync(configPath)) {
           logger.error(`Missing ${CONFIG_FILENAME}. Expected: ${configPath}`);
