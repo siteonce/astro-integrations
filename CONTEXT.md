@@ -68,7 +68,7 @@ A snapshot monorepo that is the foundation for every Astro **content site** buil
 
 **record**: A translated **entry** with no public URL. _Avoid_: routed (for this)
 
-**relation**: A pointer from an entry to another collection by pairing `id`. Authored as that id string; after parse `{ collection, id }`. Resolve uses the current locale. _Avoid_: `reference()` (for this helper); treating Astro’s collection file id as the stored pointer
+**relation**: A pointer from an entry to another collection by pairing `id`. Authored as that id string; after parse `{ target, id }`, where `target` is the collection name. Resolve uses the current locale. _Avoid_: `reference()` (for this helper); treating Astro’s collection file id as the stored pointer
 
 ### Content schemas
 

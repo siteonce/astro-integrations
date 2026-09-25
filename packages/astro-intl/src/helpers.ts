@@ -85,7 +85,7 @@ async function loadQuery(): Promise<IntlQuery> {
   for (const entries of Object.values(collections)) {
     for (const entry of entries) {
       for (const rel of collectRelations(entry.data)) {
-        needed.add(rel.collection);
+        needed.add(rel.target);
       }
     }
   }

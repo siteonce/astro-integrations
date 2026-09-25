@@ -184,7 +184,7 @@ describe('getRelated', () => {
     }
   });
 
-  it('ignores an unbranded { collection, id } lookalike', async () => {
+  it('ignores an unbranded { target, id } lookalike', async () => {
     const loaded: string[] = [];
     withQuery(
       {
@@ -196,7 +196,7 @@ describe('getRelated', () => {
               locale: 'en',
               slug: 'hello-world',
               author: authorRel,
-              lookalike: { collection: 'ghost', id: 'nope' },
+              lookalike: { target: 'ghost', id: 'nope' },
             },
           },
         ],
@@ -223,7 +223,7 @@ describe('getRelated', () => {
       await getPairedSlugs();
       const count = loaded.length;
       await assert.rejects(
-        () => getRelated('en', { collection: 'ghost', id: 'x' }),
+        () => getRelated('en', { target: 'ghost', id: 'x' }),
         /collections.ghost is not a content collection/,
       );
       assert.equal(loaded.length, count);

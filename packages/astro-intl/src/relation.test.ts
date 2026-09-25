@@ -6,10 +6,10 @@ import { localized, localizedValue, relation } from './relation.ts';
 const locales = ['en', 'de'] as const;
 
 describe('relation schema', () => {
-  it('parses a pairing id into { collection, id }', () => {
+  it('parses a pairing id into { target, id }', () => {
     const schema = z.object({ author: relation('authors') });
     assert.deepEqual(schema.parse({ author: 'demo' }), {
-      author: { collection: 'authors', id: 'demo' },
+      author: { target: 'authors', id: 'demo' },
     });
   });
 
