@@ -1,3 +1,4 @@
+import { join } from 'node:path';
 import type { IntlConfig } from './define-intl.ts';
 import { normalizeSlug } from './path.ts';
 
@@ -88,4 +89,27 @@ function pushRoute(
   }
   seen.set(key, route.rowIndex);
   compiled.push(route);
+}
+
+/**
+ * Absolute path of the routed page under `srcDir/routes`.
+ * Exactly one of `<page>.astro` and `<page>/index.astro` must exist.
+ */
+export function routedPageEntrypoint(
+  srcDir: string,
+  page: string,
+  exists: (file: string) => boolean,
+): string {
+  const file = join(srcDir, 'routes', `${page}.astro`);
+  const index = join(srcDir, 'routes', page, 'index.astro');
+  const hasFile = exists(file);
+  const hasIndex = exists(index);
+  if (hasFile && hasIndex) {
+    throw new Error(
+      `@repo/astro-intl: routed page "${page}" has both "${page}.astro" and "${page}/index.astro".`,
+    );
+  }
+  if (hasFile) return file;
+  if (hasIndex) return index;
+  throw new Error(`@repo/astro-intl: routed page "${page}" has no file under src/routes/.`);
 }

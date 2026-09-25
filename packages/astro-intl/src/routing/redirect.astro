@@ -1,0 +1,8 @@
+---
+// Sends a locale's missing translation to the default-locale URL in target.
+interface Props {
+  target: string;
+}
+
+return Astro.redirect(Astro.props.target);
+---

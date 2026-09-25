@@ -1,9 +1,11 @@
 /**
  * Astro integration entry — named (and default) export `astroIntl()`.
  * Loads `src/intl.config.ts`, writes locale list and prefix policy through to
- * Astro `i18n`, checks catalog files, and records reserved file-route tails
- * for pairing collisions. Does not load catalog JSON and does not create a
- * virtual module.
+ * Astro `i18n`, and checks catalog files. Injects one route per compiled route
+ * row and locale. Entrypoints are the routed pages under `src/routes/`, plus a
+ * missing-translation redirect. Records reserved file-route tails for pairing
+ * collisions, excluding those injected routes. Does not load catalog JSON and
+ * does not create a virtual module.
  */
 
 import { existsSync } from 'node:fs';
@@ -12,7 +14,8 @@ import type { AstroIntegration } from 'astro';
 import { createJiti } from 'jiti';
 import * as z from 'zod';
 import { type IntlConfig, intlConfigSchema, messagesDir } from './define-intl.ts';
-import { reservedTailsFromRoutes } from './reserved-paths.ts';
+import { fileRouteCollision, isIntlRoute, reservedTailsFromRoutes } from './reserved-paths.ts';
+import { type CompiledRoute, compileRoutes, routedPageEntrypoint } from './routing.ts';
 import { setIntlConfig, setRouteTails } from './runtime.ts';
 import { sitemapI18nIsSet } from './sitemap-i18n.ts';
 
@@ -90,10 +93,14 @@ async function loadIntlConfig(configPath: string): Promise<IntlConfig> {
 }
 
 export function astroIntl(): AstroIntegration {
+  let projectRoot = '';
+  let injected: CompiledRoute[] = [];
+  let ownEntrypoints = new Set<string>();
+
   return {
     name: '@repo/astro-intl',
     hooks: {
-      'astro:config:setup': async ({ config, updateConfig, addWatchFile, logger }) => {
+      'astro:config:setup': async ({ config, updateConfig, addWatchFile, injectRoute, logger }) => {
         const configPath = fileURLToPath(new URL(CONFIG_FILENAME, config.srcDir));
         if (!existsSync(configPath)) {
           logger.error(`Missing ${CONFIG_FILENAME}. Expected: ${configPath}`);
@@ -144,6 +151,38 @@ export function astroIntl(): AstroIntegration {
 
         setIntlConfig(intlConfig);
 
+        const redirectEntrypoint = fileURLToPath(
+          new URL('./routing/redirect.astro', import.meta.url),
+        );
+        const srcDir = fileURLToPath(config.srcDir);
+        const entrypointForPage = new Map<string, string>();
+        const entrypoints = new Set<string>();
+        let compiled: CompiledRoute[];
+        try {
+          compiled = compileRoutes(intlConfig);
+          for (const route of compiled) {
+            let entrypoint = redirectEntrypoint;
+            if (route.kind !== 'redirect') {
+              const cached = entrypointForPage.get(route.page);
+              if (cached !== undefined) {
+                entrypoint = cached;
+              } else {
+                entrypoint = routedPageEntrypoint(srcDir, route.page, existsSync);
+                entrypointForPage.set(route.page, entrypoint);
+              }
+            }
+            injectRoute({ pattern: route.pattern, entrypoint });
+            entrypoints.add(entrypoint);
+          }
+        } catch (error) {
+          const message = error instanceof Error ? error.message : String(error);
+          logger.error(message);
+          throw error;
+        }
+        projectRoot = fileURLToPath(config.root);
+        injected = compiled;
+        ownEntrypoints = entrypoints;
+
         updateConfig({
           i18n: {
             defaultLocale: intlConfig.defaultLocale,
@@ -156,8 +195,26 @@ export function astroIntl(): AstroIntegration {
           },
         });
       },
-      'astro:routes:resolved': ({ routes }) => {
-        setRouteTails(reservedTailsFromRoutes(routes));
+      'astro:routes:resolved': ({ routes, logger }) => {
+        const collision = fileRouteCollision(
+          routes.filter((route) => route.origin === 'project'),
+          injected,
+        );
+        if (collision) {
+          const message =
+            `@repo/astro-intl: file route "${collision.file}" collides with injected route ` +
+            `"${collision.injected.pattern}" (routed page "${collision.injected.page}").`;
+          logger.error(message);
+          throw new Error(message);
+        }
+        const injectedPatterns = new Set(injected.map((route) => route.pattern));
+        setRouteTails(
+          reservedTailsFromRoutes(
+            routes.filter(
+              (route) => !isIntlRoute(route, ownEntrypoints, projectRoot, injectedPatterns),
+            ),
+          ),
+        );
       },
     },
   };

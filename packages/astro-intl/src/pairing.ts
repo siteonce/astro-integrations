@@ -166,6 +166,9 @@ export function pairCollections(
 
   const listed = config.collections ?? {};
   const reserved = new Set(reservedTails);
+  // A file route under a literal locale segment reserves its tail for that locale only.
+  const isReserved = (locale: string, path: string): boolean =>
+    reserved.has(path) || reserved.has(path === '/' ? locale : `${locale}/${path}`);
   const locales = new Set(config.locales);
   const byLocalePath = new Map<string, PairedDocument>();
   const byLocaleTail = new Map<string, RouteTail>();
@@ -188,7 +191,7 @@ export function pairCollections(
   }
 
   function claim(document: PairedDocument, label: string): void {
-    if (reserved.has(document.path)) {
+    if (isReserved(document.locale, document.path)) {
       throw new Error(
         `@repo/astro-intl: path "${document.path}" is shadowed by a file route (${label}).`,
       );
@@ -205,7 +208,7 @@ export function pairCollections(
   }
 
   function claimTail(locale: string, path: string, siblings: Record<string, string>): void {
-    if (reserved.has(path)) {
+    if (isReserved(locale, path)) {
       throw new Error(`@repo/astro-intl: path "${path}" is shadowed by a file route (route tail).`);
     }
     const pathKey = localePathKey(locale, path);

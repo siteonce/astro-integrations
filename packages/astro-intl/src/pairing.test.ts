@@ -429,6 +429,14 @@ describe('pairCollections', () => {
     );
   });
 
+  it('aborts when a file route under a literal locale shadows that locale only', () => {
+    assert.throws(
+      () => pairCollections(config, fixtures, ['en/blog/solo']),
+      /path "blog\/solo" is shadowed by a file route/,
+    );
+    assert.doesNotThrow(() => pairCollections(config, fixtures, ['de/blog/solo']));
+  });
+
   it('warns when the default-locale sibling is missing', () => {
     const paired = pairCollections(config, {
       ...fixtures,

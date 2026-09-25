@@ -1,6 +1,13 @@
 import assert from 'node:assert/strict';
+import { resolve } from 'node:path';
 import { describe, it } from 'node:test';
-import { reservedTailsFromRoutes, tailFromRoute } from './reserved-paths.ts';
+import {
+  fileRouteCollision,
+  isIntlRoute,
+  reservedTailsFromRoutes,
+  tailFromRoute,
+} from './reserved-paths.ts';
+import type { CompiledRoute } from './routing.ts';
 
 describe('reservedTailsFromRoutes', () => {
   it('ignores the document catch-all and unprefixed root', () => {
@@ -20,6 +27,81 @@ describe('reservedTailsFromRoutes', () => {
         { pattern: 'robots.txt' },
       ]),
       ['about', 'robots.txt'],
+    );
+  });
+});
+
+function compiled(pattern: string, kind: CompiledRoute['kind'], page: string): CompiledRoute {
+  return { pattern, page, locale: 'en', rowIndex: 0, kind };
+}
+
+function assertCollision(file: string, injected: CompiledRoute): void {
+  assert.deepEqual(fileRouteCollision([{ pattern: file }], [injected]), { file, injected });
+}
+
+function assertNoCollision(file: string, injected: CompiledRoute): void {
+  assert.equal(fileRouteCollision([{ pattern: file }], [injected]), undefined);
+}
+
+describe('fileRouteCollision', () => {
+  const entry = compiled('/en/blog/[slug]', 'entry', 'post');
+  const listing = compiled('/en/blog/[...page]', 'listing', 'blog');
+
+  it('flags a file route that wins over the injected route', () => {
+    assertCollision('/en/blog/[post]', entry);
+    assertCollision('/de/artikel/[id]', compiled('/de/artikel/[slug]', 'redirect', 'post'));
+    assertCollision('/en/about', compiled('/en/about', 'static', 'about'));
+    assertCollision('/en/blog', listing);
+    assertCollision('/en/blog/2', listing);
+    assertCollision('/en/blog/[n]', listing);
+    assertCollision('/en/blog/[...rest]', listing);
+  });
+
+  it('ignores a file route that does not win', () => {
+    assertNoCollision('/en/blog/rss.xml', listing);
+    assertNoCollision('/en/blog/rss.xml', entry);
+    assertNoCollision('/en/blog/[slug].json', entry);
+    assertNoCollision('/[locale]/[...path]', entry);
+    assertNoCollision('/[locale]/[...path]', listing);
+    assertNoCollision('/[locale]/blog/[slug]', entry);
+    assertNoCollision('/en/other', compiled('/en/about', 'static', 'about'));
+  });
+});
+
+describe('isIntlRoute', () => {
+  const projectRoot = '/app';
+  const redirect = resolve(projectRoot, 'src/routing/redirect.astro');
+  const patterns = new Set(['/de/artikel/[slug]']);
+
+  it('rejects an external route that is not an intl entrypoint', () => {
+    assert.equal(
+      isIntlRoute(
+        {
+          origin: 'external',
+          entrypoint: '/pkg/astro-og-image/src/route.ts',
+          pattern: '/_og/[...path].png',
+        },
+        new Set([redirect]),
+        projectRoot,
+        patterns,
+      ),
+      false,
+    );
+  });
+
+  it('accepts an intl entrypoint on an injected pattern', () => {
+    assert.equal(
+      isIntlRoute(
+        {
+          origin: 'external',
+          entrypoint: 'src/routing/redirect.astro',
+          pattern: 'de/artikel/[slug]',
+        },
+        new Set([redirect]),
+        projectRoot,
+        patterns,
+      ),
+      true,
     );
   });
 });

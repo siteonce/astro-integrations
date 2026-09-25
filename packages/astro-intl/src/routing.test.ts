@@ -1,7 +1,8 @@
 import assert from 'node:assert/strict';
+import { join } from 'node:path';
 import { describe, it } from 'node:test';
 import { defineIntl } from './define-intl.ts';
-import { compileRoutes } from './routing.ts';
+import { compileRoutes, routedPageEntrypoint } from './routing.ts';
 
 const locales = ['en', 'de'] as const;
 
@@ -122,6 +123,33 @@ describe('compileRoutes', () => {
 
     assert.throws(() => compileRoutes(config), {
       message: '@repo/astro-intl: route pattern "/en/about" repeats (rows 0 and 3).',
+    });
+  });
+});
+
+describe('routedPageEntrypoint', () => {
+  const srcDir = '/app/src';
+
+  function exists(files: string[]): (file: string) => boolean {
+    const present = new Set(files);
+    return (file) => present.has(file);
+  }
+
+  it('returns the one routed page file that exists', () => {
+    const file = join(srcDir, 'routes', 'post.astro');
+    const index = join(srcDir, 'routes', 'blog', 'index.astro');
+    assert.equal(routedPageEntrypoint(srcDir, 'post', exists([file])), file);
+    assert.equal(routedPageEntrypoint(srcDir, 'blog', exists([index])), index);
+  });
+
+  it('throws when both files exist or neither does', () => {
+    const file = join(srcDir, 'routes', 'post.astro');
+    const index = join(srcDir, 'routes', 'post', 'index.astro');
+    assert.throws(() => routedPageEntrypoint(srcDir, 'post', exists([file, index])), {
+      message: '@repo/astro-intl: routed page "post" has both "post.astro" and "post/index.astro".',
+    });
+    assert.throws(() => routedPageEntrypoint(srcDir, 'post', exists([])), {
+      message: '@repo/astro-intl: routed page "post" has no file under src/routes/.',
     });
   });
 });

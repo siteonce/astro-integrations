@@ -3,9 +3,15 @@ import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { afterEach, describe, it } from 'node:test';
-import { pathToFileURL } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 import type { AstroConfig, AstroIntegration } from 'astro';
 import astroIntl from './integration.ts';
+
+type InjectedCall = {
+  pattern: string;
+  entrypoint: string;
+  prerender?: boolean;
+};
 
 type Setup = NonNullable<AstroIntegration['hooks']['astro:config:setup']>;
 type SetupParams = Parameters<Setup>[0];
@@ -65,9 +71,10 @@ async function runSetup(options: {
   srcDir?: string;
   i18n?: AstroConfig['i18n'];
   integrations?: AstroIntegration[];
-}): Promise<{ config: Record<string, unknown> }> {
+}): Promise<{ config: Record<string, unknown>; injected: InjectedCall[] }> {
   const srcDir = options.srcDir ?? path.join(options.root, 'src');
   const updates: Record<string, unknown>[] = [];
+  const injected: InjectedCall[] = [];
   const integration = astroIntl();
   const setup = integration.hooks['astro:config:setup'];
   assert.ok(setup, 'astro:config:setup hook is registered');
@@ -82,11 +89,14 @@ async function runSetup(options: {
       updates.push(newConfig);
       return newConfig as unknown as AstroConfig;
     },
+    injectRoute(route: InjectedCall) {
+      injected.push(route);
+    },
     addWatchFile() {},
     logger: silentLogger(),
   } as unknown as SetupParams);
   assert.ok(updates[0], 'updateConfig was called');
-  return { config: updates[0] };
+  return { config: updates[0], injected };
 }
 
 describe('astroIntl()', () => {
@@ -219,6 +229,74 @@ export default { integrations: [sitemap({ i18n: { defaultLocale: 'en', locales: 
     await assert.rejects(
       () => runSetup({ root, integrations: [sitemap] }),
       /sitemap i18n option is set/,
+    );
+  });
+
+  it('injects one route per compiled row and locale', async () => {
+    const root = await makeRoot();
+    const srcDir = path.join(root, 'src');
+    await writeIntlConfig(
+      srcDir,
+      `export default {
+  locales: ['en', 'de'],
+  defaultLocale: 'en',
+  routing: { prefixDefaultLocale: true },
+  routes: [
+    { slug: { en: 'about', de: 'ueber' }, page: 'about' },
+    { slug: { en: 'blog/{slug}', de: 'artikel/{slug}' }, collection: 'blog', page: 'post' },
+    { slug: { en: 'blog', de: 'artikel' }, collection: 'blog', pageSize: 10, page: 'blog' },
+  ],
+  collections: { blog: { slugField: 'slug' } },
+};
+`,
+    );
+    await writeCatalogs(srcDir, ['en', 'de']);
+    const routesDir = path.join(srcDir, 'routes');
+    await mkdir(routesDir, { recursive: true });
+    for (const name of ['about.astro', 'post.astro', 'blog.astro']) {
+      await writeFile(path.join(routesDir, name), '');
+    }
+
+    const resolvedSrc = fileURLToPath(pathToFileURL(`${srcDir}/`));
+    const page = (name: string) => path.join(resolvedSrc, 'routes', `${name}.astro`);
+    const redirect = fileURLToPath(new URL('./routing/redirect.astro', import.meta.url));
+    const { injected } = await runSetup({ root });
+
+    assert.deepEqual(
+      injected.map(({ pattern, entrypoint }) => ({ pattern, entrypoint })),
+      [
+        { pattern: '/en/about', entrypoint: page('about') },
+        { pattern: '/de/ueber', entrypoint: page('about') },
+        { pattern: '/en/blog/[slug]', entrypoint: page('post') },
+        { pattern: '/de/artikel/[slug]', entrypoint: page('post') },
+        { pattern: '/de/artikel/[slug]', entrypoint: redirect },
+        { pattern: '/en/blog/[...page]', entrypoint: page('blog') },
+        { pattern: '/de/artikel/[...page]', entrypoint: page('blog') },
+      ],
+    );
+    assert.equal(
+      injected.some((call) => Object.hasOwn(call, 'prerender')),
+      false,
+    );
+  });
+
+  it('aborts setup when a routed page file is missing', async () => {
+    const root = await makeRoot();
+    const srcDir = path.join(root, 'src');
+    await writeIntlConfig(
+      srcDir,
+      `export default {
+  locales: ['en', 'de'],
+  defaultLocale: 'en',
+  routing: { prefixDefaultLocale: true },
+  routes: [{ slug: { en: 'about', de: 'ueber' }, page: 'missing' }],
+};
+`,
+    );
+    await writeCatalogs(srcDir, ['en', 'de']);
+    await assert.rejects(
+      () => runSetup({ root }),
+      /routed page "missing" has no file under src\/routes\//,
     );
   });
 });
