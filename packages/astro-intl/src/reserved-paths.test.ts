@@ -31,8 +31,8 @@ describe('reservedTailsFromRoutes', () => {
   });
 });
 
-function compiled(pattern: string, kind: CompiledRoute['kind'], page: string): CompiledRoute {
-  return { pattern, page, locale: 'en', rowIndex: 0, kind };
+function compiled(pattern: string, kind: CompiledRoute['kind'], view: string): CompiledRoute {
+  return { pattern, view, locale: 'en', rowIndex: 0, kind };
 }
 
 function assertCollision(file: string, injected: CompiledRoute): void {
@@ -74,7 +74,7 @@ describe('fileRouteCollision', () => {
 
 describe('isIntlRoute', () => {
   const projectRoot = '/app';
-  const post = resolve(projectRoot, 'src/routes/post.astro');
+  const post = resolve(projectRoot, 'src/views/post.astro');
   const patterns = new Set(['/de/artikel/[slug]']);
 
   it('rejects an external route that is not an intl entrypoint', () => {
@@ -98,7 +98,7 @@ describe('isIntlRoute', () => {
       isIntlRoute(
         {
           origin: 'external',
-          entrypoint: 'src/routes/post.astro',
+          entrypoint: 'src/views/post.astro',
           pattern: 'de/artikel/[slug]',
         },
         new Set([post]),

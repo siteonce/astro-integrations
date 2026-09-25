@@ -14,7 +14,7 @@ const showDrafts = isLocal(deployConfig) || isPreview(deployConfig);
 
 type BlogPost = CollectionEntry<'blog'>;
 
-// Helpers for one routed page: catalog, compiled hrefs, listing posts, and the
+// Helpers for one view: catalog, compiled hrefs, listing posts, and the
 // locale switcher. A compiled href is read on first use and reused for that id.
 export function createPageKit(locale: string) {
   const t = useTranslations(locale);

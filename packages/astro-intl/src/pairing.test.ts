@@ -11,9 +11,9 @@ const config = defineIntl({
   defaultLocale: 'en',
   routing: { prefixDefaultLocale: true },
   routes: [
-    { slug: { en: '/', de: '/' }, page: 'x', collection: 'pages', entry: 'home' },
-    { slug: { en: 'blog', de: 'artikel' }, page: 'x', collection: 'pages', entry: 'blog' },
-    { slug: { en: 'blog/{slug}', de: 'artikel/{slug}' }, page: 'x', collection: 'blog' },
+    { slug: { en: '/', de: '/' }, view: 'x', collection: 'pages', entry: 'home' },
+    { slug: { en: 'blog', de: 'artikel' }, view: 'x', collection: 'pages', entry: 'blog' },
+    { slug: { en: 'blog/{slug}', de: 'artikel/{slug}' }, view: 'x', collection: 'blog' },
   ],
   collections: {
     pages: {},
@@ -67,7 +67,7 @@ describe('intlConfigSchema collections', () => {
       locales: ['en', 'de'],
       defaultLocale: 'en',
       routing: { prefixDefaultLocale: true },
-      routes: [{ slug: { en: 'blog/{slug}' }, page: 'x', collection: 'blog' }],
+      routes: [{ slug: { en: 'blog/{slug}' }, view: 'x', collection: 'blog' }],
       collections: { blog: { slugField: 'slug' } },
     });
     assert.equal(parsed.success, false);
@@ -79,7 +79,7 @@ describe('intlConfigSchema collections', () => {
       defaultLocale: 'en',
       routing: { prefixDefaultLocale: true },
       routes: [
-        { slug: { en: 'blog/{slug}', de: 'artikel/{slug}' }, page: 'x', collection: 'pages' },
+        { slug: { en: 'blog/{slug}', de: 'artikel/{slug}' }, view: 'x', collection: 'pages' },
       ],
       collections: {
         pages: { idField: 'id', localeField: 'locale', slugField: 'slug' },
@@ -114,7 +114,7 @@ describe('routeConfigIssues', () => {
     const issues = routeConfigIssues({
       locales,
       routes: [
-        { slug: { en: 'blog/{slug}', de: 'artikel/{slug}' }, page: 'x', collection: 'pages' },
+        { slug: { en: 'blog/{slug}', de: 'artikel/{slug}' }, view: 'x', collection: 'pages' },
       ],
       collections: { pages: {} },
     });
@@ -127,11 +127,11 @@ describe('routeConfigIssues', () => {
       routes: [
         {
           slug: { en: 'blog/{slug}', de: 'artikel/{slug}' },
-          page: 'x',
+          view: 'x',
           collection: 'blog',
-          missingPage: 'missing',
+          missingView: 'missing',
         },
-        { slug: { en: 'hello', de: 'hallo' }, page: 'x', collection: 'blog', entry: 'hello' },
+        { slug: { en: 'hello', de: 'hallo' }, view: 'x', collection: 'blog', entry: 'hello' },
       ],
       collections: { blog: { slugField: 'slug' } },
     });
@@ -142,8 +142,8 @@ describe('routeConfigIssues', () => {
     const issues = routeConfigIssues({
       locales,
       routes: [
-        { slug: { en: 'blog', de: 'artikel' }, page: 'x', collection: 'blog', pageSize: 10 },
-        { slug: { en: 'blog/{slug}', de: 'artikel/{slug}' }, page: 'x', collection: 'blog' },
+        { slug: { en: 'blog', de: 'artikel' }, view: 'x', collection: 'blog', pageSize: 10 },
+        { slug: { en: 'blog/{slug}', de: 'artikel/{slug}' }, view: 'x', collection: 'blog' },
       ],
       collections: { blog: { slugField: 'slug' } },
     });
@@ -156,7 +156,7 @@ describe('routeConfigIssues', () => {
       routes: [
         {
           slug: { en: 'blog/{slug}', de: 'artikel/{slug}' },
-          page: 'x',
+          view: 'x',
           collection: 'blog',
           pageSize: 10,
         },
@@ -168,7 +168,7 @@ describe('routeConfigIssues', () => {
       locales: ['en', 'de'],
       defaultLocale: 'en',
       routing: { prefixDefaultLocale: true },
-      routes: [{ slug: { en: 'blog', de: 'artikel' }, page: 'x', collection: 'blog', pageSize: 0 }],
+      routes: [{ slug: { en: 'blog', de: 'artikel' }, view: 'x', collection: 'blog', pageSize: 0 }],
       collections: { blog: { slugField: 'slug' } },
     });
     assert.equal(parsed.success, false);
@@ -178,8 +178,8 @@ describe('routeConfigIssues', () => {
     const issues = routeConfigIssues({
       locales,
       routes: [
-        { slug: { en: 'blog/{slug}', de: 'artikel/{slug}' }, page: 'x', collection: 'blog' },
-        { slug: { en: 'news/{slug}', de: 'neuigkeiten/{slug}' }, page: 'x', collection: 'blog' },
+        { slug: { en: 'blog/{slug}', de: 'artikel/{slug}' }, view: 'x', collection: 'blog' },
+        { slug: { en: 'news/{slug}', de: 'neuigkeiten/{slug}' }, view: 'x', collection: 'blog' },
       ],
       collections: { blog: { slugField: 'slug' } },
     });
@@ -190,7 +190,7 @@ describe('routeConfigIssues', () => {
     for (const slug of ['{slug}', '/{slug}', 'blog/{slug}/more']) {
       const issues = routeConfigIssues({
         locales,
-        routes: [{ slug: { en: slug, de: 'artikel/{slug}' }, page: 'x', collection: 'blog' }],
+        routes: [{ slug: { en: slug, de: 'artikel/{slug}' }, view: 'x', collection: 'blog' }],
         collections: { blog: { slugField: 'slug' } },
       });
       assert.ok(
@@ -203,7 +203,7 @@ describe('routeConfigIssues', () => {
   it('rejects a {slug} pattern with no collection', () => {
     const issues = routeConfigIssues({
       locales,
-      routes: [{ slug: { en: 'blog/{slug}', de: 'artikel/{slug}' }, page: 'x' }],
+      routes: [{ slug: { en: 'blog/{slug}', de: 'artikel/{slug}' }, view: 'x' }],
     });
     assert.ok(issues.some((issue) => issue === '{slug} pattern has no collection'));
   });
@@ -211,7 +211,7 @@ describe('routeConfigIssues', () => {
   it('rejects an entry with no collection', () => {
     const issues = routeConfigIssues({
       locales,
-      routes: [{ slug: { en: '/', de: '/' }, page: 'x', entry: 'home' }],
+      routes: [{ slug: { en: '/', de: '/' }, view: 'x', entry: 'home' }],
     });
     assert.ok(issues.some((issue) => issue === 'entry row has no collection'));
   });
@@ -220,8 +220,8 @@ describe('routeConfigIssues', () => {
     const issues = routeConfigIssues({
       locales,
       routes: [
-        { slug: { en: 'blog/{slug}', de: 'artikel/{slug}' }, page: 'x', collection: 'blog' },
-        { slug: { en: 'blog/{slug}', de: 'schlagworte/{slug}' }, page: 'x', collection: 'tags' },
+        { slug: { en: 'blog/{slug}', de: 'artikel/{slug}' }, view: 'x', collection: 'blog' },
+        { slug: { en: 'blog/{slug}', de: 'schlagworte/{slug}' }, view: 'x', collection: 'tags' },
       ],
       collections: {
         blog: { slugField: 'slug' },
@@ -237,59 +237,55 @@ describe('routeConfigIssues', () => {
     );
   });
 
-  it('rejects missingPage on a row without {slug}', () => {
+  it('rejects missingView on a row without {slug}', () => {
     const issues = routeConfigIssues({
       locales,
-      routes: [{ slug: { en: 'about', de: 'ueber' }, page: 'about', missingPage: 'missing' }],
+      routes: [{ slug: { en: 'about', de: 'ueber' }, view: 'about', missingView: 'missing' }],
     });
-    assert.ok(issues.some((issue) => issue === 'missingPage needs a {slug} row'));
+    assert.ok(issues.some((issue) => issue === 'missingView needs a {slug} row'));
 
     const named = routeConfigIssues({
       locales,
       routes: [
         {
           slug: { en: 'blog/{slug}', de: 'artikel/{slug}' },
-          page: 'post',
+          view: 'post',
           collection: 'blog',
-          missingPage: 'missing.astro',
+          missingView: 'missing.astro',
         },
       ],
       collections: { blog: { slugField: 'slug' } },
     });
-    assert.ok(
-      named.some((issue) => issue === 'routed page "missing.astro" includes a file extension'),
-    );
+    assert.ok(named.some((issue) => issue === 'view "missing.astro" includes a file extension'));
   });
 
-  it('rejects a routed page name that is not a path', () => {
+  it('rejects a view name that is not a path', () => {
     const extension = routeConfigIssues({
       locales,
-      routes: [{ slug: { en: '/', de: '/' }, page: 'home.astro' }],
+      routes: [{ slug: { en: '/', de: '/' }, view: 'home.astro' }],
     });
-    assert.ok(
-      extension.some((issue) => issue === 'routed page "home.astro" includes a file extension'),
-    );
+    assert.ok(extension.some((issue) => issue === 'view "home.astro" includes a file extension'));
 
     const parent = routeConfigIssues({
       locales,
-      routes: [{ slug: { en: '/', de: '/' }, page: 'blog/../post' }],
+      routes: [{ slug: { en: '/', de: '/' }, view: 'blog/../post' }],
     });
-    assert.ok(parent.some((issue) => issue === 'routed page "blog/../post" is not a path'));
+    assert.ok(parent.some((issue) => issue === 'view "blog/../post" is not a path'));
 
     const empty = routeConfigIssues({
       locales,
-      routes: [{ slug: { en: '/', de: '/' }, page: 'blog//post' }],
+      routes: [{ slug: { en: '/', de: '/' }, view: 'blog//post' }],
     });
-    assert.ok(empty.some((issue) => issue === 'routed page "blog//post" is not a path'));
+    assert.ok(empty.some((issue) => issue === 'view "blog//post" is not a path'));
   });
 
-  it('rejects routed page keys that are not the configured locales', () => {
+  it('rejects view keys that are not the configured locales', () => {
     const issues = routeConfigIssues({
       locales,
-      routes: [{ slug: { en: '/', de: '/' }, page: { en: 'home', fr: 'accueil' } }],
+      routes: [{ slug: { en: '/', de: '/' }, view: { en: 'home', fr: 'accueil' } }],
     });
     assert.ok(
-      issues.some((issue) => issue === 'routed page keys must be the configured locales (de, en)'),
+      issues.some((issue) => issue === 'view keys must be the configured locales (de, en)'),
     );
   });
 });
@@ -324,10 +320,10 @@ describe('pairCollections', () => {
       defaultLocale: 'en',
       routing: { prefixDefaultLocale: true },
       routes: [
-        { slug: { en: 'blog/{slug}', de: 'artikel/{slug}' }, page: 'x', collection: 'blog' },
+        { slug: { en: 'blog/{slug}', de: 'artikel/{slug}' }, view: 'x', collection: 'blog' },
         {
           slug: { en: 'blog/hello-world', de: 'other' },
-          page: 'x',
+          view: 'x',
           collection: 'pages',
           entry: 'clash',
         },
@@ -493,9 +489,9 @@ describe('pairCollections field id', () => {
     defaultLocale: 'en',
     routing: { prefixDefaultLocale: true },
     routes: [
-      { slug: { en: '/', de: '/' }, page: 'x', collection: 'pages', entry: 'home' },
-      { slug: { en: 'blog', de: 'artikel' }, page: 'x', collection: 'pages', entry: 'blog' },
-      { slug: { en: 'blog/{slug}', de: 'artikel/{slug}' }, page: 'x', collection: 'blog' },
+      { slug: { en: '/', de: '/' }, view: 'x', collection: 'pages', entry: 'home' },
+      { slug: { en: 'blog', de: 'artikel' }, view: 'x', collection: 'pages', entry: 'blog' },
+      { slug: { en: 'blog/{slug}', de: 'artikel/{slug}' }, view: 'x', collection: 'blog' },
     ],
     collections: {
       pages: {},
@@ -576,7 +572,7 @@ describe('pairCollections field id', () => {
       locales: ['en', 'de'],
       defaultLocale: 'en',
       routing: { prefixDefaultLocale: true },
-      routes: [{ slug: { en: '/', de: '/' }, page: 'x', collection: 'pages', entry: 'home' }],
+      routes: [{ slug: { en: '/', de: '/' }, view: 'x', collection: 'pages', entry: 'home' }],
       collections: {
         pages: { idField: 'docId', localeField: 'lang' },
       },
@@ -675,8 +671,8 @@ describe('query helpers collection/id', () => {
     defaultLocale: 'en',
     routing: { prefixDefaultLocale: true },
     routes: [
-      { slug: { en: 'blog/{slug}', de: 'artikel/{slug}' }, page: 'x', collection: 'blog' },
-      { slug: { en: 'tags/{slug}', de: 'schlagworte/{slug}' }, page: 'x', collection: 'tags' },
+      { slug: { en: 'blog/{slug}', de: 'artikel/{slug}' }, view: 'x', collection: 'blog' },
+      { slug: { en: 'tags/{slug}', de: 'schlagworte/{slug}' }, view: 'x', collection: 'tags' },
     ],
     collections: {
       blog: { slugField: 'slug' },
@@ -741,9 +737,9 @@ describe('published tails with no entry', () => {
     defaultLocale: 'en',
     routing: { prefixDefaultLocale: true },
     routes: [
-      { slug: { en: '/', de: '/' }, page: 'x' },
-      { slug: { en: 'blog', de: 'artikel' }, page: 'x' },
-      { slug: { en: 'blog/{slug}', de: 'artikel/{slug}' }, page: 'x', collection: 'blog' },
+      { slug: { en: '/', de: '/' }, view: 'x' },
+      { slug: { en: 'blog', de: 'artikel' }, view: 'x' },
+      { slug: { en: 'blog/{slug}', de: 'artikel/{slug}' }, view: 'x', collection: 'blog' },
     ],
     collections: { blog: { slugField: 'slug' } },
   });
@@ -811,11 +807,11 @@ describe('published tails with no entry', () => {
       routes: [
         {
           slug: { en: 'imprint', de: 'impressum' },
-          page: 'x',
+          view: 'x',
           collection: 'pages',
           entry: 'imprint',
         },
-        { slug: { en: 'pages/{slug}', de: 'seiten/{slug}' }, page: 'x', collection: 'pages' },
+        { slug: { en: 'pages/{slug}', de: 'seiten/{slug}' }, view: 'x', collection: 'pages' },
       ],
       collections: { pages: { slugField: 'slug' } },
     });
@@ -845,7 +841,7 @@ describe('published tails with no entry', () => {
       routes: [
         {
           slug: { en: 'careers/{slug}', de: 'karriere/{slug}' },
-          page: 'x',
+          view: 'x',
           collection: 'pages',
           entry: 'designer',
         },
@@ -887,8 +883,8 @@ describe('published tails with no entry', () => {
       defaultLocale: 'en',
       routing: { prefixDefaultLocale: true },
       routes: [
-        { slug: { en: 'blog', de: 'artikel' }, page: 'x', collection: 'blog', pageSize: 10 },
-        { slug: { en: 'blog/{slug}', de: 'artikel/{slug}' }, page: 'x', collection: 'blog' },
+        { slug: { en: 'blog', de: 'artikel' }, view: 'x', collection: 'blog', pageSize: 10 },
+        { slug: { en: 'blog/{slug}', de: 'artikel/{slug}' }, view: 'x', collection: 'blog' },
       ],
       collections: { blog: { slugField: 'slug' } },
     });
@@ -957,8 +953,8 @@ describe('published tails with no entry', () => {
       defaultLocale: 'en',
       routing: { prefixDefaultLocale: true },
       routes: [
-        { slug: { en: 'blog', de: 'artikel' }, page: 'x', collection: 'blog', pageSize: 10 },
-        { slug: { en: 'blog/{slug}', de: 'artikel/{slug}' }, page: 'x', collection: 'blog' },
+        { slug: { en: 'blog', de: 'artikel' }, view: 'x', collection: 'blog', pageSize: 10 },
+        { slug: { en: 'blog/{slug}', de: 'artikel/{slug}' }, view: 'x', collection: 'blog' },
       ],
       collections: { blog: { slugField: 'slug' } },
     });
@@ -982,8 +978,8 @@ describe('published tails with no entry', () => {
       defaultLocale: 'en',
       routing: { prefixDefaultLocale: true },
       routes: [
-        { slug: { en: 'blog', de: 'artikel' }, page: 'x', collection: 'blog', pageSize: 10 },
-        { slug: { en: 'blog/{slug}', de: 'artikel/{slug}' }, page: 'x', collection: 'blog' },
+        { slug: { en: 'blog', de: 'artikel' }, view: 'x', collection: 'blog', pageSize: 10 },
+        { slug: { en: 'blog/{slug}', de: 'artikel/{slug}' }, view: 'x', collection: 'blog' },
       ],
       collections: { blog: { slugField: 'slug' } },
     });
@@ -999,8 +995,8 @@ describe('published tails with no entry', () => {
       defaultLocale: 'en',
       routing: { prefixDefaultLocale: true },
       routes: [
-        { slug: { en: 'blog', de: 'artikel' }, page: 'x', collection: 'blog', pageSize: 10 },
-        { slug: { en: 'blog/{slug}', de: 'artikel/{slug}' }, page: 'x', collection: 'blog' },
+        { slug: { en: 'blog', de: 'artikel' }, view: 'x', collection: 'blog', pageSize: 10 },
+        { slug: { en: 'blog/{slug}', de: 'artikel/{slug}' }, view: 'x', collection: 'blog' },
       ],
       collections: { blog: { slugField: 'slug' } },
     });
@@ -1026,8 +1022,8 @@ describe('published tails with no entry', () => {
       defaultLocale: 'en',
       routing: { prefixDefaultLocale: true },
       routes: [
-        { slug: { en: 'blog', de: 'artikel' }, page: 'x', collection: 'blog' },
-        { slug: { en: 'blog/{slug}', de: 'artikel/{slug}' }, page: 'x', collection: 'blog' },
+        { slug: { en: 'blog', de: 'artikel' }, view: 'x', collection: 'blog' },
+        { slug: { en: 'blog/{slug}', de: 'artikel/{slug}' }, view: 'x', collection: 'blog' },
       ],
       collections: { blog: { slugField: 'slug' } },
     });
@@ -1041,8 +1037,8 @@ describe('published tails with no entry', () => {
       defaultLocale: 'en',
       routing: { prefixDefaultLocale: true },
       routes: [
-        { slug: { en: 'blog/hello-world', de: 'other' }, page: 'x' },
-        { slug: { en: 'blog/{slug}', de: 'artikel/{slug}' }, page: 'x', collection: 'blog' },
+        { slug: { en: 'blog/hello-world', de: 'other' }, view: 'x' },
+        { slug: { en: 'blog/{slug}', de: 'artikel/{slug}' }, view: 'x', collection: 'blog' },
       ],
       collections: { blog: { slugField: 'slug' } },
     });

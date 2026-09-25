@@ -14,24 +14,24 @@ export type CollectionConfig = z.infer<typeof collectionConfigSchema>;
 export const routeConfigSchema = z.strictObject({
   collection: z.string().min(1).optional(),
   slug: z.record(z.string(), z.string()),
-  /** Routed page name, or one name per locale. */
-  page: z.union([z.string().min(1), z.record(z.string(), z.string().min(1))]),
+  /** View name, or one name per locale. */
+  view: z.union([z.string().min(1), z.record(z.string(), z.string().min(1))]),
   entry: z.string().min(1).optional(),
   /** Entries in one chunk of a collection tail. Omitted, the row is that one tail. */
   pageSize: z.number().int().positive().optional(),
-  /** Routed page for a locale that has no translation. Only on a `{slug}` row. */
-  missingPage: z.string().min(1).optional(),
+  /** View for a locale that has no translation. Only on a `{slug}` row. */
+  missingView: z.string().min(1).optional(),
 });
 
 export type RouteConfig = z.infer<typeof routeConfigSchema>;
 
 type RouteRule = {
   slug: Readonly<Record<string, string>>;
-  page: string | Readonly<Record<string, string>>;
+  view: string | Readonly<Record<string, string>>;
   collection?: string | undefined;
   entry?: string | undefined;
   pageSize?: number | undefined;
-  missingPage?: string | undefined;
+  missingView?: string | undefined;
 };
 
 type RouteRulesConfig = {
@@ -50,30 +50,30 @@ function pageSizeIssue(pageSize: number | undefined): string | undefined {
   return undefined;
 }
 
-function pageNameIssues(name: string): string[] {
+function viewNameIssues(name: string): string[] {
   const issues: string[] = [];
   if (name.endsWith('.astro')) {
-    issues.push(`routed page "${name}" includes a file extension`);
+    issues.push(`view "${name}" includes a file extension`);
   }
   const parts = name.split('/');
   if (parts.some((part) => part.length === 0 || part === '.' || part === '..')) {
-    issues.push(`routed page "${name}" is not a path`);
+    issues.push(`view "${name}" is not a path`);
   }
   return issues;
 }
 
-function routedPageIssues(
-  page: string | Readonly<Record<string, string>>,
+function viewIssues(
+  view: string | Readonly<Record<string, string>>,
   locales: readonly string[],
 ): string[] {
-  if (typeof page === 'string') return pageNameIssues(page);
+  if (typeof view === 'string') return viewNameIssues(view);
   const issues: string[] = [];
-  const keys = Object.keys(page).sort();
+  const keys = Object.keys(view).sort();
   const expected = [...locales].sort();
   if (keys.join('\0') !== expected.join('\0')) {
-    issues.push(`routed page keys must be the configured locales (${expected.join(', ')})`);
+    issues.push(`view keys must be the configured locales (${expected.join(', ')})`);
   }
-  for (const name of Object.values(page)) issues.push(...pageNameIssues(name));
+  for (const name of Object.values(view)) issues.push(...viewNameIssues(name));
   return issues;
 }
 
@@ -89,13 +89,13 @@ export function routeConfigIssues(config: RouteRulesConfig): string[] {
   const listed = config.collections ?? {};
 
   for (const route of config.routes ?? []) {
-    issues.push(...routedPageIssues(route.page, config.locales));
-    if (route.missingPage !== undefined) {
-      issues.push(...pageNameIssues(route.missingPage));
+    issues.push(...viewIssues(route.view, config.locales));
+    if (route.missingView !== undefined) {
+      issues.push(...viewNameIssues(route.missingView));
       const hasSlug = config.locales.some((locale) =>
         (route.slug[locale] ?? '').includes('{slug}'),
       );
-      if (!hasSlug) issues.push('missingPage needs a {slug} row');
+      if (!hasSlug) issues.push('missingView needs a {slug} row');
     }
 
     const sizeIssue = pageSizeIssue(route.pageSize);

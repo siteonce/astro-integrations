@@ -64,9 +64,9 @@ A snapshot monorepo that is the foundation for every Astro **content site** buil
 
 **routed collection**: A listed collection whose entries have a public URL. A `{slug}` row publishes that URL: the **section** plus the **slug**. _Avoid_: giving records a slug; treating a collection tail as an entry URL
 
-**entry**: One item in a collection. Locale siblings share one pairing `id`. _Avoid_: document; a **routed page** that no collection claims
+**entry**: One item in a collection. Locale siblings share one pairing `id`. _Avoid_: document; a **view** that no collection claims
 
-**missing page**: The **routed page** a `{slug}` row names in `missingPage` for a locale without a translation. It receives the default-locale entry and its URL. Omitted, those URLs 404. _Avoid_: fallback, redirect page (it may show a notice)
+**missing view**: The **view** a `{slug}` row names in `missingView` for a locale without a translation. It receives the default-locale entry and its URL. Omitted, those URLs 404. _Avoid_: fallback, redirect page (it may show a notice)
 
 **record**: A translated **entry** with no public URL. _Avoid_: routed (for this)
 
@@ -94,9 +94,9 @@ A snapshot monorepo that is the foundation for every Astro **content site** buil
 
 **chrome**: Shared site shell around every page — styles, Favicon, Analytics, locale switcher, head pass-through. **SiteLayout** is chrome. _Avoid_: composing **blocks** or page landmarks in the layout
 
-**Astro page**: A file under `src/pages/` that Astro publishes as a route. _Avoid_: **routed page**
+**Astro page**: A file under `src/pages/` that Astro publishes as a route. _Avoid_: **view**
 
-**routed page**: A page the app’s route row names. It lives under `src/routes/`; the row names it by its path there (`blog/post`). The rows live in `src/routes.config.ts`. `astroIntl()` injects it as an Astro route for each locale, and its own `getStaticPaths` lists its URLs. _Avoid_: template, page component, **Astro page**, document, catch-all
+**view**: The file a route row renders. It lives under `src/views/`; the row names it by its path there (`blog/post`). The rows live in `routes.config.ts`. `astroIntl()` injects it as an Astro route for each locale. It is a full Astro page: its own `getStaticPaths` lists its URLs. _Avoid_: template, page component, **Astro page**, document, catch-all, a component that an **Astro page** imports, moving `getStaticPaths` out of it.
 
 **`SiteLayout`**: The starter chrome component around **BaseLayout**.
 

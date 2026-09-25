@@ -2,8 +2,8 @@
  * Astro integration entry — named (and default) export `astroIntl()`.
  * Loads `src/intl.config.ts`, writes locale list and prefix policy through to
  * Astro `i18n`, and checks catalog files. Injects one route per compiled route
- * row and locale. Entrypoints are the routed pages under `src/routes/`. A row's
- * missing page is injected for locales without a translation, and nothing is
+ * row and locale. Entrypoints are the views under `src/views/`. A row's
+ * missing view is injected for locales without a translation, and nothing is
  * injected when the row names none. Records reserved file-route tails for
  * pairing collisions, excluding those injected routes. Warns when
  * `trailingSlash` and `build.format` disagree. Does not load catalog JSON and
@@ -17,7 +17,7 @@ import { createJiti } from 'jiti';
 import * as z from 'zod';
 import { type IntlConfig, intlConfigSchema, messagesDir } from './define-intl.ts';
 import { fileRouteCollision, isIntlRoute, reservedTailsFromRoutes } from './reserved-paths.ts';
-import { type CompiledRoute, compileRoutes, routedPageEntrypoint } from './routing.ts';
+import { type CompiledRoute, compileRoutes, viewEntrypoint } from './routing.ts';
 import { setIntlConfig, setRouteTails } from './runtime.ts';
 import { sitemapI18nIsSet } from './sitemap-i18n.ts';
 import { urlFormatMismatch } from './url-format.ts';
@@ -162,16 +162,16 @@ export function astroIntl(): AstroIntegration {
         setIntlConfig(intlConfig);
 
         const srcDir = fileURLToPath(config.srcDir);
-        const entrypointForPage = new Map<string, string>();
+        const entrypointForView = new Map<string, string>();
         const entrypoints = new Set<string>();
         let compiled: CompiledRoute[];
         try {
           compiled = compileRoutes(intlConfig);
           for (const route of compiled) {
-            let entrypoint = entrypointForPage.get(route.page);
+            let entrypoint = entrypointForView.get(route.view);
             if (entrypoint === undefined) {
-              entrypoint = routedPageEntrypoint(srcDir, route.page, existsSync);
-              entrypointForPage.set(route.page, entrypoint);
+              entrypoint = viewEntrypoint(srcDir, route.view, existsSync);
+              entrypointForView.set(route.view, entrypoint);
             }
             injectRoute({ pattern: route.pattern, entrypoint });
             entrypoints.add(entrypoint);
@@ -205,7 +205,7 @@ export function astroIntl(): AstroIntegration {
         if (collision) {
           const message =
             `@repo/astro-intl: file route "${collision.file}" collides with injected route ` +
-            `"${collision.injected.pattern}" (routed page "${collision.injected.page}").`;
+            `"${collision.injected.pattern}" (view "${collision.injected.view}").`;
           logger.error(message);
           throw new Error(message);
         }

@@ -13,14 +13,14 @@ export default defineIntl({
     prefixDefaultLocale: true,
   },
   messages: { dir: 'messages' },
-  // `page` and `missingPage` name routed pages. Intl injects one route per row and locale.
-  routes: routes.map(({ slug, page, collection, entry, pageSize, missingPage }) => ({
+  // `view` and `missingView` name views. Intl injects one route per row and locale.
+  routes: routes.map(({ slug, view, collection, entry, pageSize, missingView }) => ({
     slug,
-    page,
+    view,
     ...(collection ? { collection } : {}),
     ...(entry ? { entry } : {}),
     ...(pageSize !== undefined ? { pageSize } : {}),
-    ...(missingPage ? { missingPage } : {}),
+    ...(missingView ? { missingView } : {}),
   })),
   collections: {
     blog: { idField: 'id', localeField: 'locale', slugField: 'slug' },

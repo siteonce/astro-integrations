@@ -1,10 +1,10 @@
 # Publishing
 
-Who emits URLs. Intl joins entries and injects one route per row and locale. Each routed page lists its own URLs. Contract for joining and injection: [`intl.md`](intl.md).
+Who emits URLs. Intl joins entries and injects one route per row and locale. Each view lists its own URLs. Contract for joining and injection: [`intl.md`](intl.md).
 
 ## Content URLs
 
-There is no catch-all. Each routed page’s `getStaticPaths` returns intl’s helper for its route: one path per URL that locale publishes, including each numbered listing page. A locale that does not publish a row’s tail gets no page: no file in the build, a 404 in dev.
+There is no catch-all. A view is a full Astro page. Its `getStaticPaths` returns intl’s helper for its route: one path per URL that locale publishes, including each numbered listing page. A locale that does not publish a row’s tail gets no page: no file in the build, a 404 in dev.
 
 Listing pages come from Astro’s `paginate()`. Intl rebuilds each page’s `page.url` through `astro:i18n`, so pager links match every other link.
 
@@ -14,7 +14,7 @@ Reserved tails come from Astro’s resolved routes, plus any the app names. Intl
 
 ## Missing entry
 
-A `{slug}` row names the app’s missing page (`missingPage`), or none. Intl publishes it in each other locale for default-locale entries without a sibling there, and passes the default-locale entry and its URL. The app chooses the redirect or a notice. Without `missingPage`, those URLs 404.
+A `{slug}` row names the app’s missing view (`missingView`), or none. In each locale that is not the default, intl injects it for default-locale entries that have no translation, and passes the default-locale entry and its URL. The app chooses the redirect or a notice. Omitted, those URLs 404.
 
 The starter redirects to the default-locale entry. A static build writes a meta refresh with `noindex` and a canonical to the target. Dev answers with a 302.
 

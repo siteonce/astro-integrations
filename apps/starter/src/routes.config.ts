@@ -1,34 +1,34 @@
 import type { RouteConfig } from '@repo/astro-intl';
 
-// Data only. `page` names a routed page under `src/routes/`.
-// A string names one routed page for every locale. An object names one per locale.
+// Data only. `view` names a view under `src/views/`.
+// A string names one view for every locale. An object names one per locale.
 // `pageSize` is how many entries fill one chunk of a collection tail.
-// `missingPage` names the routed page for a locale without a translation.
+// `missingView` names the view for a locale without a translation.
 // Omitting it means those URLs 404.
 export type StarterRoute = RouteConfig;
 
 export const routes: StarterRoute[] = [
   {
     slug: { en: '/', de: '/' },
-    page: 'home',
+    view: 'home',
   },
   {
     // Posts that fill these pages come from `listingQuery` in `utils/listing.ts`.
     slug: { en: 'blog', de: 'artikel' },
     collection: 'blog',
-    page: 'blog',
+    view: 'blog',
     pageSize: 1,
   },
   {
     slug: { en: 'blog/{slug}', de: 'artikel/{slug}' },
     collection: 'blog',
-    page: 'blog/post',
-    missingPage: 'missing',
+    view: 'blog/post',
+    missingView: 'missing',
   },
   {
     slug: { en: 'tags/{slug}', de: 'schlagworte/{slug}' },
     collection: 'tags',
-    page: 'tags/term',
-    missingPage: 'missing',
+    view: 'tags/term',
+    missingView: 'missing',
   },
 ];

@@ -242,35 +242,35 @@ export default { integrations: [sitemap({ i18n: { defaultLocale: 'en', locales: 
   defaultLocale: 'en',
   routing: { prefixDefaultLocale: true },
   routes: [
-    { slug: { en: 'about', de: 'ueber' }, page: 'about' },
-    { slug: { en: 'blog/{slug}', de: 'artikel/{slug}' }, collection: 'blog', page: 'post', missingPage: 'missing' },
-    { slug: { en: 'blog', de: 'artikel' }, collection: 'blog', pageSize: 10, page: 'blog' },
+    { slug: { en: 'about', de: 'ueber' }, view: 'about' },
+    { slug: { en: 'blog/{slug}', de: 'artikel/{slug}' }, collection: 'blog', view: 'post', missingView: 'missing' },
+    { slug: { en: 'blog', de: 'artikel' }, collection: 'blog', pageSize: 10, view: 'blog' },
   ],
   collections: { blog: { slugField: 'slug' } },
 };
 `,
     );
     await writeCatalogs(srcDir, ['en', 'de']);
-    const routesDir = path.join(srcDir, 'routes');
-    await mkdir(routesDir, { recursive: true });
+    const viewsDir = path.join(srcDir, 'views');
+    await mkdir(viewsDir, { recursive: true });
     for (const name of ['about.astro', 'post.astro', 'blog.astro', 'missing.astro']) {
-      await writeFile(path.join(routesDir, name), '');
+      await writeFile(path.join(viewsDir, name), '');
     }
 
     const resolvedSrc = fileURLToPath(pathToFileURL(`${srcDir}/`));
-    const page = (name: string) => path.join(resolvedSrc, 'routes', `${name}.astro`);
+    const view = (name: string) => path.join(resolvedSrc, 'views', `${name}.astro`);
     const { injected } = await runSetup({ root });
 
     assert.deepEqual(
       injected.map(({ pattern, entrypoint }) => ({ pattern, entrypoint })),
       [
-        { pattern: '/en/about/[...index]', entrypoint: page('about') },
-        { pattern: '/de/ueber/[...index]', entrypoint: page('about') },
-        { pattern: '/en/blog/[slug]', entrypoint: page('post') },
-        { pattern: '/de/artikel/[slug]', entrypoint: page('post') },
-        { pattern: '/de/artikel/[slug]', entrypoint: page('missing') },
-        { pattern: '/en/blog/[...page]', entrypoint: page('blog') },
-        { pattern: '/de/artikel/[...page]', entrypoint: page('blog') },
+        { pattern: '/en/about/[...index]', entrypoint: view('about') },
+        { pattern: '/de/ueber/[...index]', entrypoint: view('about') },
+        { pattern: '/en/blog/[slug]', entrypoint: view('post') },
+        { pattern: '/de/artikel/[slug]', entrypoint: view('post') },
+        { pattern: '/de/artikel/[slug]', entrypoint: view('missing') },
+        { pattern: '/en/blog/[...page]', entrypoint: view('blog') },
+        { pattern: '/de/artikel/[...page]', entrypoint: view('blog') },
       ],
     );
     assert.equal(
@@ -279,7 +279,7 @@ export default { integrations: [sitemap({ i18n: { defaultLocale: 'en', locales: 
     );
   });
 
-  it('aborts setup when a routed page file is missing', async () => {
+  it('aborts setup when a view file is missing', async () => {
     const root = await makeRoot();
     const srcDir = path.join(root, 'src');
     await writeIntlConfig(
@@ -288,14 +288,11 @@ export default { integrations: [sitemap({ i18n: { defaultLocale: 'en', locales: 
   locales: ['en', 'de'],
   defaultLocale: 'en',
   routing: { prefixDefaultLocale: true },
-  routes: [{ slug: { en: 'about', de: 'ueber' }, page: 'missing' }],
+  routes: [{ slug: { en: 'about', de: 'ueber' }, view: 'missing' }],
 };
 `,
     );
     await writeCatalogs(srcDir, ['en', 'de']);
-    await assert.rejects(
-      () => runSetup({ root }),
-      /routed page "missing" has no file under src\/routes\//,
-    );
+    await assert.rejects(() => runSetup({ root }), /view "missing" has no file under src\/views\//);
   });
 });

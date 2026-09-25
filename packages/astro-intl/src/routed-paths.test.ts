@@ -29,19 +29,19 @@ const config = defineIntl({
   defaultLocale: 'en',
   routing: { prefixDefaultLocale: true },
   routes: [
-    { slug: { en: 'about', de: 'ueber' }, page: 'about' },
+    { slug: { en: 'about', de: 'ueber' }, view: 'about' },
     {
       slug: { en: 'featured', de: 'hervorgehoben' },
-      page: 'featured',
+      view: 'featured',
       collection: 'blog',
       entry: 'pin',
     },
-    { slug: { en: 'blog', de: 'artikel' }, page: 'index', collection: 'blog', pageSize: 1 },
+    { slug: { en: 'blog', de: 'artikel' }, view: 'index', collection: 'blog', pageSize: 1 },
     {
       slug: { en: 'blog/{slug}', de: 'artikel/{slug}' },
-      page: 'post',
+      view: 'post',
       collection: 'blog',
-      missingPage: 'missing',
+      missingView: 'missing',
     },
   ],
   collections: { blog: { slugField: 'slug' } },
@@ -93,8 +93,8 @@ function compiledRoute(pattern: string, kind: CompiledRoute['kind']): CompiledRo
 describe('routeFor', () => {
   it('resolves one pattern to entry or missing by kind', () => {
     const compiled = compileRoutes(config);
-    assert.equal(routeFor(compiled, '/de/artikel/[slug]', 'entry').page, 'post');
-    assert.equal(routeFor(compiled, '/de/artikel/[slug]/', 'missing').page, 'missing');
+    assert.equal(routeFor(compiled, '/de/artikel/[slug]', 'entry').view, 'post');
+    assert.equal(routeFor(compiled, '/de/artikel/[slug]/', 'missing').view, 'missing');
     assert.throws(() => routeFor(compiled, '/nope', 'entry'), {
       message: '@repo/astro-intl: no injected entry route for pattern "/nope".',
     });
@@ -102,7 +102,7 @@ describe('routeFor', () => {
 
   it('does not strip the root pattern', () => {
     const compiled: CompiledRoute[] = [
-      { pattern: '/', page: 'home', locale: 'en', rowIndex: 0, kind: 'static' },
+      { pattern: '/', view: 'home', locale: 'en', rowIndex: 0, kind: 'static' },
     ];
     assert.equal(routeFor(compiled, '/', 'static').pattern, '/');
   });
@@ -159,7 +159,7 @@ describe('listingPathsFor', () => {
       locales: ['en', 'de'],
       defaultLocale: 'en',
       routing: { prefixDefaultLocale: false },
-      routes: [{ slug: { en: '/', de: '/' }, page: 'home', collection: 'posts', pageSize: 1 }],
+      routes: [{ slug: { en: '/', de: '/' }, view: 'home', collection: 'posts', pageSize: 1 }],
       collections: { posts: {} },
     });
     const posts = [
@@ -192,8 +192,8 @@ describe('listingPathsFor', () => {
       defaultLocale: 'en',
       routing: { prefixDefaultLocale: true },
       routes: [
-        { slug: { en: 'blog' }, page: 'index', collection: 'blog', pageSize: 10 },
-        { slug: { en: 'blog/2024' }, page: 'archive' },
+        { slug: { en: 'blog' }, view: 'index', collection: 'blog', pageSize: 10 },
+        { slug: { en: 'blog/2024' }, view: 'archive' },
       ],
       collections: { blog: {} },
     });

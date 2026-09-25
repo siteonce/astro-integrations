@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { join } from 'node:path';
 import { describe, it } from 'node:test';
 import { defineIntl } from './define-intl.ts';
-import { compileRoutes, routedPageEntrypoint } from './routing.ts';
+import { compileRoutes, viewEntrypoint } from './routing.ts';
 
 const locales = ['en', 'de'] as const;
 
@@ -13,62 +13,62 @@ describe('compileRoutes', () => {
       defaultLocale: 'en',
       routing: { prefixDefaultLocale: true },
       routes: [
-        { slug: { en: '/', de: '/' }, page: 'home' },
-        { slug: { en: 'about', de: 'ueber' }, page: { en: 'about', de: 'ueber' } },
-        { slug: { en: '/', de: '/' }, collection: 'posts', pageSize: 1, page: 'index' },
-        { slug: { en: 'blog', de: 'artikel' }, collection: 'blog', pageSize: 10, page: 'blog' },
-        { slug: { en: 'notes', de: 'notizen' }, collection: 'notes', page: 'notes' },
+        { slug: { en: '/', de: '/' }, view: 'home' },
+        { slug: { en: 'about', de: 'ueber' }, view: { en: 'about', de: 'ueber' } },
+        { slug: { en: '/', de: '/' }, collection: 'posts', pageSize: 1, view: 'index' },
+        { slug: { en: 'blog', de: 'artikel' }, collection: 'blog', pageSize: 10, view: 'blog' },
+        { slug: { en: 'notes', de: 'notizen' }, collection: 'notes', view: 'notes' },
         {
           slug: { en: 'team', de: 'mannschaft' },
           collection: 'people',
           entry: 'ada',
-          page: 'person',
+          view: 'person',
         },
-        { slug: { en: 'blog/{slug}', de: 'artikel/{slug}' }, collection: 'blog', page: 'post' },
+        { slug: { en: 'blog/{slug}', de: 'artikel/{slug}' }, collection: 'blog', view: 'post' },
         {
           slug: { en: 'careers/{slug}', de: 'karriere/{slug}' },
           collection: 'pages',
           entry: 'designer',
-          page: 'career',
+          view: 'career',
         },
       ],
     });
 
     assert.deepEqual(compileRoutes(config), [
-      { pattern: '/en/[...index]', page: 'home', locale: 'en', rowIndex: 0, kind: 'static' },
-      { pattern: '/de/[...index]', page: 'home', locale: 'de', rowIndex: 0, kind: 'static' },
-      { pattern: '/en/about/[...index]', page: 'about', locale: 'en', rowIndex: 1, kind: 'static' },
-      { pattern: '/de/ueber/[...index]', page: 'ueber', locale: 'de', rowIndex: 1, kind: 'static' },
-      { pattern: '/en/[...page]', page: 'index', locale: 'en', rowIndex: 2, kind: 'listing' },
-      { pattern: '/de/[...page]', page: 'index', locale: 'de', rowIndex: 2, kind: 'listing' },
-      { pattern: '/en/blog/[...page]', page: 'blog', locale: 'en', rowIndex: 3, kind: 'listing' },
+      { pattern: '/en/[...index]', view: 'home', locale: 'en', rowIndex: 0, kind: 'static' },
+      { pattern: '/de/[...index]', view: 'home', locale: 'de', rowIndex: 0, kind: 'static' },
+      { pattern: '/en/about/[...index]', view: 'about', locale: 'en', rowIndex: 1, kind: 'static' },
+      { pattern: '/de/ueber/[...index]', view: 'ueber', locale: 'de', rowIndex: 1, kind: 'static' },
+      { pattern: '/en/[...page]', view: 'index', locale: 'en', rowIndex: 2, kind: 'listing' },
+      { pattern: '/de/[...page]', view: 'index', locale: 'de', rowIndex: 2, kind: 'listing' },
+      { pattern: '/en/blog/[...page]', view: 'blog', locale: 'en', rowIndex: 3, kind: 'listing' },
       {
         pattern: '/de/artikel/[...page]',
-        page: 'blog',
+        view: 'blog',
         locale: 'de',
         rowIndex: 3,
         kind: 'listing',
       },
-      { pattern: '/en/notes/[...index]', page: 'notes', locale: 'en', rowIndex: 4, kind: 'static' },
+      { pattern: '/en/notes/[...index]', view: 'notes', locale: 'en', rowIndex: 4, kind: 'static' },
       {
         pattern: '/de/notizen/[...index]',
-        page: 'notes',
+        view: 'notes',
         locale: 'de',
         rowIndex: 4,
         kind: 'static',
       },
-      { pattern: '/en/team/[...index]', page: 'person', locale: 'en', rowIndex: 5, kind: 'static' },
+      { pattern: '/en/team/[...index]', view: 'person', locale: 'en', rowIndex: 5, kind: 'static' },
       {
         pattern: '/de/mannschaft/[...index]',
-        page: 'person',
+        view: 'person',
         locale: 'de',
         rowIndex: 5,
         kind: 'static',
       },
-      { pattern: '/en/blog/[slug]', page: 'post', locale: 'en', rowIndex: 6, kind: 'entry' },
-      { pattern: '/de/artikel/[slug]', page: 'post', locale: 'de', rowIndex: 6, kind: 'entry' },
-      { pattern: '/en/careers/[slug]', page: 'career', locale: 'en', rowIndex: 7, kind: 'entry' },
-      { pattern: '/de/karriere/[slug]', page: 'career', locale: 'de', rowIndex: 7, kind: 'entry' },
+      { pattern: '/en/blog/[slug]', view: 'post', locale: 'en', rowIndex: 6, kind: 'entry' },
+      { pattern: '/de/artikel/[slug]', view: 'post', locale: 'de', rowIndex: 6, kind: 'entry' },
+      { pattern: '/en/careers/[slug]', view: 'career', locale: 'en', rowIndex: 7, kind: 'entry' },
+      { pattern: '/de/karriere/[slug]', view: 'career', locale: 'de', rowIndex: 7, kind: 'entry' },
     ]);
   });
 
@@ -78,54 +78,54 @@ describe('compileRoutes', () => {
       defaultLocale: 'en',
       routing: { prefixDefaultLocale: false },
       routes: [
-        { slug: { en: '/', de: '/' }, page: 'home' },
-        { slug: { en: 'blog', de: 'artikel' }, page: 'blog' },
+        { slug: { en: '/', de: '/' }, view: 'home' },
+        { slug: { en: 'blog', de: 'artikel' }, view: 'blog' },
         {
           slug: { en: 'blog/{slug}', de: 'artikel/{slug}' },
           collection: 'blog',
-          page: 'post',
-          missingPage: 'missing',
+          view: 'post',
+          missingView: 'missing',
         },
       ],
     });
 
     assert.deepEqual(compileRoutes(config), [
-      { pattern: '/de/[...index]', page: 'home', locale: 'de', rowIndex: 0, kind: 'static' },
-      { pattern: '/[...index]', page: 'home', locale: 'en', rowIndex: 0, kind: 'static' },
+      { pattern: '/de/[...index]', view: 'home', locale: 'de', rowIndex: 0, kind: 'static' },
+      { pattern: '/[...index]', view: 'home', locale: 'en', rowIndex: 0, kind: 'static' },
       {
         pattern: '/de/artikel/[...index]',
-        page: 'blog',
+        view: 'blog',
         locale: 'de',
         rowIndex: 1,
         kind: 'static',
       },
-      { pattern: '/blog/[...index]', page: 'blog', locale: 'en', rowIndex: 1, kind: 'static' },
-      { pattern: '/de/artikel/[slug]', page: 'post', locale: 'de', rowIndex: 2, kind: 'entry' },
+      { pattern: '/blog/[...index]', view: 'blog', locale: 'en', rowIndex: 1, kind: 'static' },
+      { pattern: '/de/artikel/[slug]', view: 'post', locale: 'de', rowIndex: 2, kind: 'entry' },
       {
         pattern: '/de/artikel/[slug]',
-        page: 'missing',
+        view: 'missing',
         locale: 'de',
         rowIndex: 2,
         kind: 'missing',
       },
-      { pattern: '/blog/[slug]', page: 'post', locale: 'en', rowIndex: 2, kind: 'entry' },
+      { pattern: '/blog/[slug]', view: 'post', locale: 'en', rowIndex: 2, kind: 'entry' },
     ]);
   });
 
-  it('emits nothing for a locale with no slug or no page', () => {
+  it('emits nothing for a locale with no slug or no view', () => {
     const config = defineIntl({
       locales: [...locales],
       defaultLocale: 'en',
       routing: { prefixDefaultLocale: true },
       routes: [
-        { slug: { en: 'about' }, page: 'about' },
-        { slug: { en: 'blog', de: 'artikel' }, page: { en: 'blog' } },
+        { slug: { en: 'about' }, view: 'about' },
+        { slug: { en: 'blog', de: 'artikel' }, view: { en: 'blog' } },
       ],
     });
 
     assert.deepEqual(compileRoutes(config), [
-      { pattern: '/en/about/[...index]', page: 'about', locale: 'en', rowIndex: 0, kind: 'static' },
-      { pattern: '/en/blog/[...index]', page: 'blog', locale: 'en', rowIndex: 1, kind: 'static' },
+      { pattern: '/en/about/[...index]', view: 'about', locale: 'en', rowIndex: 0, kind: 'static' },
+      { pattern: '/en/blog/[...index]', view: 'blog', locale: 'en', rowIndex: 1, kind: 'static' },
     ]);
   });
 
@@ -135,10 +135,10 @@ describe('compileRoutes', () => {
       defaultLocale: 'en',
       routing: { prefixDefaultLocale: true },
       routes: [
-        { slug: { en: 'about', de: 'ueber' }, page: 'a' },
-        { slug: { en: 'other', de: 'anders' }, page: 'b' },
-        { slug: { en: 'skip', de: 'weiter' }, page: 'c' },
-        { slug: { en: 'about', de: 'ueber-uns' }, page: 'd' },
+        { slug: { en: 'about', de: 'ueber' }, view: 'a' },
+        { slug: { en: 'other', de: 'anders' }, view: 'b' },
+        { slug: { en: 'skip', de: 'weiter' }, view: 'c' },
+        { slug: { en: 'about', de: 'ueber-uns' }, view: 'd' },
       ],
     });
 
@@ -148,7 +148,7 @@ describe('compileRoutes', () => {
   });
 });
 
-describe('routedPageEntrypoint', () => {
+describe('viewEntrypoint', () => {
   const srcDir = '/app/src';
 
   function exists(files: string[]): (file: string) => boolean {
@@ -156,21 +156,21 @@ describe('routedPageEntrypoint', () => {
     return (file) => present.has(file);
   }
 
-  it('returns the one routed page file that exists', () => {
-    const file = join(srcDir, 'routes', 'post.astro');
-    const index = join(srcDir, 'routes', 'blog', 'index.astro');
-    assert.equal(routedPageEntrypoint(srcDir, 'post', exists([file])), file);
-    assert.equal(routedPageEntrypoint(srcDir, 'blog', exists([index])), index);
+  it('returns the one view file that exists', () => {
+    const file = join(srcDir, 'views', 'post.astro');
+    const index = join(srcDir, 'views', 'blog', 'index.astro');
+    assert.equal(viewEntrypoint(srcDir, 'post', exists([file])), file);
+    assert.equal(viewEntrypoint(srcDir, 'blog', exists([index])), index);
   });
 
   it('throws when both files exist or neither does', () => {
-    const file = join(srcDir, 'routes', 'post.astro');
-    const index = join(srcDir, 'routes', 'post', 'index.astro');
-    assert.throws(() => routedPageEntrypoint(srcDir, 'post', exists([file, index])), {
-      message: '@repo/astro-intl: routed page "post" has both "post.astro" and "post/index.astro".',
+    const file = join(srcDir, 'views', 'post.astro');
+    const index = join(srcDir, 'views', 'post', 'index.astro');
+    assert.throws(() => viewEntrypoint(srcDir, 'post', exists([file, index])), {
+      message: '@repo/astro-intl: view "post" has both "post.astro" and "post/index.astro".',
     });
-    assert.throws(() => routedPageEntrypoint(srcDir, 'post', exists([])), {
-      message: '@repo/astro-intl: routed page "post" has no file under src/routes/.',
+    assert.throws(() => viewEntrypoint(srcDir, 'post', exists([])), {
+      message: '@repo/astro-intl: view "post" has no file under src/views/.',
     });
   });
 });
