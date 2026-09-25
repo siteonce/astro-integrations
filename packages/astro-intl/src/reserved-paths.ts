@@ -3,9 +3,9 @@ import type { CompiledRoute } from './routing.ts';
 
 /**
  * File-route tails that must not be claimed by a compiled document `path`.
- * Catch-all `[locale]/[...path]` is ignored. The caller drops intl's own
- * injected routes before collecting tails. Optional `reservedPaths` from
- * config are merged by the caller.
+ * A file route with a dynamic segment after `[locale]` reserves nothing.
+ * The caller drops intl's own injected routes before collecting tails.
+ * Optional `reservedPaths` from config are merged by the caller.
  */
 
 export type RouteLike = {
@@ -17,22 +17,12 @@ function stripSlashes(value: string): string {
   return value.replace(/^\/+|\/+$/g, '');
 }
 
-export function isDocumentCatchAll(pattern: string): boolean {
-  const normalized = stripSlashes(pattern);
-  return (
-    normalized === '[locale]/[...path]' ||
-    normalized === '[...path]' ||
-    normalized === '[locale]/[...slug]'
-  );
-}
-
 /**
- * URL tail after an optional `[locale]` segment. `undefined` when the route is
- * the document catch-all (not reserved).
+ * URL tail after an optional `[locale]` segment. `undefined` when a dynamic
+ * segment follows `[locale]`.
  */
 export function tailFromRoute(route: RouteLike): string | undefined {
   const raw = route.pathname ?? route.pattern;
-  if (isDocumentCatchAll(route.pattern) || isDocumentCatchAll(raw)) return undefined;
   const parts = stripSlashes(raw).split('/').filter(Boolean);
   // Unprefixed root (`pages/index.astro` → `/`) is not a locale-prefixed
   // document tail. Homepage documents compile to path `'/'` under `[locale]/`.
@@ -94,7 +84,7 @@ export function isIntlRoute(
 
 /**
  * A project file route that serves a URL an injected route emits and wins
- * priority. Less specific file routes, such as the catch-all, are not hits.
+ * priority. Less specific file routes, such as `[locale]/[...path]`, are not hits.
  * A literal leaf under an entry section is not a hit here: pairing aborts
  * when a published entry lands on it. `file` is that file route's pattern.
  */

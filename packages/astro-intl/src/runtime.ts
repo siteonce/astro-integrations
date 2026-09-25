@@ -2,7 +2,7 @@ import type { IntlConfig } from './define-intl.ts';
 
 export type IntlRuntime = {
   config: IntlConfig;
-  /** Tails from `astro:routes:resolved` (catch-all excluded). */
+  /** Tails from `astro:routes:resolved` (intl's own routes excluded). */
   routeTails: string[];
   /** `routeTails` plus optional `reservedPaths` from config. */
   reservedTails: string[];

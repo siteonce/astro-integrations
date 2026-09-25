@@ -1,0 +1,17 @@
+---
+// A locale's untranslated entry. Sends the request to the default-locale entry in `target`.
+import { missingPaths, setIntlConfig } from '@repo/astro-intl';
+import type { GetStaticPathsOptions, InferGetStaticPropsType } from 'astro';
+import intlConfig from '../intl.config.ts';
+
+setIntlConfig(intlConfig);
+
+export async function getStaticPaths({ routePattern }: GetStaticPathsOptions) {
+  setIntlConfig(intlConfig);
+  return missingPaths(routePattern);
+}
+
+type Props = InferGetStaticPropsType<typeof getStaticPaths>;
+
+return Astro.redirect(Astro.props.target);
+---

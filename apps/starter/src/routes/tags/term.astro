@@ -1,37 +1,31 @@
 ---
-// Term page. Receives locale, the compiled path, and the tags-collection term
-// page. Queries posts tagged with this term, maps view-models, and composes
-// Hero + PostList. Wraps SiteLayout. No section UI beyond Measure / Flow on <main>.
-import { render } from 'astro:content';
-import type { LocaleSwitcherLink } from '@repo/astro-intl';
+// Term. One tags entry and the posts tagged with it.
+// `entryPaths` emits one path per translated term.
+import { type CollectionEntry, render } from 'astro:content';
+import { entryPaths, getAlternatePathsForPath, setIntlConfig } from '@repo/astro-intl';
 import { Hreflang } from '@repo/astro-intl/components';
 import { ogImageFor } from '@repo/astro-og-image/utils/og-image-for';
 import { Hero, PostList, Schema, Seo } from '@repo/astro-site/components';
+import type { GetStaticPathsOptions, InferGetStaticPropsType } from 'astro';
+import intlConfig from '../../intl.config.ts';
 import SiteLayout from '../../layouts/site-layout.astro';
 import { ogConfig } from '../../og.config.ts';
-import type { StarterRoute } from '../../routes.config.ts';
 import { siteConfig } from '../../site.config.ts';
-import type { PageKit } from '../../utils/page-kit.ts';
+import { createPageKit } from '../../utils/page-kit.ts';
 
-interface Props {
-  locale: string;
-  path: string;
-  route: StarterRoute;
-  switcher: LocaleSwitcherLink[];
-  kit: PageKit;
-  entry: {
-    id: string;
-    filePath?: string;
-    body?: string;
-    data: {
-      id: string;
-      seoTitle?: string;
-      seoDesc?: string;
-    };
-  };
+// Page bundles do not share the integration's in-memory runtime.
+setIntlConfig(intlConfig);
+
+export async function getStaticPaths({ routePattern }: GetStaticPathsOptions) {
+  setIntlConfig(intlConfig);
+  return entryPaths<CollectionEntry<'tags'>>(routePattern);
 }
 
-const { locale, path, switcher, kit, entry } = Astro.props;
+type Props = InferGetStaticPropsType<typeof getStaticPaths>;
+
+const { locale, path, entry } = Astro.props;
+const kit = createPageKit(locale);
+const switcher = kit.switcher(await getAlternatePathsForPath(locale, path));
 const t = kit.t;
 
 const title = entry.data.seoTitle ?? t(`taxonomy.blogTags.${entry.data.id}`);
@@ -39,7 +33,7 @@ const description = entry.data.seoDesc ?? title;
 const ogImage = ogImageFor(Astro.url.pathname, ogConfig);
 
 const hasBody = typeof entry.body === 'string' && entry.body.length > 0;
-const Content = hasBody ? (await render(entry as never)).Content : undefined;
+const Content = hasBody ? (await render(entry)).Content : undefined;
 
 const posts = (await kit.posts()).filter((post) =>
   post.data.tags.some((tag) => tag.id === entry.data.id),

@@ -1,25 +1,36 @@
 ---
-// Home. Locale and public tail. No collection entry. The HTML title falls
-// back to the site name. Copy comes from the catalog.
-import type { LocaleSwitcherLink } from '@repo/astro-intl';
+// Home. The site name and the catalog intro. No collection entry.
+// `staticPaths` supplies the locale root.
+import { getAlternatePathsForPath, setIntlConfig, staticPaths } from '@repo/astro-intl';
 import { Hreflang } from '@repo/astro-intl/components';
 import { ogImageFor } from '@repo/astro-og-image/utils/og-image-for';
 import { Hero, Schema, Seo } from '@repo/astro-site/components';
+import type { GetStaticPathsOptions, InferGetStaticPropsType } from 'astro';
+import intlConfig from '../intl.config.ts';
 import SiteLayout from '../layouts/site-layout.astro';
 import { ogConfig } from '../og.config.ts';
-import type { StarterRoute } from '../routes.config.ts';
 import { siteConfig } from '../site.config.ts';
-import type { PageKit } from '../utils/page-kit.ts';
+import { createPageKit } from '../utils/page-kit.ts';
 
-interface Props {
-  locale: string;
-  path: string;
-  route: StarterRoute;
-  switcher: LocaleSwitcherLink[];
-  kit: PageKit;
+// Page bundles do not share the integration's in-memory runtime.
+setIntlConfig(intlConfig);
+
+export async function getStaticPaths({ routePattern }: GetStaticPathsOptions) {
+  setIntlConfig(intlConfig);
+  return staticPaths(routePattern);
 }
 
-const { locale, path, switcher, kit } = Astro.props;
+type Props = InferGetStaticPropsType<typeof getStaticPaths>;
+
+// A static pattern is a pathname route. Astro does not call getStaticPaths for it,
+// and an empty `params` object is rejected when it does. The path comes from the helper.
+const rendered = (await staticPaths(Astro.routePattern))[0];
+if (!rendered) {
+  throw new Error(`starter: no path for "${Astro.routePattern}".`);
+}
+const { locale, path }: Props = rendered.props;
+const kit = createPageKit(locale);
+const switcher = kit.switcher(await getAlternatePathsForPath(locale, path));
 const t = kit.t;
 
 const description = t('home.description');

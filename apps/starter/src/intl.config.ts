@@ -13,13 +13,14 @@ export default defineIntl({
     prefixDefaultLocale: true,
   },
   messages: { dir: 'messages' },
-  // `page` names the routed page. Intl receives the tails, page, collection, entry, and pageSize.
-  routes: routes.map(({ slug, page, collection, entry, pageSize }) => ({
+  // `page` and `missingPage` name routed pages. Intl injects one route per row and locale.
+  routes: routes.map(({ slug, page, collection, entry, pageSize, missingPage }) => ({
     slug,
     page,
     ...(collection ? { collection } : {}),
     ...(entry ? { entry } : {}),
     ...(pageSize !== undefined ? { pageSize } : {}),
+    ...(missingPage ? { missingPage } : {}),
   })),
   collections: {
     blog: { idField: 'id', localeField: 'locale', slugField: 'slug' },

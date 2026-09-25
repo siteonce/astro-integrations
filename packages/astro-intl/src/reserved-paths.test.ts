@@ -10,7 +10,7 @@ import {
 import type { CompiledRoute } from './routing.ts';
 
 describe('reservedTailsFromRoutes', () => {
-  it('ignores the document catch-all and unprefixed root', () => {
+  it('ignores dynamic routes and the unprefixed root', () => {
     assert.equal(tailFromRoute({ pattern: '[locale]/[...path]' }), undefined);
     assert.equal(tailFromRoute({ pattern: '/' }), undefined);
     assert.equal(tailFromRoute({ pattern: '[locale]' }), '/');

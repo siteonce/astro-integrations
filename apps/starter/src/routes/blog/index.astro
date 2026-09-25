@@ -1,47 +1,37 @@
 ---
-// Listing. Locale and public tail. No collection entry. The HTML title comes
-// from the catalog. Queries the blog collection, slices one chunk, and
-// composes Hero + PostList. Wraps SiteLayout.
-import { getRelativeLocaleUrl } from 'astro:i18n';
-import type { LocaleSwitcherLink } from '@repo/astro-intl';
+// Listing. One chunk of that locale's published posts. The HTML title comes
+// from the catalog. `listingPaths` emits each page and its path.
+import type { CollectionEntry } from 'astro:content';
+import { getAlternatePathsForPath, listingPaths, setIntlConfig } from '@repo/astro-intl';
 import { Hreflang } from '@repo/astro-intl/components';
 import { ogImageFor } from '@repo/astro-og-image/utils/og-image-for';
 import { Hero, PostList, Schema, Seo } from '@repo/astro-site/components';
+import type { GetStaticPathsOptions, InferGetStaticPropsType } from 'astro';
+import intlConfig from '../../intl.config.ts';
 import SiteLayout from '../../layouts/site-layout.astro';
 import { ogConfig } from '../../og.config.ts';
-import type { StarterRoute } from '../../routes.config.ts';
 import { siteConfig } from '../../site.config.ts';
-import { listingPage, listingPageNumber, listingTail } from '../../utils/listing.ts';
-import type { PageKit } from '../../utils/page-kit.ts';
+import { createPageKit } from '../../utils/page-kit.ts';
 
-interface Props {
-  locale: string;
-  path: string;
-  route: StarterRoute;
-  switcher: LocaleSwitcherLink[];
-  kit: PageKit;
+// Page bundles do not share the integration's in-memory runtime.
+setIntlConfig(intlConfig);
+
+export async function getStaticPaths({ paginate, routePattern }: GetStaticPathsOptions) {
+  setIntlConfig(intlConfig);
+  return listingPaths<CollectionEntry<'blog'>>(routePattern, paginate);
 }
 
-const { locale, path, route, switcher, kit } = Astro.props;
+type Props = InferGetStaticPropsType<typeof getStaticPaths>;
+
+const { locale, path, page } = Astro.props;
+const kit = createPageKit(locale);
+const switcher = kit.switcher(await getAlternatePathsForPath(locale, path));
 const t = kit.t;
 
 const title = t('blog.title');
 const description = t('blog.description');
 const ogImage = ogImageFor(Astro.url.pathname, ogConfig);
 
-const written = route.slug[locale];
-if (!written) {
-  throw new Error(`starter: listing route has no tail for "${locale}".`);
-}
-const currentPage = listingPageNumber(written, path);
-if (currentPage === undefined) {
-  throw new Error(`starter: "${path}" is not a page of "${written}".`);
-}
-const posts = await kit.posts();
-const page = listingPage(posts, route.pageSize, currentPage, (pageNumber) => {
-  const tail = listingTail(written, pageNumber);
-  return tail === '/' ? getRelativeLocaleUrl(locale) : getRelativeLocaleUrl(locale, tail);
-});
 const items = await Promise.all(page.data.map((post) => kit.postItem(post)));
 ---
 

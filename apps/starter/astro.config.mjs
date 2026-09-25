@@ -35,6 +35,7 @@ function mediaRemotePatterns() {
 
 export default defineConfig({
   site: siteConfig.siteUrl,
+  trailingSlash: 'always',
   image: {
     remotePatterns: mediaRemotePatterns(),
   },
