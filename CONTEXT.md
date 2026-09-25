@@ -96,7 +96,7 @@ A snapshot monorepo that is the foundation for every Astro **content site** buil
 
 **Astro page**: A file under `src/pages/` that Astro publishes as a route. _Avoid_: **view**
 
-**view**: The file a route row renders. It lives under `src/views/`; the row names it by its path there (`blog/post`). The rows live in `routes.config.ts`. `astroIntl()` injects it as an Astro route for each locale. It is a full Astro page: its own `getStaticPaths` lists its URLs. _Avoid_: template, page component, **Astro page**, document, catch-all, a component that an **Astro page** imports, moving `getStaticPaths` out of it.
+**view**: The file a route row renders. It lives under `src/views/`; the row names it by its path there (`blog/post`). The rows live in `src/routes.config.ts`. `astroIntl()` injects it as an Astro route for each locale. It is a full Astro page: its own `getStaticPaths` lists its URLs. _Avoid_: routed page, template, page component, **Astro page**, document, catch-all, a component that an **Astro page** imports, moving `getStaticPaths` out of it.
 
 **`SiteLayout`**: The starter chrome component around **BaseLayout**.
 
