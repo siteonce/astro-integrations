@@ -1,10 +1,11 @@
 ---
 // Home. The site name and the catalog intro. No collection entry.
-// `staticProps` supplies the locale root at render.
-import { getAlternatePathsForPath, setIntlConfig, staticProps } from '@repo/astro-intl';
+// `staticPaths` emits the locale root, and nothing for a locale that doesn't publish it.
+import { getAlternatePathsForPath, setIntlConfig, staticPaths } from '@repo/astro-intl';
 import { Hreflang } from '@repo/astro-intl/components';
 import { ogImageFor } from '@repo/astro-og-image/utils/og-image-for';
 import { Hero, Schema, Seo } from '@repo/astro-site/components';
+import type { GetStaticPathsOptions, InferGetStaticPropsType } from 'astro';
 import intlConfig from '../intl.config.ts';
 import SiteLayout from '../layouts/site-layout.astro';
 import { ogConfig } from '../og.config.ts';
@@ -14,10 +15,14 @@ import { createPageKit } from '../utils/page-kit.ts';
 // Page bundles do not share the integration's in-memory runtime.
 setIntlConfig(intlConfig);
 
-const props = await staticProps(Astro.routePattern);
-// Not published in this locale: no file in the build, 404 in dev.
-if (!props) return new Response(null, { status: 404 });
-const { locale, path } = props;
+export async function getStaticPaths({ routePattern }: GetStaticPathsOptions) {
+  setIntlConfig(intlConfig);
+  return staticPaths(routePattern);
+}
+
+type Props = InferGetStaticPropsType<typeof getStaticPaths>;
+
+const { locale, path } = Astro.props;
 const kit = createPageKit(locale);
 const switcher = kit.switcher(await getAlternatePathsForPath(locale, path));
 const t = kit.t;

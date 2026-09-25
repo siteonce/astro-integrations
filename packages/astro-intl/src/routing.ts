@@ -16,6 +16,8 @@ const SLUG_TOKEN = '{slug}';
 
 /**
  * One pattern per row and locale, in that order.
+ * A static row compiles to an optional spread, so Astro calls its `getStaticPaths`
+ * and one row can publish nothing in a locale.
  * A `{slug}` row that names `missingPage` also emits a missing route for each
  * locale that is not the default. That route's page is `missingPage`.
  * The same kind and pattern from another row throws.
@@ -36,7 +38,7 @@ export function compileRoutes(config: IntlConfig): CompiledRoute[] {
         pattern: patternFor(
           prefixFor(config, locale),
           normalized.replaceAll(SLUG_TOKEN, '[slug]'),
-          kind === 'listing',
+          spreadName(kind),
         ),
         page,
         locale,
@@ -65,15 +67,22 @@ function kindFor(row: RouteRow, tail: string): 'static' | 'entry' | 'listing' {
   return 'static';
 }
 
+function spreadName(kind: 'static' | 'entry' | 'listing'): 'page' | 'index' | undefined {
+  if (kind === 'listing') return 'page';
+  if (kind === 'static') return 'index';
+  return undefined;
+}
+
 function prefixFor(config: IntlConfig, locale: string): string {
   if (!config.routing.prefixDefaultLocale && locale === config.defaultLocale) return '';
   return `/${locale}`;
 }
 
-function patternFor(prefix: string, tail: string, listing: boolean): string {
+function patternFor(prefix: string, tail: string, spread: 'page' | 'index' | undefined): string {
   const base = tail === '/' ? prefix || '/' : `${prefix}/${tail}`;
-  if (!listing) return base;
-  return base === '/' ? '/[...page]' : `${base}/[...page]`;
+  if (spread === undefined) return base;
+  const param = `/[...${spread}]`;
+  return base === '/' ? param : `${base}${param}`;
 }
 
 function pushRoute(

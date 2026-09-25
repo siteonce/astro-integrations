@@ -124,25 +124,32 @@ export function listingPathsFor<T>(
 }
 
 /**
- * Props for this static route, or nothing when that tail is unpublished.
- * Read at render. Astro does not call `getStaticPaths` for a static pattern.
+ * The one path for this static route, or none when that tail is unpublished.
  */
-export function staticPropsFor<T>(
+export function staticPathsFor<T>(
   config: IntlConfig,
   query: IntlQuery,
   route: CompiledRoute,
-): { locale: string; route: RouteConfig; path: string; entry: T | undefined } | undefined {
+): {
+  params: { index: undefined };
+  props: { locale: string; route: RouteConfig; path: string; entry: T | undefined };
+}[] {
   const row = routeRow(config, route);
   const path = normalizeSlug(row.slug[route.locale] ?? '');
   const key = localePathKey(route.locale, path);
   const doc = query.pairing.byLocalePath.get(key);
-  if (doc) {
-    return { locale: route.locale, route: row, path, entry: doc.entry as T };
-  }
-  if (query.pairing.byLocaleTail.has(key)) {
-    return { locale: route.locale, route: row, path, entry: undefined };
-  }
-  return undefined;
+  if (!doc && !query.pairing.byLocaleTail.has(key)) return [];
+  return [
+    {
+      params: { index: undefined },
+      props: {
+        locale: route.locale,
+        route: row,
+        path,
+        entry: doc ? (doc.entry as T) : undefined,
+      },
+    },
+  ];
 }
 
 /**

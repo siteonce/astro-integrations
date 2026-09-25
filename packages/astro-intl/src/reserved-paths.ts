@@ -86,7 +86,10 @@ export function isIntlRoute(
  * A project file route that serves a URL an injected route emits and wins
  * priority. Less specific file routes, such as `[locale]/[...path]`, are not hits.
  * A literal leaf under an entry section is not a hit here: pairing aborts
- * when a published entry lands on it. `file` is that file route's pattern.
+ * when a published entry lands on it.
+ * A static route hits the file pattern `<tail>` or `<tail>/[...rest]`.
+ * A `[param]` or another literal under that tail does not.
+ * `file` is that file route's pattern.
  */
 export function fileRouteCollision(
   fileRoutes: RouteLike[],
@@ -105,8 +108,9 @@ export function fileRouteCollision(
 function patternsCollide(filePattern: string, route: CompiledRoute): boolean {
   const fileSegments = segments(filePattern);
   const injectedSegments = segments(route.pattern);
-  if (route.kind === 'static') return sameSegments(fileSegments, injectedSegments);
-  if (route.kind === 'listing') return listingCollides(fileSegments, injectedSegments);
+  if (route.kind === 'static' || route.kind === 'listing') {
+    return spreadCollides(fileSegments, injectedSegments, route.kind === 'listing');
+  }
   // `entry` and `missing` are both a `[slug]` pattern.
   return entryCollides(fileSegments, injectedSegments);
 }
@@ -120,11 +124,17 @@ function entryCollides(fileSegments: string[], injectedSegments: string[]): bool
   return last !== undefined && isSingleParam(last);
 }
 
-function listingCollides(fileSegments: string[], injectedSegments: string[]): boolean {
+/** `<tail>` or `<tail>/[...rest]`. A listing also hits a page number or a `[param]`. */
+function spreadCollides(
+  fileSegments: string[],
+  injectedSegments: string[],
+  listing: boolean,
+): boolean {
   const base = injectedSegments.slice(0, -1);
   if (sameSegments(fileSegments, base)) return true;
   if (fileSegments.length !== base.length + 1) return false;
   if (!sameSegments(fileSegments.slice(0, base.length), base)) return false;
   const last = fileSegments[fileSegments.length - 1] ?? '';
-  return /^\d+$/u.test(last) || isSingleParam(last) || isRestParam(last);
+  if (isRestParam(last)) return true;
+  return listing && (/^\d+$/u.test(last) || isSingleParam(last));
 }

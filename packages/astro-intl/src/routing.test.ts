@@ -35,10 +35,10 @@ describe('compileRoutes', () => {
     });
 
     assert.deepEqual(compileRoutes(config), [
-      { pattern: '/en', page: 'home', locale: 'en', rowIndex: 0, kind: 'static' },
-      { pattern: '/de', page: 'home', locale: 'de', rowIndex: 0, kind: 'static' },
-      { pattern: '/en/about', page: 'about', locale: 'en', rowIndex: 1, kind: 'static' },
-      { pattern: '/de/ueber', page: 'ueber', locale: 'de', rowIndex: 1, kind: 'static' },
+      { pattern: '/en/[...index]', page: 'home', locale: 'en', rowIndex: 0, kind: 'static' },
+      { pattern: '/de/[...index]', page: 'home', locale: 'de', rowIndex: 0, kind: 'static' },
+      { pattern: '/en/about/[...index]', page: 'about', locale: 'en', rowIndex: 1, kind: 'static' },
+      { pattern: '/de/ueber/[...index]', page: 'ueber', locale: 'de', rowIndex: 1, kind: 'static' },
       { pattern: '/en/[...page]', page: 'index', locale: 'en', rowIndex: 2, kind: 'listing' },
       { pattern: '/de/[...page]', page: 'index', locale: 'de', rowIndex: 2, kind: 'listing' },
       { pattern: '/en/blog/[...page]', page: 'blog', locale: 'en', rowIndex: 3, kind: 'listing' },
@@ -49,10 +49,22 @@ describe('compileRoutes', () => {
         rowIndex: 3,
         kind: 'listing',
       },
-      { pattern: '/en/notes', page: 'notes', locale: 'en', rowIndex: 4, kind: 'static' },
-      { pattern: '/de/notizen', page: 'notes', locale: 'de', rowIndex: 4, kind: 'static' },
-      { pattern: '/en/team', page: 'person', locale: 'en', rowIndex: 5, kind: 'static' },
-      { pattern: '/de/mannschaft', page: 'person', locale: 'de', rowIndex: 5, kind: 'static' },
+      { pattern: '/en/notes/[...index]', page: 'notes', locale: 'en', rowIndex: 4, kind: 'static' },
+      {
+        pattern: '/de/notizen/[...index]',
+        page: 'notes',
+        locale: 'de',
+        rowIndex: 4,
+        kind: 'static',
+      },
+      { pattern: '/en/team/[...index]', page: 'person', locale: 'en', rowIndex: 5, kind: 'static' },
+      {
+        pattern: '/de/mannschaft/[...index]',
+        page: 'person',
+        locale: 'de',
+        rowIndex: 5,
+        kind: 'static',
+      },
       { pattern: '/en/blog/[slug]', page: 'post', locale: 'en', rowIndex: 6, kind: 'entry' },
       { pattern: '/de/artikel/[slug]', page: 'post', locale: 'de', rowIndex: 6, kind: 'entry' },
       { pattern: '/en/careers/[slug]', page: 'career', locale: 'en', rowIndex: 7, kind: 'entry' },
@@ -78,10 +90,16 @@ describe('compileRoutes', () => {
     });
 
     assert.deepEqual(compileRoutes(config), [
-      { pattern: '/de', page: 'home', locale: 'de', rowIndex: 0, kind: 'static' },
-      { pattern: '/', page: 'home', locale: 'en', rowIndex: 0, kind: 'static' },
-      { pattern: '/de/artikel', page: 'blog', locale: 'de', rowIndex: 1, kind: 'static' },
-      { pattern: '/blog', page: 'blog', locale: 'en', rowIndex: 1, kind: 'static' },
+      { pattern: '/de/[...index]', page: 'home', locale: 'de', rowIndex: 0, kind: 'static' },
+      { pattern: '/[...index]', page: 'home', locale: 'en', rowIndex: 0, kind: 'static' },
+      {
+        pattern: '/de/artikel/[...index]',
+        page: 'blog',
+        locale: 'de',
+        rowIndex: 1,
+        kind: 'static',
+      },
+      { pattern: '/blog/[...index]', page: 'blog', locale: 'en', rowIndex: 1, kind: 'static' },
       { pattern: '/de/artikel/[slug]', page: 'post', locale: 'de', rowIndex: 2, kind: 'entry' },
       {
         pattern: '/de/artikel/[slug]',
@@ -106,8 +124,8 @@ describe('compileRoutes', () => {
     });
 
     assert.deepEqual(compileRoutes(config), [
-      { pattern: '/en/about', page: 'about', locale: 'en', rowIndex: 0, kind: 'static' },
-      { pattern: '/en/blog', page: 'blog', locale: 'en', rowIndex: 1, kind: 'static' },
+      { pattern: '/en/about/[...index]', page: 'about', locale: 'en', rowIndex: 0, kind: 'static' },
+      { pattern: '/en/blog/[...index]', page: 'blog', locale: 'en', rowIndex: 1, kind: 'static' },
     ]);
   });
 
@@ -125,7 +143,7 @@ describe('compileRoutes', () => {
     });
 
     assert.throws(() => compileRoutes(config), {
-      message: '@repo/astro-intl: route pattern "/en/about" repeats (rows 0 and 3).',
+      message: '@repo/astro-intl: route pattern "/en/about/[...index]" repeats (rows 0 and 3).',
     });
   });
 });

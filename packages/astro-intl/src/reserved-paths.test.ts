@@ -50,7 +50,9 @@ describe('fileRouteCollision', () => {
   it('flags a file route that wins over the injected route', () => {
     assertCollision('/en/blog/[post]', entry);
     assertCollision('/de/artikel/[id]', compiled('/de/artikel/[slug]', 'missing', 'missing'));
-    assertCollision('/en/about', compiled('/en/about', 'static', 'about'));
+    assertCollision('/en/about', compiled('/en/about/[...index]', 'static', 'about'));
+    assertCollision('/en/about/[...rest]', compiled('/en/about/[...index]', 'static', 'about'));
+    assertCollision('/', compiled('/[...index]', 'static', 'home'));
     assertCollision('/en/blog', listing);
     assertCollision('/en/blog/2', listing);
     assertCollision('/en/blog/[n]', listing);
@@ -64,7 +66,9 @@ describe('fileRouteCollision', () => {
     assertNoCollision('/[locale]/[...path]', entry);
     assertNoCollision('/[locale]/[...path]', listing);
     assertNoCollision('/[locale]/blog/[slug]', entry);
-    assertNoCollision('/en/other', compiled('/en/about', 'static', 'about'));
+    assertNoCollision('/en/about/[section]', compiled('/en/about/[...index]', 'static', 'about'));
+    assertNoCollision('/en/about/2', compiled('/en/about/[...index]', 'static', 'about'));
+    assertNoCollision('/en/other', compiled('/en/about/[...index]', 'static', 'about'));
   });
 });
 

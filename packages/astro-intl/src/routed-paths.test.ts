@@ -9,7 +9,7 @@ import {
   listingPathsFor,
   missingPathsFor,
   routeFor,
-  staticPropsFor,
+  staticPathsFor,
 } from './routed-paths.ts';
 import { type CompiledRoute, compileRoutes } from './routing.ts';
 
@@ -101,13 +101,10 @@ describe('routeFor', () => {
   });
 
   it('does not strip the root pattern', () => {
-    const root = defineIntl({
-      locales: ['en'],
-      defaultLocale: 'en',
-      routing: { prefixDefaultLocale: false },
-      routes: [{ slug: { en: '/' }, page: 'home' }],
-    });
-    assert.equal(routeFor(compileRoutes(root), '/', 'static').pattern, '/');
+    const compiled: CompiledRoute[] = [
+      { pattern: '/', page: 'home', locale: 'en', rowIndex: 0, kind: 'static' },
+    ];
+    assert.equal(routeFor(compiled, '/', 'static').pattern, '/');
   });
 });
 
@@ -250,24 +247,33 @@ describe('listingPathsFor', () => {
   });
 });
 
-describe('staticPropsFor', () => {
+describe('staticPathsFor', () => {
   it('returns nothing for an entry unpublished in that locale', () => {
-    const props = staticPropsFor(config, queryFor(), compiledRoute('/de/hervorgehoben', 'static'));
-    assert.equal(props, undefined);
+    const paths = staticPathsFor(
+      config,
+      queryFor(),
+      compiledRoute('/de/hervorgehoben/[...index]', 'static'),
+    );
+    assert.deepEqual(paths, []);
   });
 
   it('returns the written tail with no entry', () => {
-    const props = staticPropsFor<CollectionEntryLike>(
+    const paths = staticPathsFor<CollectionEntryLike>(
       config,
       queryFor(),
-      compiledRoute('/en/about', 'static'),
+      compiledRoute('/en/about/[...index]', 'static'),
     );
-    assert.deepEqual(props, {
-      locale: 'en',
-      route: config.routes?.[0],
-      path: 'about',
-      entry: undefined,
-    });
+    assert.deepEqual(paths, [
+      {
+        params: { index: undefined },
+        props: {
+          locale: 'en',
+          route: config.routes?.[0],
+          path: 'about',
+          entry: undefined,
+        },
+      },
+    ]);
   });
 });
 

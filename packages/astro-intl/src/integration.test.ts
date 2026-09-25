@@ -264,8 +264,8 @@ export default { integrations: [sitemap({ i18n: { defaultLocale: 'en', locales: 
     assert.deepEqual(
       injected.map(({ pattern, entrypoint }) => ({ pattern, entrypoint })),
       [
-        { pattern: '/en/about', entrypoint: page('about') },
-        { pattern: '/de/ueber', entrypoint: page('about') },
+        { pattern: '/en/about/[...index]', entrypoint: page('about') },
+        { pattern: '/de/ueber/[...index]', entrypoint: page('about') },
         { pattern: '/en/blog/[slug]', entrypoint: page('post') },
         { pattern: '/de/artikel/[slug]', entrypoint: page('post') },
         { pattern: '/de/artikel/[slug]', entrypoint: page('missing') },
