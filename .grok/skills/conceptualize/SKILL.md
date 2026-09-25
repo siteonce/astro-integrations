@@ -1,7 +1,8 @@
 ---
 name: conceptualize
-description: 'Reach conceptual agreement on an idea or change by interviewing against CONTEXT.md and docs/product/. TRIGGER when: the user asks to discuss a concepte or brainstorm an idea, or think a change through before building.
+description: 'Reach conceptual agreement on an idea or change by interviewing against CONTEXT.md and docs/product/. TRIGGER when: the user asks to discuss a concepte or brainstorm an idea, or think a change through before building.'
 user-invocable: true
+disable-model-invocation: true
 ---
 
 # Conceptualize
