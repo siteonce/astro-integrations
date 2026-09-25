@@ -30,7 +30,7 @@ function withQuery(collections: Record<string, CollectionEntryLike[]>, loaded?: 
     locales: ['en', 'de'],
     defaultLocale: 'en',
     routing: { prefixDefaultLocale: true },
-    routes: [{ slug: { en: 'blog/{slug}', de: 'artikel/{slug}' }, collection: 'blog' }],
+    routes: [{ slug: { en: 'blog/{slug}', de: 'artikel/{slug}' }, page: 'x', collection: 'blog' }],
     collections: {
       blog: { slugField: 'slug' },
       authors: {},
@@ -54,7 +54,9 @@ describe('getSitemapEntries / getAlternatePaths / Hreflang', () => {
       locales: ['en', 'de'],
       defaultLocale: 'en',
       routing: { prefixDefaultLocale: true },
-      routes: [{ slug: { en: 'blog/{slug}', de: 'artikel/{slug}' }, collection: 'blog' }],
+      routes: [
+        { slug: { en: 'blog/{slug}', de: 'artikel/{slug}' }, page: 'x', collection: 'blog' },
+      ],
       collections: {
         blog: { slugField: 'slug' },
         authors: {},

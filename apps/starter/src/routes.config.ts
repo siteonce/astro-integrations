@@ -1,11 +1,9 @@
 import type { RouteConfig } from '@repo/astro-intl';
 
-// Data only. `page` names a routed page under `src/routes/` and stays in the starter.
+// Data only. `page` names a routed page under `src/routes/`.
 // A string names one routed page for every locale. An object names one per locale.
 // `pageSize` is how many entries fill one chunk of a collection tail.
-export type StarterRoute = RouteConfig & {
-  page: string | Record<string, string>;
-};
+export type StarterRoute = RouteConfig;
 
 export const routes: StarterRoute[] = [
   {

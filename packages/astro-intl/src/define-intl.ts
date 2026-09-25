@@ -14,6 +14,8 @@ export type CollectionConfig = z.infer<typeof collectionConfigSchema>;
 export const routeConfigSchema = z.strictObject({
   collection: z.string().min(1).optional(),
   slug: z.record(z.string(), z.string()),
+  /** Routed page name, or one name per locale. */
+  page: z.union([z.string().min(1), z.record(z.string(), z.string().min(1))]),
   entry: z.string().min(1).optional(),
   /** Entries in one chunk of a collection tail. Omitted, the row is that one tail. */
   pageSize: z.number().int().positive().optional(),
@@ -23,6 +25,7 @@ export type RouteConfig = z.infer<typeof routeConfigSchema>;
 
 type RouteRule = {
   slug: Readonly<Record<string, string>>;
+  page: string | Readonly<Record<string, string>>;
   collection?: string | undefined;
   entry?: string | undefined;
   pageSize?: number | undefined;
@@ -44,7 +47,37 @@ function pageSizeIssue(pageSize: number | undefined): string | undefined {
   return undefined;
 }
 
-/** Structural route rules. Compiled-path collisions are checked while pairing. */
+function pageNameIssues(name: string): string[] {
+  const issues: string[] = [];
+  if (name.endsWith('.astro')) {
+    issues.push(`routed page "${name}" includes a file extension`);
+  }
+  const parts = name.split('/');
+  if (parts.some((part) => part.length === 0 || part === '.' || part === '..')) {
+    issues.push(`routed page "${name}" is not a path`);
+  }
+  return issues;
+}
+
+function routedPageIssues(
+  page: string | Readonly<Record<string, string>>,
+  locales: readonly string[],
+): string[] {
+  if (typeof page === 'string') return pageNameIssues(page);
+  const issues: string[] = [];
+  const keys = Object.keys(page).sort();
+  const expected = [...locales].sort();
+  if (keys.join('\0') !== expected.join('\0')) {
+    issues.push(`routed page keys must be the configured locales (${expected.join(', ')})`);
+  }
+  for (const name of Object.values(page)) issues.push(...pageNameIssues(name));
+  return issues;
+}
+
+/**
+ * Structural route rules. Compiled-path collisions are checked while pairing.
+ * Repeated route patterns throw in `compileRoutes`.
+ */
 export function routeConfigIssues(config: RouteRulesConfig): string[] {
   const issues: string[] = [];
   const seenEntries = new Set<string>();
@@ -53,6 +86,8 @@ export function routeConfigIssues(config: RouteRulesConfig): string[] {
   const listed = config.collections ?? {};
 
   for (const route of config.routes ?? []) {
+    issues.push(...routedPageIssues(route.page, config.locales));
+
     const sizeIssue = pageSizeIssue(route.pageSize);
     if (sizeIssue) issues.push(sizeIssue);
 

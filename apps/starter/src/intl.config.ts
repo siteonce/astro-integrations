@@ -13,9 +13,10 @@ export default defineIntl({
     prefixDefaultLocale: true,
   },
   messages: { dir: 'messages' },
-  // `page` names the routed page. Intl receives tails, collection, entry, and pageSize.
-  routes: routes.map(({ slug, collection, entry, pageSize }) => ({
+  // `page` names the routed page. Intl receives the tails, page, collection, entry, and pageSize.
+  routes: routes.map(({ slug, page, collection, entry, pageSize }) => ({
     slug,
+    page,
     ...(collection ? { collection } : {}),
     ...(entry ? { entry } : {}),
     ...(pageSize !== undefined ? { pageSize } : {}),
