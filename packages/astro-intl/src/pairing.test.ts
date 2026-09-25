@@ -307,6 +307,50 @@ describe('routeConfigIssues', () => {
     assert.ok(named.some((issue) => issue === 'view "missing.astro" includes a file extension'));
   });
 
+  it('checks the config missingView and a row missingView of false', () => {
+    const optOut = routeConfigIssues({
+      locales,
+      routes: [{ slug: { en: 'about', de: 'ueber' }, view: 'about', missingView: false }],
+    });
+    assert.ok(optOut.some((issue) => issue === 'missingView needs a {slug} row'));
+
+    const named = routeConfigIssues({
+      locales,
+      missingView: 'missing.astro',
+      routes: [{ slug: { en: 'about', de: 'ueber' }, view: 'about' }],
+    });
+    assert.deepEqual(named, ['view "missing.astro" includes a file extension']);
+
+    const staticOnly = routeConfigIssues({
+      locales,
+      missingView: 'missing',
+      routes: [{ slug: { en: 'about', de: 'ueber' }, view: 'about' }],
+    });
+    assert.deepEqual(staticOnly, []);
+  });
+
+  it('parses a row missingView of false and rejects true', () => {
+    const base = {
+      locales: ['en', 'de'],
+      defaultLocale: 'en',
+      routing: { prefixDefaultLocale: true },
+      collections: { blog: { slugField: 'slug' } },
+    };
+    const row = {
+      slug: { en: 'blog/{slug}', de: 'artikel/{slug}' },
+      view: 'post',
+      collection: 'blog',
+    };
+    assert.equal(
+      intlConfigSchema.safeParse({ ...base, routes: [{ ...row, missingView: false }] }).success,
+      true,
+    );
+    assert.equal(
+      intlConfigSchema.safeParse({ ...base, routes: [{ ...row, missingView: true }] }).success,
+      false,
+    );
+  });
+
   it('rejects a view name that is not a path', () => {
     const extension = routeConfigIssues({
       locales,

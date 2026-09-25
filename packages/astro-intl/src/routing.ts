@@ -18,8 +18,9 @@ const SLUG_TOKEN = '{slug}';
  * One pattern per row and locale, in that order.
  * A static row compiles to an optional spread, so Astro calls its `getStaticPaths`
  * and one row can publish nothing in a locale.
- * A `{slug}` row that names `missingView` also emits a missing route for each
- * locale that is not the default. That route's view is `missingView`.
+ * A `{slug}` row with a missing view also emits a missing route for each
+ * locale that is not the default. The row's `missingView` wins over the
+ * config's; `false` means none.
  * The same kind and pattern from another row throws.
  */
 export function compileRoutes(config: IntlConfig): CompiledRoute[] {
@@ -27,6 +28,7 @@ export function compileRoutes(config: IntlConfig): CompiledRoute[] {
   const seen = new Map<string, number>();
 
   for (const [rowIndex, row] of (config.routes ?? []).entries()) {
+    const missingView = row.missingView ?? config.missingView;
     for (const locale of config.locales) {
       if (!(locale in row.slug)) continue;
       const view = viewForLocale(row.view, locale);
@@ -46,8 +48,8 @@ export function compileRoutes(config: IntlConfig): CompiledRoute[] {
         kind,
       };
       pushRoute(compiled, seen, route);
-      if (kind === 'entry' && locale !== config.defaultLocale && row.missingView) {
-        pushRoute(compiled, seen, { ...route, kind: 'missing', view: row.missingView });
+      if (kind === 'entry' && locale !== config.defaultLocale && missingView) {
+        pushRoute(compiled, seen, { ...route, kind: 'missing', view: missingView });
       }
     }
   }

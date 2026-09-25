@@ -27,8 +27,11 @@ const routeAuthoringSchema = z.strictObject({
   view: z.union([z.string().min(1), z.record(z.string(), z.string().min(1))]),
   /** Entries in one chunk of a collection tail. Omitted, the row is that one tail. */
   pageSize: z.number().int().positive().optional(),
-  /** View for a locale that has no translation. Only on a `{slug}` row. */
-  missingView: z.string().min(1).optional(),
+  /**
+   * View for a locale that has no translation. Only on a `{slug}` row.
+   * Replaces the config's `missingView`; `false` means those URLs 404.
+   */
+  missingView: z.union([z.string().min(1), z.literal(false)]).optional(),
 });
 
 type CollectionRef = string | { name: string; entry?: string | undefined };
@@ -40,7 +43,7 @@ type FlatRoute = {
   collection?: string | undefined;
   entry?: string | undefined;
   pageSize?: number | undefined;
-  missingView?: string | undefined;
+  missingView?: string | false | undefined;
 };
 
 function flattenRoute(route: {
@@ -48,7 +51,7 @@ function flattenRoute(route: {
   view: FlatRoute['view'];
   collection?: CollectionRef | undefined;
   pageSize?: number | undefined;
-  missingView?: string | undefined;
+  missingView?: string | false | undefined;
 }): FlatRoute {
   const { collection, slug, view, pageSize, missingView } = route;
   const flat: FlatRoute = { slug, view };
@@ -74,11 +77,12 @@ type RouteRule = {
   collection?: string | undefined;
   entry?: string | undefined;
   pageSize?: number | undefined;
-  missingView?: string | undefined;
+  missingView?: string | false | undefined;
 };
 
 type RouteRulesConfig = {
   locales: readonly string[];
+  missingView?: string | undefined;
   routes?: readonly RouteRule[];
   collections?: Readonly<Record<string, { slugField?: string | undefined }>>;
 };
@@ -131,10 +135,12 @@ export function routeConfigIssues(config: RouteRulesConfig): string[] {
   const seenSections = new Set<string>();
   const listed = config.collections ?? {};
 
+  if (config.missingView !== undefined) issues.push(...viewNameIssues(config.missingView));
+
   for (const route of config.routes ?? []) {
     issues.push(...viewIssues(route.view, config.locales));
     if (route.missingView !== undefined) {
-      issues.push(...viewNameIssues(route.missingView));
+      if (route.missingView !== false) issues.push(...viewNameIssues(route.missingView));
       const hasSlug = config.locales.some((locale) =>
         (route.slug[locale] ?? '').includes('{slug}'),
       );
@@ -258,6 +264,8 @@ export const intlConfigSchema = z
       })
       .optional(),
     routes: z.array(routeConfigSchema).optional(),
+    /** View for a locale that has no translation, on every `{slug}` row that names none. */
+    missingView: z.string().min(1).optional(),
     collections: z.record(z.string(), collectionConfigSchema).optional(),
     reservedPaths: z.array(z.string().min(1)).optional(),
   })

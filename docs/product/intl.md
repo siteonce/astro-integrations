@@ -57,7 +57,7 @@ The row decides the route’s shape:
 
 A view is a full Astro page. The view owns its `getStaticPaths`, typed props, and `prerender`, and its `getStaticPaths` lists its URLs. It returns intl’s helper for its route: `staticPaths`, `entryPaths`, `listingPaths`, or `missingPaths`. A helper returns only what pairing published in that locale. A locale that does not publish a row’s tail gets no page.
 
-**Missing translation.** A `{slug}` row may name a **missing view** (`missingView`). In each locale that is not the default, intl injects it for default-locale entries that have no translation. Its props carry that entry and its default-locale URL (`target`). The view chooses what to do: redirect, or show a notice. Omitted, those URLs 404. Intl never falls back to the same tail in the default locale.
+**Missing translation.** The config may name a **missing view** (`missingView`) for every `{slug}` row. A `{slug}` row may name its own, or `false` for none. In each locale that is not the default, intl injects it for default-locale entries that have no translation. Its props carry that entry and its default-locale URL (`target`). The view chooses what to do: redirect, or show a notice. With none, those URLs 404. Intl never falls back to the same tail in the default locale.
 
 **URL form.** Intl builds every URL through `astro:i18n`: hreflang, sitemap locs, missing-view targets, and listing pager links. So links follow `trailingSlash` and `build.format`. Intl warns at startup when the two disagree: `"never"` with the `directory` format, or `"always"` with the `file` format.
 
@@ -83,7 +83,7 @@ Fail at startup when:
 - Overlapping `i18n` keys are already set on `defineConfig`, or `@astrojs/sitemap`'s `i18n` option is set.
 - A `(locale, path)` is duplicated, or a file route shadows an entry.
 - A row names a view that has no file under `src/views/`, or that has both `<view>.astro` and `<view>/index.astro`.
-- A row sets `missingView` without `{slug}`.
+- A row sets `missingView` (a view or `false`) without `{slug}`.
 - Two rows compile to the same route pattern.
 - An app file route would serve a URL an injected route emits and win over it.
 - A **relation** pairing `id` is missing, a listed target has no sibling in the source locale, or a `localized()` map has a missing or extra locale key.

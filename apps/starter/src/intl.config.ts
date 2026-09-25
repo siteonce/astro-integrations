@@ -13,13 +13,15 @@ export default defineIntl({
     prefixDefaultLocale: true,
   },
   messages: { dir: 'messages' },
+  // View for a locale without a translation, on every `{slug}` row.
+  missingView: 'missing',
   // `view` and `missingView` name views. Intl injects one route per row and locale.
   routes: routes.map(({ slug, view, collection, pageSize, missingView }) => ({
     slug,
     view,
     ...(collection ? { collection } : {}),
     ...(pageSize !== undefined ? { pageSize } : {}),
-    ...(missingView ? { missingView } : {}),
+    ...(missingView !== undefined ? { missingView } : {}),
   })),
   collections: {
     blog: { idField: 'id', localeField: 'locale', slugField: 'slug' },

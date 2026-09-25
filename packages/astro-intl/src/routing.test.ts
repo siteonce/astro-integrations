@@ -112,6 +112,39 @@ describe('compileRoutes', () => {
     ]);
   });
 
+  it('uses the config missing view unless a row names its own or false', () => {
+    const config: IntlConfig = {
+      locales: [...locales],
+      defaultLocale: 'en',
+      routing: { prefixDefaultLocale: true },
+      missingView: 'missing',
+      routes: [
+        { slug: { en: 'about', de: 'ueber' }, view: 'about' },
+        { slug: { en: 'blog/{slug}', de: 'artikel/{slug}' }, collection: 'blog', view: 'post' },
+        {
+          slug: { en: 'tags/{slug}', de: 'schlagworte/{slug}' },
+          collection: 'tags',
+          view: 'term',
+          missingView: 'tag-missing',
+        },
+        {
+          slug: { en: 'authors/{slug}', de: 'autoren/{slug}' },
+          collection: 'authors',
+          view: 'author',
+          missingView: false,
+        },
+      ],
+    };
+
+    const missing = compileRoutes(config)
+      .filter((route) => route.kind === 'missing')
+      .map(({ pattern, view }) => ({ pattern, view }));
+    assert.deepEqual(missing, [
+      { pattern: '/de/artikel/[slug]', view: 'missing' },
+      { pattern: '/de/schlagworte/[slug]', view: 'tag-missing' },
+    ]);
+  });
+
   it('emits nothing for a locale with no slug or no view', () => {
     const config: IntlConfig = {
       locales: [...locales],

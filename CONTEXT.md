@@ -66,7 +66,7 @@ A snapshot monorepo that is the foundation for every Astro **content site** buil
 
 **entry**: One item in a collection. Locale siblings share one pairing `id`. _Avoid_: document; a **view** that no collection claims
 
-**missing view**: The **view** a `{slug}` row names in `missingView` for a locale without a translation. It receives the default-locale entry and its URL. Omitted, those URLs 404. _Avoid_: fallback, redirect page (it may show a notice)
+**missing view**: The **view** named in `missingView` for a locale without a translation. The config names one for every `{slug}` row; a row may name its own, or `false` for none. It receives the default-locale entry and its URL. With none, those URLs 404. _Avoid_: fallback, redirect page (it may show a notice)
 
 **record**: A translated **entry** with no public URL. _Avoid_: routed (for this)
 
