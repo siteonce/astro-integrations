@@ -69,7 +69,9 @@ A view is a full Astro page. The view owns its `getStaticPaths`, typed props, an
 
 `viewRendering` in the intl config says when the injected views render: `'build'` (the default) or `'request'`. The app sets it from its deploy class, for example `'request'` in preview only. Intl does not read the deploy class.
 
-With `'request'`, intl injects every view route on demand. Missing routes stay prerendered: they share their pattern with the `{slug}` route, and which entries lack a translation only changes with a build. A view’s own `prerender` export wins over `viewRendering`. The site needs an adapter.
+With `'request'`, intl injects every view route on demand. Missing routes stay prerendered: they share their pattern with the `{slug}` route, and which entries lack a translation only changes with a build. A view’s own `prerender` export wins over `viewRendering`. A missing view must not export `prerender = false`: two on-demand routes on one pattern are what Astro warns about. The site needs an adapter.
+
+The host must serve a prerendered file before it asks the on-demand app. Astro’s own matcher sends every slug on that pattern to the `{slug}` view. `@astrojs/node` in standalone mode serves the file first. On a host that does not, an untranslated slug answers 404 instead of the missing view. `astro dev` tries the prerendered route first either way.
 
 Pairing still comes from the build. A request renders a URL the build paired. It cannot publish a new one. New documents, slug changes, and new translations still need a build.
 
@@ -114,6 +116,7 @@ Fail at startup when:
 - A row names a view that has no file under `src/views/`, or that has both `<view>.astro` and `<view>/index.astro`.
 - A row sets `missingView` (a view or `false`) without `{slug}`.
 - `viewRendering` is `'request'` and the site has no adapter.
+- `viewRendering` is `'request'` and a missing view exports `prerender = false`.
 - Two rows compile to the same route pattern.
 - An app file route would serve a URL an injected route emits and win over it.
 - A **relation** pairing `id` is missing, a listed target has no sibling in the source locale, or a `localized()` map has a missing or extra locale key.
