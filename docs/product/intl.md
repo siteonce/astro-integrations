@@ -27,6 +27,8 @@ The app picks the **content source**: Astro content collections, or a **CMS**. I
 
 Intl makes translation work on top of Astro for either source. **Catalogs**, **pairing**, **relations**, and locale resolve read collection entries. A CMS uses that translation by presenting the same entry fields. Intl does not ship a client for a CMS. New translation behavior has to work for both sources. A job the CMS already does on its own stays there.
 
+Pairing reads build-time collections (`getCollection`). It does not read live collections (`getLiveCollection`). For fresh CMS content, keep the pairing fields in a build-time collection. The view then resolves its entry through intl and loads the body with `getLiveEntry` ([View rendering](#view-rendering)). New documents, slug changes, and new translations still need a build. Pairing at request time from live collections is possible, but intl does not build it yet.
+
 ## Pairing
 
 Pairing reads `data[idField]` and `data[localeField]` (defaults `id` / `locale`) and prefixes the collection name. Pairing key = collection name + `/` + `data[idField]`. One `PairingIndex` (`byLocalePath`, `byLocaleEntryId`). Those fields are the contract for both content sources. File layout belongs to the app.
@@ -37,7 +39,9 @@ A row that names an entry and no `{slug}` publishes the written tail. That entry
 
 A collection named without `{slug}` supplies its entries to the written tail and publishes no entry URL. `pageSize` is how many entries fill one chunk. Omit it and the row stays that one tail. The row does not store a page count. The written tail is page 1. Later pages append the number. Each locale publishes as many pages as its listing fills. A page’s alternates are the locales that publish that same page. `blog/1` is not published. An entry slug that matches a published page number on that section aborts the build.
 
-The chunk count uses the app’s listing. The starter listing is that locale’s published posts, drafts in local and preview, newest first. A CMS supplies that same ordered list. A CMS page size is separate from `pageSize`.
+The chunk count uses the app’s listing. The starter listing is that locale’s posts, newest first. A CMS supplies that same ordered list. A CMS page size is separate from `pageSize`.
+
+The content source decides which drafts exist. Outside local and preview, drafts never enter the collection, so no page, listing, sitemap URL, or alternate sees them. A CMS does this with its published view of the content. The listing orders and filters. It does not hide drafts.
 
 A collection with no slug stays **records**, except an entry a route names. A tail with no entry has no pairing `id`. Its alternates are the locales that publish that tail.
 
@@ -55,11 +59,36 @@ The row decides the route’s shape:
 - A collection with `pageSize`: `<tail>/[...page]`, built with Astro’s `paginate()`. Pairing counts the same list, and a page count that disagrees aborts the build.
 - Any other row: `<tail>/[...index]`, one URL. The spread is empty for that URL. It exists so Astro calls the view’s `getStaticPaths`.
 
-A view is a full Astro page. The view owns its `getStaticPaths`, typed props, and `prerender`, and its `getStaticPaths` lists its URLs. It returns intl’s helper for its route: `staticPaths`, `entryPaths`, `listingPaths`, or `missingPaths`. A helper returns only what pairing published in that locale. A locale that does not publish a row’s tail gets no page.
+A view is a full Astro page. The view owns its `getStaticPaths`, typed props, and `prerender`, and its `getStaticPaths` lists its URLs. `viewRendering` sets the default for `prerender` ([View rendering](#view-rendering)). It returns intl’s helper for its route: `staticPaths`, `entryPaths`, `listingPaths`, or `missingPaths`. A helper returns only what pairing published in that locale. A locale that does not publish a row’s tail gets no page.
 
 **Missing translation.** The config may name a **missing view** (`missingView`) for every `{slug}` row. A `{slug}` row may name its own, or `false` for none. In each locale that is not the default, intl injects it for default-locale entries that have no translation. Its props carry that entry and its default-locale URL (`target`). The view chooses what to do: redirect, or show a notice. With none, those URLs 404. Intl never falls back to the same tail in the default locale.
 
 **URL form.** Intl builds every URL through `astro:i18n`: hreflang, sitemap locs, missing-view targets, and listing pager links. So links follow `trailingSlash` and `build.format`. Intl warns at startup when the two disagree: `"never"` with the `directory` format, or `"always"` with the `file` format.
+
+## View rendering
+
+`viewRendering` in the intl config says when the injected views render: `'build'` (the default) or `'request'`. The app sets it from its deploy class, for example `'request'` in preview only. Intl does not read the deploy class.
+
+With `'request'`, intl injects every view route on demand. Missing routes stay prerendered: they share their pattern with the `{slug}` route, and which entries lack a translation only changes with a build. A view’s own `prerender` export wins over `viewRendering`. The site needs an adapter.
+
+Pairing still comes from the build. A request renders a URL the build paired. It cannot publish a new one. New documents, slug changes, and new translations still need a build.
+
+A view reads its props through `viewProps(Astro, getStaticPaths)`. Prerendered, that returns `Astro.props`. On demand, it runs the view’s own `getStaticPaths` for `Astro.routePattern` and returns the props of the path whose params match the request. With no match it returns `undefined`, and the view answers 404. The props are the same in both modes, including a listing’s `page`. A view has one code path.
+
+**Hybrid preview** is `'request'` plus the app’s live content: the view gets its entry from `viewProps`, then loads the fresh body with `getLiveEntry`. The live loader, its draft view of the CMS, and the adapter are the app’s.
+
+## Incremental builds
+
+Astro’s `experimental.incrementalBuild` skips rendering a page when its `cacheKey` matches the last build. It does not skip `getStaticPaths`, so pairing still reads every entry on every build. Astro tracks code, not the data a page reads while it renders.
+
+An intl page depends on more than its own entry. Adding a translation changes the alternates on every sibling. One new post shifts every page of its listing. So intl builds the `cacheKey`, not each view. Each helper returns one per path:
+
+- `entryPaths`: the entry’s digest and its alternates.
+- `listingPaths`: the digests of that page’s entries, the page count, and the page’s alternates.
+- `staticPaths`: the named entry’s digest, if any, and the alternates.
+- `missingPaths`: the default-locale entry’s digest and the `target`.
+
+A view that reads more data, such as relations or related posts, folds that data into the helper’s key.
 
 ## Relations
 
@@ -84,6 +113,7 @@ Fail at startup when:
 - A `(locale, path)` is duplicated, or a file route shadows an entry.
 - A row names a view that has no file under `src/views/`, or that has both `<view>.astro` and `<view>/index.astro`.
 - A row sets `missingView` (a view or `false`) without `{slug}`.
+- `viewRendering` is `'request'` and the site has no adapter.
 - Two rows compile to the same route pattern.
 - An app file route would serve a URL an injected route emits and win over it.
 - A **relation** pairing `id` is missing, a listed target has no sibling in the source locale, or a `localized()` map has a missing or extra locale key.
@@ -91,3 +121,7 @@ Fail at startup when:
 ## Today
 
 Starter’s content source is Astro content collections. A CMS that presents the same entry fields is the other source this contract requires. The starter does not demonstrate that source.
+
+The path helpers do not return a `cacheKey` yet.
+
+`viewRendering` and `viewProps` are not built yet. The starter keeps `'build'` and has no adapter.
