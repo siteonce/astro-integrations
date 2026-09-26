@@ -2,9 +2,12 @@ import { defineCollection } from 'astro:content';
 import { id, leafSlug, locale, localized, relation, slug } from '@repo/astro-intl';
 import { blog } from '@repo/astro-site/schemas/content/blog';
 import { seo } from '@repo/astro-site/schemas/content/seo';
+import { isLocal, isPreview } from '@repo/astro-site/utils/deploy-env';
 import { glob } from 'astro/loaders';
 import { z } from 'astro/zod';
+import { deployConfig } from './deploy.config.ts';
 import intlConfig from './intl.config.ts';
+import { withoutDrafts } from './utils/drafts.ts';
 import { slugify } from './utils/slugify.ts';
 
 // Entry id is the file path without its extension. Pairing uses data.id, not this id.
@@ -12,12 +15,18 @@ function entryFileId({ entry }: { entry: string }) {
   return entry.replace(/\.(md|mdx|json)$/u, '');
 }
 
+// Drafts exist in local and preview only. Everything that reads the collection sees the same set.
+const keepDrafts = isLocal(deployConfig) || isPreview(deployConfig);
+
 const posts = defineCollection({
-  loader: glob({
-    pattern: '**/*.{md,mdx}',
-    base: './src/content/blog',
-    generateId: entryFileId,
-  }),
+  loader: withoutDrafts(
+    glob({
+      pattern: '**/*.{md,mdx}',
+      base: './src/content/blog',
+      generateId: entryFileId,
+    }),
+    keepDrafts,
+  ),
   schema: blog
     .extend({
       id,

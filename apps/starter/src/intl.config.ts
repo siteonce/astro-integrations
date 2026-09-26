@@ -2,8 +2,8 @@ import { defineIntl, setListingEntries } from '@repo/astro-intl';
 import { routes } from './routes.config.ts';
 import { listingQuery } from './utils/listing.ts';
 
-// Blog listing pages: that locale's published posts, drafts in local/preview,
-// newest first. Other collections keep that locale.
+// Blog listing pages: that locale's posts, newest first. Other collections keep
+// that locale. The blog loader drops drafts outside local and preview.
 setListingEntries(listingQuery);
 
 export default defineIntl({

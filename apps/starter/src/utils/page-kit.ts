@@ -1,16 +1,11 @@
 import { type CollectionEntry, getCollection } from 'astro:content';
 import { getRelativeLocaleUrl } from 'astro:i18n';
 import { getAlternatePaths, localeSwitcherLinks, type Relation } from '@repo/astro-intl';
-import { isLocal, isPreview } from '@repo/astro-site/utils/deploy-env';
-import { deployConfig } from '../deploy.config.ts';
 import intlConfig from '../intl.config.ts';
 import { resolveFeatImage } from './feat-image.ts';
 import { listingEntries } from './listing.ts';
 import { localeFolder } from './locale-folder.ts';
 import { useTranslations } from './t.ts';
-
-// Drafts are visible in local and preview. One value for every kit.
-const showDrafts = isLocal(deployConfig) || isPreview(deployConfig);
 
 type BlogPost = CollectionEntry<'blog'>;
 
@@ -66,7 +61,7 @@ export function createPageKit(locale: string) {
   }
 
   async function posts() {
-    return listingEntries(await getCollection('blog'), locale, showDrafts);
+    return listingEntries(await getCollection('blog'), locale);
   }
 
   function switcher(alternates: Record<string, string>) {
