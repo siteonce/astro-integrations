@@ -1,7 +1,22 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 import { z } from 'zod';
-import { localized, localizedValue, relation } from './relation.ts';
+import { defineIntl } from './define-intl.ts';
+import {
+  collectRelations,
+  localized,
+  localizedValue,
+  recordedRelationNames,
+  relation,
+} from './relation.ts';
+import { setIntlConfig } from './runtime.ts';
+
+function emptyRecordedRelations(): void {
+  const recorded = (globalThis as Record<symbol, Set<string> | undefined>)[
+    Symbol.for('@repo/astro-intl/related-targets')
+  ];
+  recorded?.clear();
+}
 
 const locales = ['en', 'de'] as const;
 
@@ -15,6 +30,50 @@ describe('relation schema', () => {
 
   it('rejects an empty pairing id', () => {
     assert.throws(() => relation('authors').parse(''));
+  });
+});
+
+describe('collectRelations', () => {
+  it('finds relations from relationTargets when nothing was recorded', () => {
+    emptyRecordedRelations();
+    assert.deepEqual(recordedRelationNames(), []);
+    setIntlConfig(
+      defineIntl({
+        locales: ['en'],
+        defaultLocale: 'en',
+        routing: { prefixDefaultLocale: true },
+        relationTargets: ['authors'],
+      }),
+    );
+    try {
+      assert.deepEqual(collectRelations({ author: { target: 'authors', id: 'ada' } }), [
+        { target: 'authors', id: 'ada' },
+      ]);
+    } finally {
+      setIntlConfig(undefined);
+    }
+  });
+
+  it('ignores a { target, id } whose target relationTargets omits', () => {
+    setIntlConfig(
+      defineIntl({
+        locales: ['en'],
+        defaultLocale: 'en',
+        routing: { prefixDefaultLocale: true },
+        relationTargets: ['authors'],
+      }),
+    );
+    try {
+      assert.deepEqual(
+        collectRelations({
+          author: { target: 'authors', id: 'ada' },
+          lookalike: { target: 'ghost', id: 'nope' },
+        }),
+        [{ target: 'authors', id: 'ada' }],
+      );
+    } finally {
+      setIntlConfig(undefined);
+    }
   });
 });
 

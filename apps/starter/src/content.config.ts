@@ -1,11 +1,10 @@
 import { defineCollection } from 'astro:content';
-import { id, leafSlug, locale, localized, slug } from '@repo/astro-intl';
+import { id, leafSlug, locale, localized, relation, slug } from '@repo/astro-intl';
 import { blog } from '@repo/astro-site/schemas/content/blog';
 import { seo } from '@repo/astro-site/schemas/content/seo';
 import { isLocal, isPreview } from '@repo/astro-site/utils/deploy-env';
 import { glob } from 'astro/loaders';
 import { z } from 'astro/zod';
-import { authorRelation, roleRelation, sourceRelation, tagRelation } from './content/relations.ts';
 import { deployConfig } from './deploy.config.ts';
 import intlConfig from './intl.config.ts';
 import { withoutDrafts } from './utils/drafts.ts';
@@ -33,10 +32,10 @@ const posts = defineCollection({
       id,
       locale,
       slug,
-      author: authorRelation.optional(),
-      source: sourceRelation.optional(),
-      role: roleRelation.optional(),
-      tags: z.array(tagRelation).default([]),
+      author: relation('authors').optional(),
+      source: relation('sources').optional(),
+      role: relation('roles').optional(),
+      tags: z.array(relation('tags')).default([]),
     })
     .superRefine(leafSlug({ slugify })),
 });

@@ -29,9 +29,11 @@ type PaginateArgs = {
 };
 
 /**
- * `paginate` for an on-demand `getStaticPaths`.
- * Listing routes are `[...page]`, so page 1's `page` param is `undefined`.
- * `end` is the last item's index. `listingPaths` replaces `page.url`.
+ * `paginate` for a view's `getStaticPaths`. It only serves intl's `[...page]`
+ * listing routes. Those routes stay prerendered, so an on-demand view does not
+ * paginate. `viewProps` still passes this so `getStaticPaths` never sees a
+ * missing `paginate`. Page 1's `page` param is `undefined`. `end` is the last
+ * item's index. `listingPaths` replaces `page.url`.
  */
 function paginateRequest<T>(data: readonly T[], args: PaginateArgs = {}) {
   const pageSize = args.pageSize || 10;

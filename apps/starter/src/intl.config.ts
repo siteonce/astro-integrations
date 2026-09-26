@@ -28,4 +28,6 @@ export default defineIntl({
     tags: { idField: 'id', localeField: 'locale', slugField: 'slug' },
     authors: { idField: 'id', localeField: 'locale' },
   },
+  // Every collection a relation can point at.
+  relationTargets: ['authors', 'sources', 'roles', 'tags'],
 });

@@ -1,7 +1,11 @@
 import * as z from 'zod';
 import type { CollectionConfig } from './define-intl.ts';
 import type { CollectionEntryLike } from './pairing.ts';
+import { getIntlRuntime } from './runtime.ts';
 
+// Names `relation()` has seen in this process. The build compares them with
+// `relationTargets`. The server bundle does not load `content.config.ts`, so
+// this set stays empty there.
 const RELATED_TARGETS = Symbol.for('@repo/astro-intl/related-targets');
 
 // `target` rather than `collection`: Astro checks every stored `{ collection, id }` as a
@@ -29,7 +33,13 @@ function relatedTargets(): Set<string> {
   return set;
 }
 
+/** Collections `relationTargets` lists. Omitted means none. */
 export function relatedTargetNames(): string[] {
+  return [...(getIntlRuntime().config.relationTargets ?? [])];
+}
+
+/** Names `relation()` recorded in this process. Empty in the server bundle. */
+export function recordedRelationNames(): string[] {
   return [...relatedTargets()];
 }
 
@@ -43,7 +53,7 @@ function isPlainObject(value: unknown): value is Record<string, unknown> {
   );
 }
 
-function isRelation(value: unknown): value is Relation {
+function isRelation(value: unknown, targets: ReadonlySet<string>): value is Relation {
   if (!isPlainObject(value)) return false;
   const keys = Object.keys(value);
   if (
@@ -55,7 +65,7 @@ function isRelation(value: unknown): value is Relation {
   ) {
     return false;
   }
-  return relatedTargets().has(value.target);
+  return targets.has(value.target);
 }
 
 function isLocaleMap(value: unknown, locales: readonly string[]): value is Record<string, unknown> {
@@ -69,9 +79,15 @@ function fail(message: string, where?: string): never {
 }
 
 export function collectRelations(value: unknown): Relation[] {
-  if (isRelation(value)) return [value];
-  if (Array.isArray(value)) return value.flatMap(collectRelations);
-  if (isPlainObject(value)) return Object.values(value).flatMap(collectRelations);
+  return collectRelationsIn(value, new Set(relatedTargetNames()));
+}
+
+function collectRelationsIn(value: unknown, targets: ReadonlySet<string>): Relation[] {
+  if (isRelation(value, targets)) return [value];
+  if (Array.isArray(value)) return value.flatMap((item) => collectRelationsIn(item, targets));
+  if (isPlainObject(value)) {
+    return Object.values(value).flatMap((item) => collectRelationsIn(item, targets));
+  }
   return [];
 }
 

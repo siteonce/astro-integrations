@@ -13,8 +13,10 @@ import {
   setIntlLoaders,
 } from './helpers.ts';
 import type { CollectionEntryLike } from './pairing.ts';
-import { localized, relation } from './relation.ts';
+import { localized, recordedRelationNames, relation } from './relation.ts';
 import { setIntlConfig } from './runtime.ts';
+
+const relationTargets = ['authors', 'sources', 'roles'];
 
 const locales = ['en', 'de'] as const;
 const authorRel = relation('authors').parse('ada');
@@ -35,6 +37,7 @@ function withQuery(collections: Record<string, CollectionEntryLike[]>, loaded?: 
       blog: { slugField: 'slug' },
       authors: {},
     },
+    relationTargets,
   });
   setIntlConfig(config);
   setIntlLoaders({
@@ -61,6 +64,7 @@ describe('getSitemapEntries / getAlternatePaths / Hreflang', () => {
         blog: { slugField: 'slug' },
         authors: {},
       },
+      relationTargets,
     });
     const collections: Record<string, CollectionEntryLike[]> = {
       blog: [
@@ -234,5 +238,25 @@ describe('getRelated', () => {
       setIntlConfig(undefined);
       resetIntlQuery();
     }
+  });
+
+  it('throws when relation() recorded a target relationTargets omits', async () => {
+    relation('not-listed');
+    withQuery({ blog, authors, sources, roles });
+    try {
+      await assert.rejects(
+        getPairedSlugs,
+        /relation\("not-listed"\) points at a collection relationTargets does not list/,
+      );
+    } finally {
+      const recorded = (globalThis as Record<symbol, Set<string> | undefined>)[
+        Symbol.for('@repo/astro-intl/related-targets')
+      ];
+      recorded?.delete('not-listed');
+      setIntlLoaders(undefined);
+      setIntlConfig(undefined);
+      resetIntlQuery();
+    }
+    assert.equal(recordedRelationNames().includes('not-listed'), false);
   });
 });

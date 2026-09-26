@@ -16,6 +16,7 @@ import {
   assertRelations,
   collectRelations,
   type Relation,
+  recordedRelationNames,
   relatedTargetNames,
   resolveRelation,
 } from './relation.ts';
@@ -95,6 +96,13 @@ async function loadQuery(): Promise<IntlQuery> {
   const generation = runtimeGeneration();
   if (cached && cachedGeneration === generation) return cached;
   const runtime = getIntlRuntime();
+  const targets = new Set(relatedTargetNames());
+  for (const name of recordedRelationNames()) {
+    if (targets.has(name)) continue;
+    throw new Error(
+      `@repo/astro-intl: relation("${name}") points at a collection relationTargets does not list.`,
+    );
+  }
   const loaders = loadersOverride ?? (await defaultLoaders());
   const collections: Record<string, CollectionEntryLike[]> = {};
   for (const name of Object.keys(runtime.config.collections ?? {})) {

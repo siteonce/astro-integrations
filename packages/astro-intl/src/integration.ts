@@ -2,11 +2,15 @@
  * Astro integration entry — named (and default) export `astroIntl()`.
  * Loads `src/intl.config.ts`, writes locale list and prefix policy through to
  * Astro `i18n`, and checks catalog files. Injects one route per compiled route
- * row and locale. `viewRendering: 'request'` injects static, entry, and listing
- * routes on demand and refuses to boot without an adapter. Missing routes stay
- * prerendered. A view's `prerender` export wins. Entrypoints are the views under
- * `src/views/`. A row's missing view is injected for locales without a
- * translation, and nothing is injected when the row names none. Records reserved
+ * row and locale. `viewRendering: 'request'` injects static and entry routes
+ * on demand and refuses to boot without an adapter. Under `astro dev`,
+ * `viewRendering` is treated as `'build'`. Listing and missing routes stay
+ * prerendered. A listing or missing view that exports `prerender = false`
+ * fails startup outside `astro dev`. A view's `prerender` export wins for the
+ * other kinds.
+ * Entrypoints are the views under `src/views/`. A row's missing view is
+ * injected for locales without a translation, and nothing is injected when the
+ * row names none. Records reserved
  * file-route tails for pairing collisions, excluding those injected routes. Warns when
  * `trailingSlash` and `build.format` disagree. Does not load catalog JSON and
  * does not create a virtual module.
@@ -103,17 +107,38 @@ async function loadIntlConfig(configPath: string): Promise<IntlConfig> {
   return parsed.data;
 }
 
+function refusedOnDemandView(kind: 'listing' | 'missing'): string {
+  if (kind === 'listing') {
+    return (
+      '@repo/astro-intl: a listing view exports prerender = false. ' +
+      'Numbered listing pages fall under the {slug} route, and Astro ranks [slug] above [...page].'
+    );
+  }
+  return (
+    '@repo/astro-intl: a missing view exports prerender = false. ' +
+    'A missing route shares its pattern with the {slug} route, and two on-demand routes cannot share one pattern.'
+  );
+}
+
 export function astroIntl(): AstroIntegration {
   let projectRoot = '';
   let injected: CompiledRoute[] = [];
   let ownEntrypoints = new Set<string>();
+  let listingEntrypoints = new Set<string>();
   let missingEntrypoints = new Set<string>();
   let viewRendering: IntlConfig['viewRendering'];
 
   return {
     name: '@repo/astro-intl',
     hooks: {
-      'astro:config:setup': async ({ config, updateConfig, addWatchFile, injectRoute, logger }) => {
+      'astro:config:setup': async ({
+        config,
+        command,
+        updateConfig,
+        addWatchFile,
+        injectRoute,
+        logger,
+      }) => {
         const mismatch = urlFormatMismatch(config.trailingSlash, config.build?.format);
         if (mismatch) logger.warn(mismatch);
 
@@ -155,7 +180,10 @@ export function astroIntl(): AstroIntegration {
           throw error;
         }
 
-        if (intlConfig.viewRendering === 'request' && !config.adapter) {
+        // Dev treats the setting as 'build': no on-demand routes and no adapter check.
+        viewRendering = command === 'dev' ? 'build' : intlConfig.viewRendering;
+
+        if (viewRendering === 'request' && !config.adapter) {
           const message =
             '@repo/astro-intl: viewRendering is "request" and the site has no adapter.';
           logger.error(message);
@@ -173,11 +201,11 @@ export function astroIntl(): AstroIntegration {
         }
 
         setIntlConfig(intlConfig);
-        viewRendering = intlConfig.viewRendering;
 
         const srcDir = fileURLToPath(config.srcDir);
         const entrypointForView = new Map<string, string>();
         const entrypoints = new Set<string>();
+        const listing = new Set<string>();
         const missing = new Set<string>();
         let compiled: CompiledRoute[];
         try {
@@ -188,13 +216,15 @@ export function astroIntl(): AstroIntegration {
               entrypoint = viewEntrypoint(srcDir, route.view, existsSync);
               entrypointForView.set(route.view, entrypoint);
             }
-            const onDemand = viewRendering === 'request' && route.kind !== 'missing';
+            const onDemand =
+              viewRendering === 'request' && (route.kind === 'static' || route.kind === 'entry');
             injectRoute({
               pattern: route.pattern,
               entrypoint,
               ...(onDemand ? { prerender: false } : {}),
             });
             entrypoints.add(entrypoint);
+            if (route.kind === 'listing') listing.add(entrypoint);
             if (route.kind === 'missing') missing.add(entrypoint);
           }
         } catch (error) {
@@ -205,6 +235,7 @@ export function astroIntl(): AstroIntegration {
         projectRoot = fileURLToPath(config.root);
         injected = compiled;
         ownEntrypoints = entrypoints;
+        listingEntrypoints = listing;
         missingEntrypoints = missing;
 
         updateConfig({
@@ -222,10 +253,11 @@ export function astroIntl(): AstroIntegration {
       'astro:route:setup': ({ route, logger }) => {
         if (viewRendering !== 'request' || route.prerender !== false) return;
         const component = resolve(projectRoot, route.component);
-        if (!missingEntrypoints.has(component)) return;
-        const message =
-          '@repo/astro-intl: a missing view exports prerender = false. ' +
-          'Two on-demand routes cannot share one pattern.';
+        let kind: 'listing' | 'missing' | undefined;
+        if (missingEntrypoints.has(component)) kind = 'missing';
+        else if (listingEntrypoints.has(component)) kind = 'listing';
+        if (!kind) return;
+        const message = refusedOnDemandView(kind);
         logger.error(message);
         throw new Error(message);
       },

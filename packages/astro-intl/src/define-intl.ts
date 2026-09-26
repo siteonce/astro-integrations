@@ -266,13 +266,21 @@ export const intlConfigSchema = z
     routes: z.array(routeConfigSchema).optional(),
     /**
      * When injected views render. `'build'` prerenders them. `'request'` renders
-     * static, entry, and listing routes per request; missing routes stay prerendered.
-     * A view's `prerender` export wins. Omitted means `'build'`.
+     * static and entry routes per request. Listing and missing routes stay
+     * prerendered. A view's `prerender` export wins, except a listing or missing
+     * view must not export `prerender = false`. Omitted means `'build'`.
+     * No effect under `astro dev`.
      */
     viewRendering: z.enum(['build', 'request']).optional(),
     /** View for a locale that has no translation, on every `{slug}` row that names none. */
     missingView: z.string().min(1).optional(),
     collections: z.record(z.string(), collectionConfigSchema).optional(),
+    /**
+     * Collections a relation can point at.
+     * `{ target, id }` is a relation only when `target` is in this list.
+     * Omitted means none.
+     */
+    relationTargets: z.array(z.string().min(1)).optional(),
     reservedPaths: z.array(z.string().min(1)).optional(),
   })
   .refine((config) => config.locales.includes(config.defaultLocale), {

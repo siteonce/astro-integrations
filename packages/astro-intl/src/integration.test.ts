@@ -72,6 +72,7 @@ async function runSetup(options: {
   i18n?: AstroConfig['i18n'];
   integrations?: AstroIntegration[];
   adapter?: AstroIntegration;
+  command?: 'dev' | 'build' | 'preview' | 'sync';
 }): Promise<{
   config: Record<string, unknown>;
   injected: InjectedCall[];
@@ -84,6 +85,7 @@ async function runSetup(options: {
   const setup = integration.hooks['astro:config:setup'];
   assert.ok(setup, 'astro:config:setup hook is registered');
   await setup({
+    command: options.command ?? 'build',
     config: {
       root: pathToFileURL(`${options.root}/`),
       srcDir: pathToFileURL(`${srcDir}/`),
@@ -319,22 +321,31 @@ export default { integrations: [sitemap({ i18n: { defaultLocale: 'en', locales: 
     await assert.rejects(() => runSetup({ root }), /no adapter/);
   });
 
-  it('injects static, entry, and listing routes on demand and leaves missing alone', async () => {
+  it('gives prerender: false to static and entry routes only', async () => {
     const root = await makeRoot();
     await writeRenderingRoutes(root, 'request');
     const { injected } = await runSetup({
       root,
       adapter: { name: '@astrojs/node', hooks: {} } as AstroIntegration,
     });
-    assert.ok(injected.some((call) => call.entrypoint.endsWith(`${path.sep}missing.astro`)));
+    const kindOf = (entrypoint: string) => {
+      if (entrypoint.endsWith(`${path.sep}about.astro`)) return 'static';
+      if (entrypoint.endsWith(`${path.sep}post.astro`)) return 'entry';
+      if (entrypoint.endsWith(`${path.sep}blog.astro`)) return 'listing';
+      if (entrypoint.endsWith(`${path.sep}missing.astro`)) return 'missing';
+      return 'unknown';
+    };
+    const seen = new Set<string>();
     for (const call of injected) {
-      const missing = call.entrypoint.endsWith(`${path.sep}missing.astro`);
-      if (missing) {
-        assert.equal(Object.hasOwn(call, 'prerender'), false);
+      const kind = kindOf(call.entrypoint);
+      seen.add(kind);
+      if (kind === 'static' || kind === 'entry') {
+        assert.equal(call.prerender, false, kind);
       } else {
-        assert.equal(call.prerender, false);
+        assert.equal(Object.hasOwn(call, 'prerender'), false, kind);
       }
     }
+    assert.deepEqual([...seen].sort(), ['entry', 'listing', 'missing', 'static']);
   });
 
   it('sets no prerender option when viewRendering is build', async () => {
@@ -348,7 +359,7 @@ export default { integrations: [sitemap({ i18n: { defaultLocale: 'en', locales: 
     );
   });
 
-  it('aborts when a missing view exports prerender = false', async () => {
+  it('aborts when a listing or missing view exports prerender = false', async () => {
     const root = await makeRoot();
     await writeRenderingRoutes(root, 'request');
     const { integration } = await runSetup({
@@ -357,20 +368,44 @@ export default { integrations: [sitemap({ i18n: { defaultLocale: 'en', locales: 
     });
     const routeSetup = integration.hooks['astro:route:setup'];
     assert.ok(routeSetup);
+    const setup = async (component: string, prerender: boolean) =>
+      routeSetup({
+        route: { component, prerender },
+        logger: silentLogger(),
+      });
     await assert.rejects(
-      async () =>
-        routeSetup({
-          route: { component: 'src/views/missing.astro', prerender: false },
-          logger: silentLogger(),
-        }),
-      /prerender = false/,
+      () => setup('src/views/missing.astro', false),
+      /missing view exports prerender = false/,
     );
+    await assert.rejects(
+      () => setup('src/views/blog.astro', false),
+      /listing view exports prerender = false/,
+    );
+    await setup('src/views/missing.astro', true);
+    await setup('src/views/blog.astro', true);
+    await setup('src/views/post.astro', false);
+    await setup('src/views/about.astro', false);
+  });
+
+  it('treats viewRendering request as build under astro dev', async () => {
+    const root = await makeRoot();
+    await writeRenderingRoutes(root, 'request');
+    const { injected } = await runSetup({ root, command: 'dev' });
+    assert.ok(injected.length > 0);
+    assert.equal(
+      injected.some((call) => Object.hasOwn(call, 'prerender')),
+      false,
+    );
+  });
+
+  it('does not abort when a listing view exports prerender = false under astro dev', async () => {
+    const root = await makeRoot();
+    await writeRenderingRoutes(root, 'request');
+    const { integration } = await runSetup({ root, command: 'dev' });
+    const routeSetup = integration.hooks['astro:route:setup'];
+    assert.ok(routeSetup);
     await routeSetup({
-      route: { component: 'src/views/missing.astro', prerender: true },
-      logger: silentLogger(),
-    });
-    await routeSetup({
-      route: { component: 'src/views/post.astro', prerender: false },
+      route: { component: 'src/views/blog.astro', prerender: false },
       logger: silentLogger(),
     });
   });
