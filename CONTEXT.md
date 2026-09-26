@@ -66,7 +66,7 @@ A snapshot monorepo that is the foundation for every Astro **content site** buil
 
 **entry**: One item in a collection. Locale siblings share one pairing `id`. _Avoid_: document; a **view** that no collection claims
 
-**`viewRendering`**: Intl config setting for when injected **views** render: `'build'` (prerendered, the default) or `'request'` (on demand). The app sets it from its deploy class. _Avoid_: onDemand, a deploy class inside intl, previewMode
+**`viewRendering`**: Intl config setting for when injected **views** render: `'build'` (prerendered, the default) or `'request'` (static and `{slug}` routes on demand; listing and missing routes stay prerendered). The app sets it from its deploy class. _Avoid_: onDemand, a deploy class inside intl, previewMode
 
 **hybrid preview**: A preview where the build pairs the URLs and the view loads fresh CMS content per request with `getLiveEntry`. Needs `viewRendering: 'request'`. _Avoid_: live pairing (not built), draft mode
 
@@ -74,7 +74,7 @@ A snapshot monorepo that is the foundation for every Astro **content site** buil
 
 **record**: A translated **entry** with no public URL. _Avoid_: routed (for this)
 
-**relation**: A pointer from an entry to another collection by pairing `id`. Authored as that id string; after parse `{ target, id }`, where `target` is the collection name. Resolve uses the current locale. _Avoid_: `reference()` (for this helper); treating Astro’s collection file id as the stored pointer
+**relation**: A pointer from an entry to another collection by pairing `id`. Authored as that id string; after parse `{ target, id }`, where `target` is the collection name. Resolve uses the current locale. The intl config lists its target collections in `relationTargets`. _Avoid_: `reference()` (for this helper); treating Astro’s collection file id as the stored pointer
 
 ### Content schemas
 

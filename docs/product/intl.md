@@ -69,13 +69,13 @@ A view is a full Astro page. The view owns its `getStaticPaths`, typed props, an
 
 `viewRendering` in the intl config says when the injected views render: `'build'` (the default) or `'request'`. The app sets it from its deploy class, for example `'request'` in preview only. Intl does not read the deploy class.
 
-With `'request'`, intl injects every view route on demand. Missing routes stay prerendered: they share their pattern with the `{slug}` route, and which entries lack a translation only changes with a build. A view’s own `prerender` export wins over `viewRendering`. A missing view must not export `prerender = false`: two on-demand routes on one pattern are what Astro warns about. The site needs an adapter.
+With `'request'`, intl injects static and `{slug}` routes on demand. Listing and missing routes stay prerendered. A missing route shares its pattern with the `{slug}` route. A listing’s numbered pages (`blog/2`) fall under the `{slug}` route on the same section, and Astro ranks `[slug]` above `[...page]`. Neither loses anything by staying prerendered: a listing’s pages and entries, and which entries lack a translation, come from the build’s pairing either way. A view’s own `prerender` export wins over `viewRendering`. A listing or missing view must not export `prerender = false`. The site needs an adapter.
 
-The host must serve a prerendered file before it asks the on-demand app. Astro’s own matcher sends every slug on that pattern to the `{slug}` view. `@astrojs/node` in standalone mode serves the file first. On a host that does not, an untranslated slug answers 404 instead of the missing view. `astro dev` tries the prerendered route first either way.
+The host must serve a prerendered file before it asks the on-demand app. Astro’s own matcher sends those URLs to the `{slug}` view. `@astrojs/node` in standalone mode serves the file first. On a host that does not, an untranslated slug and a listing page after the first answer 404. `astro dev` tries the prerendered route first either way.
 
 Pairing still comes from the build. A request renders a URL the build paired. It cannot publish a new one. New documents, slug changes, and new translations still need a build.
 
-A view reads its props through `viewProps(Astro, getStaticPaths)`. Prerendered, that returns `Astro.props`. On demand, it runs the view’s own `getStaticPaths` for `Astro.routePattern` and returns the props of the path whose params match the request. With no match it returns `undefined`, and the view answers 404. The props are the same in both modes, including a listing’s `page`. A view has one code path.
+A view reads its props through `viewProps(Astro, getStaticPaths)`. Prerendered, that returns `Astro.props`. On demand, it runs the view’s own `getStaticPaths` for `Astro.routePattern` and returns the props of the path whose params match the request. With no match it returns `undefined`, and the view answers 404. The props are the same in both modes. A view has one code path.
 
 **Hybrid preview** is `'request'` plus the app’s live content: the view gets its entry from `viewProps`, then loads the fresh body with `getLiveEntry`. The live loader, its draft view of the CMS, and the adapter are the app’s.
 
@@ -94,7 +94,9 @@ A view that reads more data, such as relations or related posts, folds that data
 
 ## Relations
 
-A **relation** stores the pairing `id`. After parse it is `{ collection, id }`. Resolve uses the current locale. Both content sources use this pointer.
+A **relation** stores the pairing `id`. After parse it is `{ target, id }`, where `target` is the collection name. Resolve uses the current locale. Both content sources use this pointer.
+
+The intl config lists every collection a relation can point at (`relationTargets`). Intl reads relations through that list, so an on-demand view needs nothing beyond `setIntlConfig`. A `relation()` whose collection is not listed fails the build.
 
 Listed targets use pairing (`getContentById`). Those entries carry `id` and `locale`.
 
@@ -116,7 +118,7 @@ Fail at startup when:
 - A row names a view that has no file under `src/views/`, or that has both `<view>.astro` and `<view>/index.astro`.
 - A row sets `missingView` (a view or `false`) without `{slug}`.
 - `viewRendering` is `'request'` and the site has no adapter.
-- `viewRendering` is `'request'` and a missing view exports `prerender = false`.
+- `viewRendering` is `'request'` and a listing or missing view exports `prerender = false`.
 - Two rows compile to the same route pattern.
 - An app file route would serve a URL an injected route emits and win over it.
 - A **relation** pairing `id` is missing, a listed target has no sibling in the source locale, or a `localized()` map has a missing or extra locale key.
@@ -128,3 +130,5 @@ Starter’s content source is Astro content collections. A CMS that presents the
 The path helpers do not return a `cacheKey` yet.
 
 The starter keeps `'build'` and has no adapter.
+
+With `'request'`, listing routes are still on demand, so listing pages after the first answer 404. `relationTargets` is not built: views import `content/relations.ts` so an on-demand view knows the relation targets.
