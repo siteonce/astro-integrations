@@ -13,15 +13,16 @@ export default defineIntl({
     prefixDefaultLocale: true,
   },
   messages: { dir: 'messages' },
-  // View for a locale without a translation, on every `{slug}` row.
-  missingView: 'missing',
-  // `view` and `missingView` name views. Intl injects one route per row and locale.
-  routes: routes.map(({ slug, view, collection, pageSize, missingView }) => ({
+  // View for a `{slug}` URL whose entry has no translation in that locale, on
+  // every `{slug}` row. `views/fallback.astro` redirects to the default-locale entry.
+  fallbackView: 'fallback',
+  // `view` and `fallbackView` name views. Intl injects one route per row and locale.
+  routes: routes.map(({ slug, view, collection, pageSize, fallbackView }) => ({
     slug,
     view,
     ...(collection ? { collection } : {}),
     ...(pageSize !== undefined ? { pageSize } : {}),
-    ...(missingView !== undefined ? { missingView } : {}),
+    ...(fallbackView !== undefined ? { fallbackView } : {}),
   })),
   collections: {
     blog: { idField: 'id', localeField: 'locale', slugField: 'slug' },

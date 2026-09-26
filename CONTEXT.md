@@ -66,11 +66,11 @@ A snapshot monorepo that is the foundation for every Astro **content site** buil
 
 **entry**: One item in a collection. Locale siblings share one pairing `id`. _Avoid_: document; a **view** that no collection claims
 
-**`viewRendering`**: Intl config setting for when injected **views** render: `'build'` (prerendered, the default) or `'request'` (static and `{slug}` routes on demand; listing and missing routes stay prerendered). No effect under `astro dev`. The app sets it from its deploy class. _Avoid_: onDemand, a deploy class inside intl, previewMode
+**`viewRendering`**: Intl config setting for when injected **views** render: `'build'` (prerendered, the default) or `'request'` (static and `{slug}` routes on demand; listing and fallback routes stay prerendered). No effect under `astro dev`. The app sets it from its deploy class. _Avoid_: onDemand, a deploy class inside intl, previewMode
 
 **hybrid preview**: A preview where the build pairs the URLs and the view loads fresh CMS content per request with `getLiveEntry`. Needs `viewRendering: 'request'`. _Avoid_: live pairing (not built), draft mode
 
-**missing view**: The **view** named in `missingView` for a locale without a translation. The config names one for every `{slug}` row; a row may name its own, or `false` for none. It receives the default-locale entry and its URL. With none, those URLs 404. _Avoid_: fallback, redirect page (it may show a notice)
+**fallback view**: The **view** named in `fallbackView` for a locale without a translation. The config names one for every `{slug}` row; a row may name its own, or `false` for none. It receives the default-locale entry and its URL. With none, those URLs 404. _Avoid_: missing view; conflating it with Astro’s `i18n.fallback` (intl never serves the default-locale page at the translated URL); redirect page (it may show a notice)
 
 **record**: A translated **entry** with no public URL. _Avoid_: routed (for this)
 

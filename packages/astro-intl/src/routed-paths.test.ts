@@ -6,8 +6,8 @@ import type { CollectionEntryLike } from './pairing.ts';
 import { createIntlQuery, type IntlQuery } from './query.ts';
 import {
   entryPathsFor,
+  fallbackPathsFor,
   listingPathsFor,
-  missingPathsFor,
   routeFor,
   staticPathsFor,
 } from './routed-paths.ts';
@@ -43,7 +43,7 @@ const config: IntlConfig = {
       slug: { en: 'blog/{slug}', de: 'artikel/{slug}' },
       view: 'post',
       collection: 'blog',
-      missingView: 'missing',
+      fallbackView: 'missing',
     },
   ],
   collections: { blog: { slugField: 'slug' } },
@@ -93,10 +93,10 @@ function compiledRoute(pattern: string, kind: CompiledRoute['kind']): CompiledRo
 }
 
 describe('routeFor', () => {
-  it('resolves one pattern to entry or missing by kind', () => {
+  it('resolves one pattern to entry or fallback by kind', () => {
     const compiled = compileRoutes(config);
     assert.equal(routeFor(compiled, '/de/artikel/[slug]', 'entry').view, 'post');
-    assert.equal(routeFor(compiled, '/de/artikel/[slug]/', 'missing').view, 'missing');
+    assert.equal(routeFor(compiled, '/de/artikel/[slug]/', 'fallback').view, 'missing');
     assert.throws(() => routeFor(compiled, '/nope', 'entry'), {
       message: '@repo/astro-intl: no injected entry route for pattern "/nope".',
     });
@@ -279,12 +279,12 @@ describe('staticPathsFor', () => {
   });
 });
 
-describe('missingPathsFor', () => {
+describe('fallbackPathsFor', () => {
   it('points an untranslated leaf at the default-locale url and skips a published slug', () => {
-    const paths = missingPathsFor<CollectionEntryLike>(
+    const paths = fallbackPathsFor<CollectionEntryLike>(
       config,
       queryFor(),
-      compiledRoute('/de/artikel/[slug]', 'missing'),
+      compiledRoute('/de/artikel/[slug]', 'fallback'),
       relativeUrl,
     );
     assert.deepEqual(

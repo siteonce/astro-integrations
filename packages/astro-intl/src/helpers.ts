@@ -22,8 +22,8 @@ import {
 } from './relation.ts';
 import {
   entryPathsFor,
+  fallbackPathsFor,
   listingPathsFor,
-  missingPathsFor,
   routeFor,
   staticPathsFor,
 } from './routed-paths.ts';
@@ -226,9 +226,9 @@ export async function staticPaths<T>(routePattern: string) {
 }
 
 /** Missing-translation paths for the injected route at `routePattern`. */
-export async function missingPaths<T>(routePattern: string) {
+export async function fallbackPaths<T>(routePattern: string) {
   const query = await loadQuery();
-  const route = routeFor(compiledRoutes(), routePattern, 'missing');
+  const route = routeFor(compiledRoutes(), routePattern, 'fallback');
   const { getRelativeLocaleUrl } = await import('astro:i18n');
-  return missingPathsFor<T>(getIntlRuntime().config, query, route, getRelativeLocaleUrl);
+  return fallbackPathsFor<T>(getIntlRuntime().config, query, route, getRelativeLocaleUrl);
 }

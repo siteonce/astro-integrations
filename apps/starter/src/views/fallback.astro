@@ -1,0 +1,22 @@
+---
+// Fallback view: the page for an entry that exists in the default locale but
+// has no translation in this one. Intl injects it at each `{slug}` pattern of
+// every other locale, so `/de/artikel/<slug>` resolves even when only the
+// English post exists. Props carry the default-locale `entry` and its URL in
+// `target`. This one redirects to `target`; a view could instead render the
+// entry with a "not translated yet" notice. Without a fallback view those URLs 404.
+import { fallbackPaths, setIntlConfig } from '@repo/astro-intl';
+import type { GetStaticPathsOptions, InferGetStaticPropsType } from 'astro';
+import intlConfig from '../intl.config.ts';
+
+setIntlConfig(intlConfig);
+
+export async function getStaticPaths({ routePattern }: GetStaticPathsOptions) {
+  setIntlConfig(intlConfig);
+  return fallbackPaths(routePattern);
+}
+
+type Props = InferGetStaticPropsType<typeof getStaticPaths>;
+
+return Astro.redirect(Astro.props.target);
+---

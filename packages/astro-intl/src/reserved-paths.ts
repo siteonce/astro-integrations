@@ -111,7 +111,7 @@ function patternsCollide(filePattern: string, route: CompiledRoute): boolean {
   if (route.kind === 'static' || route.kind === 'listing') {
     return spreadCollides(fileSegments, injectedSegments, route.kind === 'listing');
   }
-  // `entry` and `missing` are both a `[slug]` pattern.
+  // `entry` and `fallback` are both a `[slug]` pattern.
   return entryCollides(fileSegments, injectedSegments);
 }
 

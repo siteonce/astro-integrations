@@ -3,7 +3,7 @@ import type { RouteConfig } from '@repo/astro-intl';
 // Data only. `view` names a view under `src/views/`.
 // A string names one view for every locale. An object names one per locale.
 // `pageSize` is how many entries fill one chunk of a collection tail.
-// `missingView` on a `{slug}` row replaces the one in `intl.config.ts`.
+// `fallbackView` on a `{slug}` row replaces the one in `intl.config.ts`.
 // `false` means that row's untranslated URLs 404.
 export type StarterRoute = RouteConfig;
 

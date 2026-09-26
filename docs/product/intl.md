@@ -17,7 +17,7 @@ Automatic routing with `prefixDefaultLocale` is enough.
 ## Two jobs
 
 - **intl** (`@repo/astro-intl`) — locales written through to Astro `i18n`, catalogs, pairing, route injection, lookup by id and by locale and public tail. It does not own folders or views. Who emits which URLs: [`publishing.md`](publishing.md).
-- **starter** — an example **content site** using intl. Its **content source** is Astro content collections. It writes the route rows, the views, and RSS. Sitemap printer glue lives in `@repo/astro-intl-sitemap`. The app’s missing view decides what a missing translation does.
+- **starter** — an example **content site** using intl. Its **content source** is Astro content collections. It writes the route rows, the views, and RSS. Sitemap printer glue lives in `@repo/astro-intl-sitemap`. The app’s fallback view decides what a missing translation does.
 
 The test: if deleting a piece would make the site look more like ordinary Astro and pairing still works, it was cost.
 
@@ -59,17 +59,17 @@ The row decides the route’s shape:
 - A collection with `pageSize`: `<tail>/[...page]`, built with Astro’s `paginate()`. Pairing counts the same list, and a page count that disagrees aborts the build.
 - Any other row: `<tail>/[...index]`, one URL. The spread is empty for that URL. It exists so Astro calls the view’s `getStaticPaths`.
 
-A view is a full Astro page. The view owns its `getStaticPaths`, typed props, and `prerender`, and its `getStaticPaths` lists its URLs. `viewRendering` sets the default for `prerender` ([View rendering](#view-rendering)). It returns intl’s helper for its route: `staticPaths`, `entryPaths`, `listingPaths`, or `missingPaths`. A helper returns only what pairing published in that locale. A locale that does not publish a row’s tail gets no page.
+A view is a full Astro page. The view owns its `getStaticPaths`, typed props, and `prerender`, and its `getStaticPaths` lists its URLs. `viewRendering` sets the default for `prerender` ([View rendering](#view-rendering)). It returns intl’s helper for its route: `staticPaths`, `entryPaths`, `listingPaths`, or `fallbackPaths`. A helper returns only what pairing published in that locale. A locale that does not publish a row’s tail gets no page.
 
-**Missing translation.** The config may name a **missing view** (`missingView`) for every `{slug}` row. A `{slug}` row may name its own, or `false` for none. In each locale that is not the default, intl injects it for default-locale entries that have no translation. Its props carry that entry and its default-locale URL (`target`). The view chooses what to do: redirect, or show a notice. With none, those URLs 404. Intl never falls back to the same tail in the default locale.
+**Missing translation.** The config may name a **fallback view** (`fallbackView`) for every `{slug}` row. A `{slug}` row may name its own, or `false` for none. In each locale that is not the default, intl injects it for default-locale entries that have no translation. Its props carry that entry and its default-locale URL (`target`). The view chooses what to do: redirect, or show a notice. With none, those URLs 404. Intl never falls back to the same tail in the default locale.
 
-**URL form.** Intl builds every URL through `astro:i18n`: hreflang, sitemap locs, missing-view targets, and listing pager links. So links follow `trailingSlash` and `build.format`. Intl warns at startup when the two disagree: `"never"` with the `directory` format, or `"always"` with the `file` format.
+**URL form.** Intl builds every URL through `astro:i18n`: hreflang, sitemap locs, fallback-view targets, and listing pager links. So links follow `trailingSlash` and `build.format`. Intl warns at startup when the two disagree: `"never"` with the `directory` format, or `"always"` with the `file` format.
 
 ## View rendering
 
 `viewRendering` in the intl config says when the injected views render: `'build'` (the default) or `'request'`. The app sets it from its deploy class, for example `'request'` in preview only. Intl does not read the deploy class.
 
-With `'request'`, intl injects static and `{slug}` routes on demand. Listing and missing routes stay prerendered. A missing route shares its pattern with the `{slug}` route. A listing’s numbered pages (`blog/2`) fall under the `{slug}` route on the same section, and Astro ranks `[slug]` above `[...page]`. Neither loses anything by staying prerendered: a listing’s pages and entries, and which entries lack a translation, come from the build’s pairing either way. A view’s own `prerender` export wins over `viewRendering`. A listing or missing view must not export `prerender = false`. The site needs an adapter.
+With `'request'`, intl injects static and `{slug}` routes on demand. Listing and fallback routes stay prerendered. A fallback route shares its pattern with the `{slug}` route. A listing’s numbered pages (`blog/2`) fall under the `{slug}` route on the same section, and Astro ranks `[slug]` above `[...page]`. Neither loses anything by staying prerendered: a listing’s pages and entries, and which entries lack a translation, come from the build’s pairing either way. A view’s own `prerender` export wins over `viewRendering`. A listing or fallback view must not export `prerender = false`. The site needs an adapter.
 
 The host must serve a prerendered file before it asks the on-demand app. Astro’s own matcher sends those URLs to the `{slug}` view. `@astrojs/node` in standalone mode serves the file first. On a host that does not, an untranslated slug and a listing page after the first answer 404.
 
@@ -90,7 +90,7 @@ An intl page depends on more than its own entry. Adding a translation changes th
 - `entryPaths`: the entry’s digest and its alternates.
 - `listingPaths`: the digests of that page’s entries, the page count, and the page’s alternates.
 - `staticPaths`: the named entry’s digest, if any, and the alternates.
-- `missingPaths`: the default-locale entry’s digest and the `target`.
+- `fallbackPaths`: the default-locale entry’s digest and the `target`.
 
 A view that reads more data, such as relations or related posts, folds that data into the helper’s key.
 
@@ -118,9 +118,9 @@ Fail at startup when:
 - Overlapping `i18n` keys are already set on `defineConfig`, or `@astrojs/sitemap`'s `i18n` option is set.
 - A `(locale, path)` is duplicated, or a file route shadows an entry.
 - A row names a view that has no file under `src/views/`, or that has both `<view>.astro` and `<view>/index.astro`.
-- A row sets `missingView` (a view or `false`) without `{slug}`.
+- A row sets `fallbackView` (a view or `false`) without `{slug}`.
 - `viewRendering` is `'request'` and the site has no adapter, outside `astro dev`.
-- `viewRendering` is `'request'` and a listing or missing view exports `prerender = false`, outside `astro dev`.
+- `viewRendering` is `'request'` and a listing or fallback view exports `prerender = false`, outside `astro dev`.
 - Two rows compile to the same route pattern.
 - An app file route would serve a URL an injected route emits and win over it.
 - A **relation** pairing `id` is missing, a listed target has no sibling in the source locale, or a `localized()` map has a missing or extra locale key.

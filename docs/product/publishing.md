@@ -14,7 +14,7 @@ Reserved tails come from Astro’s resolved routes, plus any the app names. Intl
 
 ## Missing entry
 
-The config names the app’s missing view (`missingView`) for every `{slug}` row, or none. A `{slug}` row may name its own, or `false` for none. In each locale that is not the default, intl injects it for default-locale entries that have no translation, and passes the default-locale entry and its URL. The app chooses the redirect or a notice. With none, those URLs 404.
+The config names the app’s fallback view (`fallbackView`) for every `{slug}` row, or none. A `{slug}` row may name its own, or `false` for none. In each locale that is not the default, intl injects it for default-locale entries that have no translation, and passes the default-locale entry and its URL. The app chooses the redirect or a notice. With none, those URLs 404.
 
 The starter redirects to the default-locale entry. A static build writes a meta refresh with `noindex` and a canonical to the target. Dev answers with a 302.
 

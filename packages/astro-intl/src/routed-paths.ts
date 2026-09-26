@@ -158,7 +158,7 @@ export function staticPathsFor<T>(
  * Default-locale leaves this locale does not publish.
  * `path` is the tail the request asked for. `target` is the default-locale URL.
  */
-export function missingPathsFor<T>(
+export function fallbackPathsFor<T>(
   config: IntlConfig,
   query: IntlQuery,
   route: CompiledRoute,

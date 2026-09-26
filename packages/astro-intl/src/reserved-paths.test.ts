@@ -49,7 +49,7 @@ describe('fileRouteCollision', () => {
 
   it('flags a file route that wins over the injected route', () => {
     assertCollision('/en/blog/[post]', entry);
-    assertCollision('/de/artikel/[id]', compiled('/de/artikel/[slug]', 'missing', 'missing'));
+    assertCollision('/de/artikel/[id]', compiled('/de/artikel/[slug]', 'fallback', 'missing'));
     assertCollision('/en/about', compiled('/en/about/[...index]', 'static', 'about'));
     assertCollision('/en/about/[...rest]', compiled('/en/about/[...index]', 'static', 'about'));
     assertCollision('/', compiled('/[...index]', 'static', 'home'));

@@ -185,7 +185,7 @@ describe('routeConfigIssues', () => {
           slug: { en: 'blog/{slug}', de: 'artikel/{slug}' },
           view: 'x',
           collection: 'blog',
-          missingView: 'missing',
+          fallbackView: 'missing',
         },
         { slug: { en: 'hello', de: 'hallo' }, view: 'x', collection: 'blog', entry: 'hello' },
       ],
@@ -285,12 +285,12 @@ describe('routeConfigIssues', () => {
     );
   });
 
-  it('rejects missingView on a row without {slug}', () => {
+  it('rejects fallbackView on a row without {slug}', () => {
     const issues = routeConfigIssues({
       locales,
-      routes: [{ slug: { en: 'about', de: 'ueber' }, view: 'about', missingView: 'missing' }],
+      routes: [{ slug: { en: 'about', de: 'ueber' }, view: 'about', fallbackView: 'missing' }],
     });
-    assert.ok(issues.some((issue) => issue === 'missingView needs a {slug} row'));
+    assert.ok(issues.some((issue) => issue === 'fallbackView needs a {slug} row'));
 
     const named = routeConfigIssues({
       locales,
@@ -299,7 +299,7 @@ describe('routeConfigIssues', () => {
           slug: { en: 'blog/{slug}', de: 'artikel/{slug}' },
           view: 'post',
           collection: 'blog',
-          missingView: 'missing.astro',
+          fallbackView: 'missing.astro',
         },
       ],
       collections: { blog: { slugField: 'slug' } },
@@ -307,29 +307,29 @@ describe('routeConfigIssues', () => {
     assert.ok(named.some((issue) => issue === 'view "missing.astro" includes a file extension'));
   });
 
-  it('checks the config missingView and a row missingView of false', () => {
+  it('checks the config fallbackView and a row fallbackView of false', () => {
     const optOut = routeConfigIssues({
       locales,
-      routes: [{ slug: { en: 'about', de: 'ueber' }, view: 'about', missingView: false }],
+      routes: [{ slug: { en: 'about', de: 'ueber' }, view: 'about', fallbackView: false }],
     });
-    assert.ok(optOut.some((issue) => issue === 'missingView needs a {slug} row'));
+    assert.ok(optOut.some((issue) => issue === 'fallbackView needs a {slug} row'));
 
     const named = routeConfigIssues({
       locales,
-      missingView: 'missing.astro',
+      fallbackView: 'missing.astro',
       routes: [{ slug: { en: 'about', de: 'ueber' }, view: 'about' }],
     });
     assert.deepEqual(named, ['view "missing.astro" includes a file extension']);
 
     const staticOnly = routeConfigIssues({
       locales,
-      missingView: 'missing',
+      fallbackView: 'missing',
       routes: [{ slug: { en: 'about', de: 'ueber' }, view: 'about' }],
     });
     assert.deepEqual(staticOnly, []);
   });
 
-  it('parses a row missingView of false and rejects true', () => {
+  it('parses a row fallbackView of false and rejects true', () => {
     const base = {
       locales: ['en', 'de'],
       defaultLocale: 'en',
@@ -342,11 +342,11 @@ describe('routeConfigIssues', () => {
       collection: 'blog',
     };
     assert.equal(
-      intlConfigSchema.safeParse({ ...base, routes: [{ ...row, missingView: false }] }).success,
+      intlConfigSchema.safeParse({ ...base, routes: [{ ...row, fallbackView: false }] }).success,
       true,
     );
     assert.equal(
-      intlConfigSchema.safeParse({ ...base, routes: [{ ...row, missingView: true }] }).success,
+      intlConfigSchema.safeParse({ ...base, routes: [{ ...row, fallbackView: true }] }).success,
       false,
     );
   });

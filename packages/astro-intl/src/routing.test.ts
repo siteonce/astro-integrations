@@ -72,7 +72,7 @@ describe('compileRoutes', () => {
     ]);
   });
 
-  it('drops the default-locale prefix and emits a missing route for other locales', () => {
+  it('drops the default-locale prefix and emits a fallback route for other locales', () => {
     const config: IntlConfig = {
       locales: ['de', 'en'],
       defaultLocale: 'en',
@@ -84,7 +84,7 @@ describe('compileRoutes', () => {
           slug: { en: 'blog/{slug}', de: 'artikel/{slug}' },
           collection: 'blog',
           view: 'post',
-          missingView: 'missing',
+          fallbackView: 'missing',
         },
       ],
     };
@@ -106,18 +106,18 @@ describe('compileRoutes', () => {
         view: 'missing',
         locale: 'de',
         rowIndex: 2,
-        kind: 'missing',
+        kind: 'fallback',
       },
       { pattern: '/blog/[slug]', view: 'post', locale: 'en', rowIndex: 2, kind: 'entry' },
     ]);
   });
 
-  it('uses the config missing view unless a row names its own or false', () => {
+  it('uses the config fallback view unless a row names its own or false', () => {
     const config: IntlConfig = {
       locales: [...locales],
       defaultLocale: 'en',
       routing: { prefixDefaultLocale: true },
-      missingView: 'missing',
+      fallbackView: 'missing',
       routes: [
         { slug: { en: 'about', de: 'ueber' }, view: 'about' },
         { slug: { en: 'blog/{slug}', de: 'artikel/{slug}' }, collection: 'blog', view: 'post' },
@@ -125,21 +125,21 @@ describe('compileRoutes', () => {
           slug: { en: 'tags/{slug}', de: 'schlagworte/{slug}' },
           collection: 'tags',
           view: 'term',
-          missingView: 'tag-missing',
+          fallbackView: 'tag-missing',
         },
         {
           slug: { en: 'authors/{slug}', de: 'autoren/{slug}' },
           collection: 'authors',
           view: 'author',
-          missingView: false,
+          fallbackView: false,
         },
       ],
     };
 
-    const missing = compileRoutes(config)
-      .filter((route) => route.kind === 'missing')
+    const fallback = compileRoutes(config)
+      .filter((route) => route.kind === 'fallback')
       .map(({ pattern, view }) => ({ pattern, view }));
-    assert.deepEqual(missing, [
+    assert.deepEqual(fallback, [
       { pattern: '/de/artikel/[slug]', view: 'missing' },
       { pattern: '/de/schlagworte/[slug]', view: 'tag-missing' },
     ]);

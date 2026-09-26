@@ -251,7 +251,7 @@ export default { integrations: [sitemap({ i18n: { defaultLocale: 'en', locales: 
   routing: { prefixDefaultLocale: true },
   routes: [
     { slug: { en: 'about', de: 'ueber' }, view: 'about' },
-    { slug: { en: 'blog/{slug}', de: 'artikel/{slug}' }, collection: 'blog', view: 'post', missingView: 'missing' },
+    { slug: { en: 'blog/{slug}', de: 'artikel/{slug}' }, collection: 'blog', view: 'post', fallbackView: 'missing' },
     { slug: { en: 'blog', de: 'artikel' }, collection: 'blog', pageSize: 10, view: 'blog' },
   ],
   collections: { blog: { slugField: 'slug' } },
@@ -332,7 +332,7 @@ export default { integrations: [sitemap({ i18n: { defaultLocale: 'en', locales: 
       if (entrypoint.endsWith(`${path.sep}about.astro`)) return 'static';
       if (entrypoint.endsWith(`${path.sep}post.astro`)) return 'entry';
       if (entrypoint.endsWith(`${path.sep}blog.astro`)) return 'listing';
-      if (entrypoint.endsWith(`${path.sep}missing.astro`)) return 'missing';
+      if (entrypoint.endsWith(`${path.sep}missing.astro`)) return 'fallback';
       return 'unknown';
     };
     const seen = new Set<string>();
@@ -345,7 +345,7 @@ export default { integrations: [sitemap({ i18n: { defaultLocale: 'en', locales: 
         assert.equal(Object.hasOwn(call, 'prerender'), false, kind);
       }
     }
-    assert.deepEqual([...seen].sort(), ['entry', 'listing', 'missing', 'static']);
+    assert.deepEqual([...seen].sort(), ['entry', 'fallback', 'listing', 'static']);
   });
 
   it('sets no prerender option when viewRendering is build', async () => {
@@ -359,7 +359,7 @@ export default { integrations: [sitemap({ i18n: { defaultLocale: 'en', locales: 
     );
   });
 
-  it('aborts when a listing or missing view exports prerender = false', async () => {
+  it('aborts when a listing or fallback view exports prerender = false', async () => {
     const root = await makeRoot();
     await writeRenderingRoutes(root, 'request');
     const { integration } = await runSetup({
@@ -375,7 +375,7 @@ export default { integrations: [sitemap({ i18n: { defaultLocale: 'en', locales: 
       });
     await assert.rejects(
       () => setup('src/views/missing.astro', false),
-      /missing view exports prerender = false/,
+      /fallback view exports prerender = false/,
     );
     await assert.rejects(
       () => setup('src/views/blog.astro', false),
@@ -422,7 +422,7 @@ async function writeRenderingRoutes(root: string, viewRendering: 'build' | 'requ
   viewRendering: '${viewRendering}',
   routes: [
     { slug: { en: 'about', de: 'ueber' }, view: 'about' },
-    { slug: { en: 'blog/{slug}', de: 'artikel/{slug}' }, collection: 'blog', view: 'post', missingView: 'missing' },
+    { slug: { en: 'blog/{slug}', de: 'artikel/{slug}' }, collection: 'blog', view: 'post', fallbackView: 'missing' },
     { slug: { en: 'blog', de: 'artikel' }, collection: 'blog', pageSize: 10, view: 'blog' },
   ],
   collections: { blog: { slugField: 'slug' } },

@@ -29,9 +29,9 @@ const routeAuthoringSchema = z.strictObject({
   pageSize: z.number().int().positive().optional(),
   /**
    * View for a locale that has no translation. Only on a `{slug}` row.
-   * Replaces the config's `missingView`; `false` means those URLs 404.
+   * Replaces the config's `fallbackView`; `false` means those URLs 404.
    */
-  missingView: z.union([z.string().min(1), z.literal(false)]).optional(),
+  fallbackView: z.union([z.string().min(1), z.literal(false)]).optional(),
 });
 
 type CollectionRef = string | { name: string; entry?: string | undefined };
@@ -43,7 +43,7 @@ type FlatRoute = {
   collection?: string | undefined;
   entry?: string | undefined;
   pageSize?: number | undefined;
-  missingView?: string | false | undefined;
+  fallbackView?: string | false | undefined;
 };
 
 function flattenRoute(route: {
@@ -51,12 +51,12 @@ function flattenRoute(route: {
   view: FlatRoute['view'];
   collection?: CollectionRef | undefined;
   pageSize?: number | undefined;
-  missingView?: string | false | undefined;
+  fallbackView?: string | false | undefined;
 }): FlatRoute {
-  const { collection, slug, view, pageSize, missingView } = route;
+  const { collection, slug, view, pageSize, fallbackView } = route;
   const flat: FlatRoute = { slug, view };
   if (pageSize !== undefined) flat.pageSize = pageSize;
-  if (missingView !== undefined) flat.missingView = missingView;
+  if (fallbackView !== undefined) flat.fallbackView = fallbackView;
   if (typeof collection === 'object' && collection !== null) {
     flat.collection = collection.name;
     if (collection.entry !== undefined) flat.entry = collection.entry;
@@ -77,12 +77,12 @@ type RouteRule = {
   collection?: string | undefined;
   entry?: string | undefined;
   pageSize?: number | undefined;
-  missingView?: string | false | undefined;
+  fallbackView?: string | false | undefined;
 };
 
 type RouteRulesConfig = {
   locales: readonly string[];
-  missingView?: string | undefined;
+  fallbackView?: string | undefined;
   routes?: readonly RouteRule[];
   collections?: Readonly<Record<string, { slugField?: string | undefined }>>;
 };
@@ -135,16 +135,16 @@ export function routeConfigIssues(config: RouteRulesConfig): string[] {
   const seenSections = new Set<string>();
   const listed = config.collections ?? {};
 
-  if (config.missingView !== undefined) issues.push(...viewNameIssues(config.missingView));
+  if (config.fallbackView !== undefined) issues.push(...viewNameIssues(config.fallbackView));
 
   for (const route of config.routes ?? []) {
     issues.push(...viewIssues(route.view, config.locales));
-    if (route.missingView !== undefined) {
-      if (route.missingView !== false) issues.push(...viewNameIssues(route.missingView));
+    if (route.fallbackView !== undefined) {
+      if (route.fallbackView !== false) issues.push(...viewNameIssues(route.fallbackView));
       const hasSlug = config.locales.some((locale) =>
         (route.slug[locale] ?? '').includes('{slug}'),
       );
-      if (!hasSlug) issues.push('missingView needs a {slug} row');
+      if (!hasSlug) issues.push('fallbackView needs a {slug} row');
     }
 
     const sizeIssue = pageSizeIssue(route.pageSize);
@@ -266,14 +266,14 @@ export const intlConfigSchema = z
     routes: z.array(routeConfigSchema).optional(),
     /**
      * When injected views render. `'build'` prerenders them. `'request'` renders
-     * static and entry routes per request. Listing and missing routes stay
-     * prerendered. A view's `prerender` export wins, except a listing or missing
+     * static and entry routes per request. Listing and fallback routes stay
+     * prerendered. A view's `prerender` export wins, except a listing or fallback
      * view must not export `prerender = false`. Omitted means `'build'`.
      * No effect under `astro dev`.
      */
     viewRendering: z.enum(['build', 'request']).optional(),
     /** View for a locale that has no translation, on every `{slug}` row that names none. */
-    missingView: z.string().min(1).optional(),
+    fallbackView: z.string().min(1).optional(),
     collections: z.record(z.string(), collectionConfigSchema).optional(),
     /**
      * Collections a relation can point at.

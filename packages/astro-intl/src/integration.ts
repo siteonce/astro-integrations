@@ -4,11 +4,11 @@
  * Astro `i18n`, and checks catalog files. Injects one route per compiled route
  * row and locale. `viewRendering: 'request'` injects static and entry routes
  * on demand and refuses to boot without an adapter. Under `astro dev`,
- * `viewRendering` is treated as `'build'`. Listing and missing routes stay
- * prerendered. A listing or missing view that exports `prerender = false`
+ * `viewRendering` is treated as `'build'`. Listing and fallback routes stay
+ * prerendered. A listing or fallback view that exports `prerender = false`
  * fails startup outside `astro dev`. A view's `prerender` export wins for the
  * other kinds.
- * Entrypoints are the views under `src/views/`. A row's missing view is
+ * Entrypoints are the views under `src/views/`. A row's fallback view is
  * injected for locales without a translation, and nothing is injected when the
  * row names none. Records reserved
  * file-route tails for pairing collisions, excluding those injected routes. Warns when
@@ -40,6 +40,7 @@ export { id, locale, slug } from './fragments.ts';
 export type { DocumentHead, PairedSlug, SitemapEntry } from './helpers.ts';
 export {
   entryPaths,
+  fallbackPaths,
   getAlternatePaths,
   getAlternatePathsForPath,
   getContentById,
@@ -51,7 +52,6 @@ export {
   hreflangLinks,
   type ListingEntries,
   listingPaths,
-  missingPaths,
   setListingEntries,
   staticPaths,
 } from './helpers.ts';
@@ -107,7 +107,7 @@ async function loadIntlConfig(configPath: string): Promise<IntlConfig> {
   return parsed.data;
 }
 
-function refusedOnDemandView(kind: 'listing' | 'missing'): string {
+function refusedOnDemandView(kind: 'listing' | 'fallback'): string {
   if (kind === 'listing') {
     return (
       '@repo/astro-intl: a listing view exports prerender = false. ' +
@@ -115,8 +115,8 @@ function refusedOnDemandView(kind: 'listing' | 'missing'): string {
     );
   }
   return (
-    '@repo/astro-intl: a missing view exports prerender = false. ' +
-    'A missing route shares its pattern with the {slug} route, and two on-demand routes cannot share one pattern.'
+    '@repo/astro-intl: a fallback view exports prerender = false. ' +
+    'A fallback route shares its pattern with the {slug} route, and two on-demand routes cannot share one pattern.'
   );
 }
 
@@ -125,7 +125,7 @@ export function astroIntl(): AstroIntegration {
   let injected: CompiledRoute[] = [];
   let ownEntrypoints = new Set<string>();
   let listingEntrypoints = new Set<string>();
-  let missingEntrypoints = new Set<string>();
+  let fallbackEntrypoints = new Set<string>();
   let viewRendering: IntlConfig['viewRendering'];
 
   return {
@@ -206,7 +206,7 @@ export function astroIntl(): AstroIntegration {
         const entrypointForView = new Map<string, string>();
         const entrypoints = new Set<string>();
         const listing = new Set<string>();
-        const missing = new Set<string>();
+        const fallback = new Set<string>();
         let compiled: CompiledRoute[];
         try {
           compiled = compileRoutes(intlConfig);
@@ -225,7 +225,7 @@ export function astroIntl(): AstroIntegration {
             });
             entrypoints.add(entrypoint);
             if (route.kind === 'listing') listing.add(entrypoint);
-            if (route.kind === 'missing') missing.add(entrypoint);
+            if (route.kind === 'fallback') fallback.add(entrypoint);
           }
         } catch (error) {
           const message = error instanceof Error ? error.message : String(error);
@@ -236,7 +236,7 @@ export function astroIntl(): AstroIntegration {
         injected = compiled;
         ownEntrypoints = entrypoints;
         listingEntrypoints = listing;
-        missingEntrypoints = missing;
+        fallbackEntrypoints = fallback;
 
         updateConfig({
           i18n: {
@@ -253,8 +253,8 @@ export function astroIntl(): AstroIntegration {
       'astro:route:setup': ({ route, logger }) => {
         if (viewRendering !== 'request' || route.prerender !== false) return;
         const component = resolve(projectRoot, route.component);
-        let kind: 'listing' | 'missing' | undefined;
-        if (missingEntrypoints.has(component)) kind = 'missing';
+        let kind: 'listing' | 'fallback' | undefined;
+        if (fallbackEntrypoints.has(component)) kind = 'fallback';
         else if (listingEntrypoints.has(component)) kind = 'listing';
         if (!kind) return;
         const message = refusedOnDemandView(kind);
