@@ -66,7 +66,7 @@ A snapshot monorepo that is the foundation for every Astro **content site** buil
 
 **entry**: One item in a collection. Locale siblings share one pairing `id`. _Avoid_: document; a **view** that no collection claims
 
-**`viewRendering`**: Intl config setting for when injected **views** render: `'build'` (prerendered, the default) or `'request'` (static and `{slug}` routes on demand; listing and missing routes stay prerendered). The app sets it from its deploy class. _Avoid_: onDemand, a deploy class inside intl, previewMode
+**`viewRendering`**: Intl config setting for when injected **views** render: `'build'` (prerendered, the default) or `'request'` (static and `{slug}` routes on demand; listing and missing routes stay prerendered). No effect under `astro dev`. The app sets it from its deploy class. _Avoid_: onDemand, a deploy class inside intl, previewMode
 
 **hybrid preview**: A preview where the build pairs the URLs and the view loads fresh CMS content per request with `getLiveEntry`. Needs `viewRendering: 'request'`. _Avoid_: live pairing (not built), draft mode
 
