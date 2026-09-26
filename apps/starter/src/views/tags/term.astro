@@ -2,11 +2,12 @@
 // Term. One tags entry and the posts tagged with it.
 // `entryPaths` emits one path per translated term.
 import { type CollectionEntry, render } from 'astro:content';
-import { entryPaths, getAlternatePathsForPath, setIntlConfig } from '@repo/astro-intl';
+import { entryPaths, getAlternatePathsForPath, setIntlConfig, viewProps } from '@repo/astro-intl';
 import { Hreflang } from '@repo/astro-intl/components';
 import { ogImageFor } from '@repo/astro-og-image/utils/og-image-for';
 import { Hero, PostList, Schema, Seo } from '@repo/astro-site/components';
 import type { GetStaticPathsOptions, InferGetStaticPropsType } from 'astro';
+import '../../content/relations.ts';
 import intlConfig from '../../intl.config.ts';
 import SiteLayout from '../../layouts/site-layout.astro';
 import { ogConfig } from '../../og.config.ts';
@@ -23,7 +24,9 @@ export async function getStaticPaths({ routePattern }: GetStaticPathsOptions) {
 
 type Props = InferGetStaticPropsType<typeof getStaticPaths>;
 
-const { locale, path, entry } = Astro.props;
+const props = await viewProps(Astro, getStaticPaths);
+if (!props) return new Response(null, { status: 404 });
+const { locale, path, entry } = props;
 const kit = createPageKit(locale);
 const switcher = kit.switcher(await getAlternatePathsForPath(locale, path));
 const t = kit.t;

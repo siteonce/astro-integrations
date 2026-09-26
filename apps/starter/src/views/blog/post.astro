@@ -8,12 +8,14 @@ import {
   getRelated,
   type Relation,
   setIntlConfig,
+  viewProps,
 } from '@repo/astro-intl';
 import { Hreflang } from '@repo/astro-intl/components';
 import { ogImageFor } from '@repo/astro-og-image/utils/og-image-for';
 import { Article, RelatedPosts, Schema, Seo } from '@repo/astro-site/components';
 import { getRelatedContent } from '@repo/astro-site/utils/related-content';
 import type { GetStaticPathsOptions, InferGetStaticPropsType } from 'astro';
+import '../../content/relations.ts';
 import intlConfig from '../../intl.config.ts';
 import SiteLayout from '../../layouts/site-layout.astro';
 import { ogConfig } from '../../og.config.ts';
@@ -32,7 +34,9 @@ export async function getStaticPaths({ routePattern }: GetStaticPathsOptions) {
 
 type Props = InferGetStaticPropsType<typeof getStaticPaths>;
 
-const { locale, path, entry } = Astro.props;
+const props = await viewProps(Astro, getStaticPaths);
+if (!props) return new Response(null, { status: 404 });
+const { locale, path, entry } = props;
 const kit = createPageKit(locale);
 const switcher = kit.switcher(await getAlternatePathsForPath(locale, path));
 const t = kit.t;

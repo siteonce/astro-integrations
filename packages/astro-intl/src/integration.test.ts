@@ -71,7 +71,12 @@ async function runSetup(options: {
   srcDir?: string;
   i18n?: AstroConfig['i18n'];
   integrations?: AstroIntegration[];
-}): Promise<{ config: Record<string, unknown>; injected: InjectedCall[] }> {
+  adapter?: AstroIntegration;
+}): Promise<{
+  config: Record<string, unknown>;
+  injected: InjectedCall[];
+  integration: AstroIntegration;
+}> {
   const srcDir = options.srcDir ?? path.join(options.root, 'src');
   const updates: Record<string, unknown>[] = [];
   const injected: InjectedCall[] = [];
@@ -84,6 +89,7 @@ async function runSetup(options: {
       srcDir: pathToFileURL(`${srcDir}/`),
       i18n: options.i18n,
       integrations: options.integrations ?? [],
+      adapter: options.adapter,
     },
     updateConfig(newConfig: Record<string, unknown>) {
       updates.push(newConfig);
@@ -96,7 +102,7 @@ async function runSetup(options: {
     logger: silentLogger(),
   } as unknown as SetupParams);
   assert.ok(updates[0], 'updateConfig was called');
-  return { config: updates[0], injected };
+  return { config: updates[0], injected, integration };
 }
 
 describe('astroIntl()', () => {
@@ -295,4 +301,103 @@ export default { integrations: [sitemap({ i18n: { defaultLocale: 'en', locales: 
     await writeCatalogs(srcDir, ['en', 'de']);
     await assert.rejects(() => runSetup({ root }), /view "missing" has no file under src\/views\//);
   });
+
+  it('aborts when viewRendering is request and the site has no adapter', async () => {
+    const root = await makeRoot();
+    const srcDir = path.join(root, 'src');
+    await writeIntlConfig(
+      srcDir,
+      `export default {
+  locales: ['en', 'de'],
+  defaultLocale: 'en',
+  routing: { prefixDefaultLocale: true },
+  viewRendering: 'request',
+};
+`,
+    );
+    await writeCatalogs(srcDir, ['en', 'de']);
+    await assert.rejects(() => runSetup({ root }), /no adapter/);
+  });
+
+  it('injects static, entry, and listing routes on demand and leaves missing alone', async () => {
+    const root = await makeRoot();
+    await writeRenderingRoutes(root, 'request');
+    const { injected } = await runSetup({
+      root,
+      adapter: { name: '@astrojs/node', hooks: {} } as AstroIntegration,
+    });
+    assert.ok(injected.some((call) => call.entrypoint.endsWith(`${path.sep}missing.astro`)));
+    for (const call of injected) {
+      const missing = call.entrypoint.endsWith(`${path.sep}missing.astro`);
+      if (missing) {
+        assert.equal(Object.hasOwn(call, 'prerender'), false);
+      } else {
+        assert.equal(call.prerender, false);
+      }
+    }
+  });
+
+  it('sets no prerender option when viewRendering is build', async () => {
+    const root = await makeRoot();
+    await writeRenderingRoutes(root, 'build');
+    const { injected } = await runSetup({ root });
+    assert.ok(injected.length > 0);
+    assert.equal(
+      injected.some((call) => Object.hasOwn(call, 'prerender')),
+      false,
+    );
+  });
+
+  it('aborts when a missing view exports prerender = false', async () => {
+    const root = await makeRoot();
+    await writeRenderingRoutes(root, 'request');
+    const { integration } = await runSetup({
+      root,
+      adapter: { name: '@astrojs/node', hooks: {} } as AstroIntegration,
+    });
+    const routeSetup = integration.hooks['astro:route:setup'];
+    assert.ok(routeSetup);
+    await assert.rejects(
+      async () =>
+        routeSetup({
+          route: { component: 'src/views/missing.astro', prerender: false },
+          logger: silentLogger(),
+        }),
+      /prerender = false/,
+    );
+    await routeSetup({
+      route: { component: 'src/views/missing.astro', prerender: true },
+      logger: silentLogger(),
+    });
+    await routeSetup({
+      route: { component: 'src/views/post.astro', prerender: false },
+      logger: silentLogger(),
+    });
+  });
 });
+
+async function writeRenderingRoutes(root: string, viewRendering: 'build' | 'request') {
+  const srcDir = path.join(root, 'src');
+  await writeIntlConfig(
+    srcDir,
+    `export default {
+  locales: ['en', 'de'],
+  defaultLocale: 'en',
+  routing: { prefixDefaultLocale: true },
+  viewRendering: '${viewRendering}',
+  routes: [
+    { slug: { en: 'about', de: 'ueber' }, view: 'about' },
+    { slug: { en: 'blog/{slug}', de: 'artikel/{slug}' }, collection: 'blog', view: 'post', missingView: 'missing' },
+    { slug: { en: 'blog', de: 'artikel' }, collection: 'blog', pageSize: 10, view: 'blog' },
+  ],
+  collections: { blog: { slugField: 'slug' } },
+};
+`,
+  );
+  await writeCatalogs(srcDir, ['en', 'de']);
+  const viewsDir = path.join(srcDir, 'views');
+  await mkdir(viewsDir, { recursive: true });
+  for (const name of ['about.astro', 'post.astro', 'blog.astro', 'missing.astro']) {
+    await writeFile(path.join(viewsDir, name), '');
+  }
+}

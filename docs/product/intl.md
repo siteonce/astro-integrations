@@ -127,4 +127,4 @@ Starter’s content source is Astro content collections. A CMS that presents the
 
 The path helpers do not return a `cacheKey` yet.
 
-`viewRendering` and `viewProps` are not built yet. The starter keeps `'build'` and has no adapter.
+The starter keeps `'build'` and has no adapter.

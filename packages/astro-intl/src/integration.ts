@@ -2,15 +2,18 @@
  * Astro integration entry — named (and default) export `astroIntl()`.
  * Loads `src/intl.config.ts`, writes locale list and prefix policy through to
  * Astro `i18n`, and checks catalog files. Injects one route per compiled route
- * row and locale. Entrypoints are the views under `src/views/`. A row's
- * missing view is injected for locales without a translation, and nothing is
- * injected when the row names none. Records reserved file-route tails for
- * pairing collisions, excluding those injected routes. Warns when
+ * row and locale. `viewRendering: 'request'` injects static, entry, and listing
+ * routes on demand and refuses to boot without an adapter. Missing routes stay
+ * prerendered. A view's `prerender` export wins. Entrypoints are the views under
+ * `src/views/`. A row's missing view is injected for locales without a
+ * translation, and nothing is injected when the row names none. Records reserved
+ * file-route tails for pairing collisions, excluding those injected routes. Warns when
  * `trailingSlash` and `build.format` disagree. Does not load catalog JSON and
  * does not create a virtual module.
  */
 
 import { existsSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import type { AstroIntegration } from 'astro';
 import { createJiti } from 'jiti';
@@ -55,6 +58,7 @@ export { listingPageCount, listingTail } from './path.ts';
 export type { Relation } from './relation.ts';
 export { localized, localizedValue, relation } from './relation.ts';
 export { getIntlRuntime, setIntlConfig } from './runtime.ts';
+export { viewProps } from './view-props.ts';
 
 const CONFIG_FILENAME = 'intl.config.ts';
 
@@ -103,6 +107,8 @@ export function astroIntl(): AstroIntegration {
   let projectRoot = '';
   let injected: CompiledRoute[] = [];
   let ownEntrypoints = new Set<string>();
+  let missingEntrypoints = new Set<string>();
+  let viewRendering: IntlConfig['viewRendering'];
 
   return {
     name: '@repo/astro-intl',
@@ -149,6 +155,13 @@ export function astroIntl(): AstroIntegration {
           throw error;
         }
 
+        if (intlConfig.viewRendering === 'request' && !config.adapter) {
+          const message =
+            '@repo/astro-intl: viewRendering is "request" and the site has no adapter.';
+          logger.error(message);
+          throw new Error(message);
+        }
+
         const dir = messagesDir(intlConfig);
         for (const locale of intlConfig.locales) {
           const catalogPath = fileURLToPath(new URL(`${dir}/${locale}.json`, config.srcDir));
@@ -160,10 +173,12 @@ export function astroIntl(): AstroIntegration {
         }
 
         setIntlConfig(intlConfig);
+        viewRendering = intlConfig.viewRendering;
 
         const srcDir = fileURLToPath(config.srcDir);
         const entrypointForView = new Map<string, string>();
         const entrypoints = new Set<string>();
+        const missing = new Set<string>();
         let compiled: CompiledRoute[];
         try {
           compiled = compileRoutes(intlConfig);
@@ -173,8 +188,14 @@ export function astroIntl(): AstroIntegration {
               entrypoint = viewEntrypoint(srcDir, route.view, existsSync);
               entrypointForView.set(route.view, entrypoint);
             }
-            injectRoute({ pattern: route.pattern, entrypoint });
+            const onDemand = viewRendering === 'request' && route.kind !== 'missing';
+            injectRoute({
+              pattern: route.pattern,
+              entrypoint,
+              ...(onDemand ? { prerender: false } : {}),
+            });
             entrypoints.add(entrypoint);
+            if (route.kind === 'missing') missing.add(entrypoint);
           }
         } catch (error) {
           const message = error instanceof Error ? error.message : String(error);
@@ -184,6 +205,7 @@ export function astroIntl(): AstroIntegration {
         projectRoot = fileURLToPath(config.root);
         injected = compiled;
         ownEntrypoints = entrypoints;
+        missingEntrypoints = missing;
 
         updateConfig({
           i18n: {
@@ -196,6 +218,16 @@ export function astroIntl(): AstroIntegration {
             },
           },
         });
+      },
+      'astro:route:setup': ({ route, logger }) => {
+        if (viewRendering !== 'request' || route.prerender !== false) return;
+        const component = resolve(projectRoot, route.component);
+        if (!missingEntrypoints.has(component)) return;
+        const message =
+          '@repo/astro-intl: a missing view exports prerender = false. ' +
+          'Two on-demand routes cannot share one pattern.';
+        logger.error(message);
+        throw new Error(message);
       },
       'astro:routes:resolved': ({ routes, logger }) => {
         const collision = fileRouteCollision(

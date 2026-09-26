@@ -264,6 +264,12 @@ export const intlConfigSchema = z
       })
       .optional(),
     routes: z.array(routeConfigSchema).optional(),
+    /**
+     * When injected views render. `'build'` prerenders them. `'request'` renders
+     * static, entry, and listing routes per request; missing routes stay prerendered.
+     * A view's `prerender` export wins. Omitted means `'build'`.
+     */
+    viewRendering: z.enum(['build', 'request']).optional(),
     /** View for a locale that has no translation, on every `{slug}` row that names none. */
     missingView: z.string().min(1).optional(),
     collections: z.record(z.string(), collectionConfigSchema).optional(),

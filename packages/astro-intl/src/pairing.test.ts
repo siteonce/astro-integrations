@@ -575,6 +575,29 @@ describe('pairCollections', () => {
   });
 });
 
+describe('intlConfigSchema viewRendering', () => {
+  const base = {
+    locales: ['en'],
+    defaultLocale: 'en',
+    routing: { prefixDefaultLocale: true },
+  };
+
+  it('accepts build and request and rejects anything else', () => {
+    const omitted = intlConfigSchema.safeParse(base);
+    const build = intlConfigSchema.safeParse({ ...base, viewRendering: 'build' });
+    const request = intlConfigSchema.safeParse({ ...base, viewRendering: 'request' });
+    const other = intlConfigSchema.safeParse({ ...base, viewRendering: 'live' });
+    assert.equal(omitted.success, true);
+    assert.equal(build.success, true);
+    assert.equal(request.success, true);
+    assert.equal(other.success, false);
+    if (!omitted.success || !build.success || !request.success) return;
+    assert.equal(omitted.data.viewRendering, undefined);
+    assert.equal(build.data.viewRendering, 'build');
+    assert.equal(request.data.viewRendering, 'request');
+  });
+});
+
 describe('pairCollections field id', () => {
   const fieldConfig: IntlConfig = {
     locales: ['en', 'de'],
