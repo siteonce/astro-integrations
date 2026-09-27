@@ -37,7 +37,7 @@ Pairing is on `id`. A `{slug}` row publishes one URL per entry: that locale’s 
 
 A row that names an entry and no `{slug}` publishes the written tail. That entry’s slug is unused. The `{slug}` row does not publish that entry again.
 
-A collection named without `{slug}` supplies its entries to the written tail and publishes no entry URL. `pageSize` is how many entries fill one chunk. Omit it and the row stays that one tail. The row does not store a page count. The written tail is page 1. Later pages append the number. Each locale publishes as many pages as its listing fills. A page’s alternates are the locales that publish that same page. `blog/1` is not published. An entry slug that matches a published page number on that section aborts the build.
+A collection named without `{slug}` supplies its entries to the written tail and publishes no entry URL. `pageSize` is how many entries fill one chunk. Omit it and the row stays that one tail. A paginated listing is two rows that share the collection and `pageSize`. The page-1 row publishes page 1 at its written tail. The `{page}` row publishes the later pages, and the number replaces `{page}`. Each locale writes its own tail (`blog/{page}`, `artikel/seite/{page}`). The rows do not store a page count. Each locale publishes as many pages as its listing fills. A page’s alternates are the locales that publish that same page. `blog/1` is not published. An entry slug that matches a published page number on that section aborts the build.
 
 The chunk count uses the app’s listing. The starter listing is that locale’s posts, newest first. A CMS supplies that same ordered list. A CMS page size is separate from `pageSize`.
 
@@ -56,8 +56,11 @@ A row names one view for every locale, or one view per locale.
 The row decides the route’s shape:
 
 - A `{slug}` row: `<section>/[slug]`, one URL per published entry.
-- A collection with `pageSize`: `<tail>/[...page]`, built with Astro’s `paginate()`. Pairing counts the same list, and a page count that disagrees aborts the build.
+- A `{page}` row: the tail with `{page}` replaced by `[page]`. Astro’s `paginate()` includes page 1 as `"1"`. The helper drops that page.
+- A page-1 row: `<tail>/[...page]`. The spread is empty for page 1. The helper keeps that page and drops the rest. The spread exists so Astro calls the view’s `getStaticPaths`.
 - Any other row: `<tail>/[...index]`, one URL. The spread is empty for that URL. It exists so Astro calls the view’s `getStaticPaths`.
+
+Pairing counts the same list as `paginate()`, and a page count that disagrees aborts the build. Both listing rows may name the same view. The view calls `listingPaths` once. The helper reads `routePattern` and emits the pages for that route.
 
 A view is a full Astro page. The view owns its `getStaticPaths`, typed props, and `prerender`, and its `getStaticPaths` lists its URLs. `viewRendering` sets the default for `prerender` ([View rendering](#view-rendering)). It returns intl’s helper for its route: `staticPaths`, `entryPaths`, `listingPaths`, or `fallbackPaths`. A helper returns only what pairing published in that locale. A locale that does not publish a row’s tail gets no page.
 
@@ -69,11 +72,13 @@ A view is a full Astro page. The view owns its `getStaticPaths`, typed props, an
 
 `viewRendering` in the intl config says when the injected views render: `'build'` (the default) or `'request'`. The app sets it from its deploy class, for example `'request'` in preview only. Intl does not read the deploy class.
 
-With `'request'`, intl injects static and `{slug}` routes on demand. Listing and fallback routes stay prerendered. A fallback route shares its pattern with the `{slug}` route. A listing’s numbered pages (`blog/2`) fall under the `{slug}` route on the same section, and Astro ranks `[slug]` above `[...page]`. Neither loses anything by staying prerendered: a listing’s pages and entries, and which entries lack a translation, come from the build’s pairing either way. A view’s own `prerender` export wins over `viewRendering`. A listing or fallback view must not export `prerender = false`. The site needs an adapter.
+With `'request'`, intl injects static, `{slug}`, and listing routes on demand. Fallback routes stay prerendered. A fallback route shares its pattern with the `{slug}` route, and two on-demand routes cannot share one pattern. A view’s own `prerender` export wins over `viewRendering`. A fallback view must not export `prerender = false`. The site needs an adapter.
 
-The host must serve a prerendered file before it asks the on-demand app. Astro’s own matcher sends those URLs to the `{slug}` view. `@astrojs/node` in standalone mode serves the file first. On a host that does not, an untranslated slug and a listing page after the first answer 404.
+An on-demand `{page}` route fails startup when a `{slug}` route has the same prefix, the same section, and one dynamic final segment (`blog/{page}` beside `blog/{slug}`). `[page]` and `[slug]` tie, and Astro sorts `[page]` first. Astro’s matcher falls through only from a prerendered match to an on-demand one, so an on-demand `[page]` would answer every entry URL. Export `prerender = true` from the listing view, or give the `{page}` row its own segment (`blog/page/{page}`). A prerendered `{page}` route beside an on-demand `{slug}` route stays allowed. The host serves the prerendered file first.
 
-`viewRendering` has no effect under `astro dev`. Dev renders every view per request already, so a view that calls `getLiveEntry` gets fresh content there too. Dev does not fall back from an on-demand route to a prerendered route with a different pattern, so `'request'` would send `blog/2` to the `{slug}` view.
+The host must serve a prerendered file before it asks the on-demand app. That is how a prerendered fallback route and a prerendered `{page}` route win over an on-demand `{slug}` route. `@astrojs/node` in standalone mode serves the file first. On a host that does not, an untranslated slug answers 404.
+
+`viewRendering` has no effect under `astro dev`. Dev renders every view per request already, so a view that calls `getLiveEntry` gets fresh content there too.
 
 Pairing still comes from the build. A request renders a URL the build paired. It cannot publish a new one. New documents, slug changes, and new translations still need a build.
 
@@ -119,8 +124,12 @@ Fail at startup when:
 - A `(locale, path)` is duplicated, or a file route shadows an entry.
 - A row names a view that has no file under `src/views/`, or that has both `<view>.astro` and `<view>/index.astro`.
 - A row sets `fallbackView` (a view or `false`) without `{slug}`.
+- A `{page}` token is not the whole final segment, the row has no collection or `pageSize`, the row names an entry, or a tail holds `{page}` and `{slug}`.
+- A `{page}` row has no page-1 row, or a page-1 row has no `{page}` row.
+- Those two rows name different locales, or two page-1 rows or two `{page}` rows share a collection and `pageSize`.
 - `viewRendering` is `'request'` and the site has no adapter, outside `astro dev`.
-- `viewRendering` is `'request'` and a listing or fallback view exports `prerender = false`, outside `astro dev`.
+- `viewRendering` is `'request'` and a fallback view exports `prerender = false`, outside `astro dev`.
+- `viewRendering` is `'request'` and an on-demand `{page}` route has the same shape as a `{slug}` route, outside `astro dev`.
 - Two rows compile to the same route pattern.
 - An app file route would serve a URL an injected route emits and win over it.
 - A **relation** pairing `id` is missing, a listed target has no sibling in the source locale, or a `localized()` map has a missing or extra locale key.
@@ -132,3 +141,5 @@ Starter’s content source is Astro content collections. A CMS that presents the
 The path helpers do not return a `cacheKey` yet.
 
 The starter keeps `'build'` and has no adapter.
+
+Some URLs still exist without a config line that names them. A static row compiles to a hidden `[...index]` spread. Fallback routes are injected for every non-default locale without a row naming them. A page-1 row is told apart from a static row only by `pageSize`. `viewRendering` is treated as `'build'` under `astro dev`.

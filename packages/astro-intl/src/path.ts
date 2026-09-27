@@ -44,6 +44,26 @@ export function compilePath(prefix: string, slug: string): string {
   return `${normalized}/${slug}`;
 }
 
+/**
+ * Page 1 is `pageOne`. Later pages replace the final `{page}` segment.
+ * A `/` page-1 tail and a `{page}` tail publish page 2 as `2`.
+ */
+export function listingPagePath(pageOne: string, pageTail: string, page: number): string {
+  if (page <= 1) return normalizeSlug(pageOne);
+  const parts = normalizeSlug(pageTail).split('/');
+  parts[parts.length - 1] = String(page);
+  return parts.join('/');
+}
+
+/** Text in front of a final `{page}`. `/` when the tail is `{page}`. */
+export function pageTokenSection(pageTail: string): string {
+  const tail = normalizeSlug(pageTail);
+  const marker = '/{page}';
+  if (tail === '{page}') return '/';
+  if (tail.endsWith(marker)) return tail.slice(0, -marker.length);
+  return tail;
+}
+
 /** Page 1 is the written tail. Later pages append the number. A `/` tail’s page 2 is `2`. */
 export function listingTail(tail: string, page: number): string {
   const base = normalizeSlug(tail);

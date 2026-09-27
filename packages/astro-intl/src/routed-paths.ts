@@ -4,9 +4,15 @@
  */
 
 import type { PaginateFunction } from 'astro';
-import type { IntlConfig } from './define-intl.ts';
+import { type IntlConfig, listingPair } from './define-intl.ts';
 import { type ListingEntries, listingSelection, localePathKey } from './pairing.ts';
-import { compilePath, listingTail, localeUrlPath, normalizeSlug, patternSection } from './path.ts';
+import {
+  compilePath,
+  listingPagePath,
+  localeUrlPath,
+  normalizeSlug,
+  patternSection,
+} from './path.ts';
 import type { IntlQuery } from './query.ts';
 import type { CompiledRoute } from './routing.ts';
 
@@ -56,8 +62,10 @@ export function entryPathsFor<T>(
 }
 
 /**
- * One paginated row per listing tail pairing published for this route.
+ * Paginated rows for this listing route.
+ * A `[...page]` route emits page 1. A `[page]` route emits pages 2 onward.
  * `path` is added per page. `page.url` comes from `relativeUrl`, not from `paginate`.
+ * Page 1's `next` is the `{page}` row. Page 2's `prev` is the page-1 row.
  * `paginate` shares one props object across pages.
  */
 export function listingPathsFor<T>(
@@ -69,10 +77,18 @@ export function listingPathsFor<T>(
   relativeUrl: RelativeUrl,
 ) {
   const row = routeRow(config, route);
-  const written = normalizeSlug(row.slug[route.locale] ?? '');
+  const label = normalizeSlug(row.slug[route.locale] ?? '');
   if (row.pageSize === undefined) {
-    throw new Error(`@repo/astro-intl: listing "${written}" in "${route.locale}" has no pageSize.`);
+    throw new Error(`@repo/astro-intl: listing "${label}" in "${route.locale}" has no pageSize.`);
   }
+  const pair = listingPair(config.routes ?? [], row);
+  if (!pair) {
+    throw new Error(`@repo/astro-intl: listing row ${route.rowIndex} has no paired listing row.`);
+  }
+  const written = normalizeSlug(pair.pageOne.slug[route.locale] ?? '');
+  const pageTail = normalizeSlug(pair.pageRow.slug[route.locale] ?? '');
+  const span = listingSpan(route.pattern);
+  const pathFor = (page: number) => listingPagePath(written, pageTail, page);
   const localeField = config.collections?.[row.collection ?? '']?.localeField ?? 'locale';
   const entries = listingSelection(
     query.collections,
@@ -85,44 +101,59 @@ export function listingPathsFor<T>(
     pageSize: row.pageSize,
     props: { locale: route.locale, route: row },
   });
-  const href = (k: number) => relativeUrl(route.locale, localeUrlPath(listingTail(written, k)));
-  const results = pages.map((item) => {
-    const page = item.props.page;
-    const n = page.currentPage;
-    const last = page.lastPage;
-    return {
-      params: item.params,
-      props: {
-        ...item.props,
-        path: listingTail(written, n),
-        page: {
-          ...page,
-          url: {
-            current: href(n),
-            prev: n > 1 ? href(n - 1) : undefined,
-            next: n < last ? href(n + 1) : undefined,
-            first: n > 1 ? href(1) : undefined,
-            last: n < last ? href(last) : undefined,
+  const href = (page: number) => relativeUrl(route.locale, localeUrlPath(pathFor(page)));
+  const results = pages
+    .map((item) => {
+      const page = item.props.page;
+      const n = page.currentPage;
+      const last = page.lastPage;
+      return {
+        params: item.params,
+        props: {
+          ...item.props,
+          path: pathFor(n),
+          page: {
+            ...page,
+            url: {
+              current: href(n),
+              prev: n > 1 ? href(n - 1) : undefined,
+              next: n < last ? href(n + 1) : undefined,
+              first: n > 1 ? href(1) : undefined,
+              last: n < last ? href(last) : undefined,
+            },
           },
         },
-      },
-    };
-  });
+      };
+    })
+    .filter((item) =>
+      span === 'first' ? item.props.page.currentPage === 1 : item.props.page.currentPage > 1,
+    );
   for (const item of results) {
     const key = localePathKey(route.locale, item.props.path);
     if (!query.pairing.byLocaleTail.has(key)) {
       throw new Error(
-        `@repo/astro-intl: listing "${written}" in "${route.locale}" emits page ${item.props.page.currentPage}, which pairing did not publish.`,
+        `@repo/astro-intl: listing "${label}" in "${route.locale}" emits page ${item.props.page.currentPage}, which pairing did not publish.`,
       );
     }
   }
-  const published = publishedListingPages(query, route.locale, written);
+  const published = publishedListingPages(query, route.locale, pathFor, span);
   if (results.length !== published) {
     throw new Error(
-      `@repo/astro-intl: listing "${written}" in "${route.locale}" emits ${results.length} pages; pairing published ${published}.`,
+      `@repo/astro-intl: listing "${label}" in "${route.locale}" emits ${results.length} pages; pairing published ${published}.`,
     );
   }
   return results;
+}
+
+/** `[...page]` is page 1. `[page]` is pages 2 onward. */
+function listingSpan(pattern: string): 'first' | 'rest' {
+  const leaf = pattern
+    .split('/')
+    .filter((part) => part.length > 0)
+    .at(-1);
+  if (leaf === '[...page]') return 'first';
+  if (leaf === '[page]') return 'rest';
+  throw new Error(`@repo/astro-intl: listing route "${pattern}" is not a page pattern.`);
 }
 
 /**
@@ -219,13 +250,24 @@ function entryPath(section: string, slug: string): string | undefined {
 }
 
 /**
- * Pages pairing published for this listing, counted up from page 1 until a tail is missing.
+ * Pages pairing published for this route, until a tail is missing.
+ * The page-1 route counts page 1. The `{page}` route counts from page 2.
  * Another row's tail that looks like a page number (`blog/2024`) is not counted.
  */
-function publishedListingPages(query: IntlQuery, locale: string, written: string): number {
-  let page = 0;
-  while (query.pairing.byLocaleTail.has(localePathKey(locale, listingTail(written, page + 1)))) {
+function publishedListingPages(
+  query: IntlQuery,
+  locale: string,
+  pathFor: (page: number) => string,
+  span: 'first' | 'rest',
+): number {
+  if (span === 'first') {
+    return query.pairing.byLocaleTail.has(localePathKey(locale, pathFor(1))) ? 1 : 0;
+  }
+  let count = 0;
+  let page = 2;
+  while (query.pairing.byLocaleTail.has(localePathKey(locale, pathFor(page)))) {
+    count += 1;
     page += 1;
   }
-  return page;
+  return count;
 }

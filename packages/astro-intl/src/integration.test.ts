@@ -253,6 +253,7 @@ export default { integrations: [sitemap({ i18n: { defaultLocale: 'en', locales: 
     { slug: { en: 'about', de: 'ueber' }, view: 'about' },
     { slug: { en: 'blog/{slug}', de: 'artikel/{slug}' }, collection: 'blog', view: 'post', fallbackView: 'missing' },
     { slug: { en: 'blog', de: 'artikel' }, collection: 'blog', pageSize: 10, view: 'blog' },
+    { slug: { en: 'blog/{page}', de: 'artikel/{page}' }, collection: 'blog', pageSize: 10, view: 'blog' },
   ],
   collections: { blog: { slugField: 'slug' } },
 };
@@ -279,6 +280,8 @@ export default { integrations: [sitemap({ i18n: { defaultLocale: 'en', locales: 
         { pattern: '/de/artikel/[slug]', entrypoint: view('missing') },
         { pattern: '/en/blog/[...page]', entrypoint: view('blog') },
         { pattern: '/de/artikel/[...page]', entrypoint: view('blog') },
+        { pattern: '/en/blog/[page]', entrypoint: view('blog') },
+        { pattern: '/de/artikel/[page]', entrypoint: view('blog') },
       ],
     );
     assert.equal(
@@ -321,7 +324,7 @@ export default { integrations: [sitemap({ i18n: { defaultLocale: 'en', locales: 
     await assert.rejects(() => runSetup({ root }), /no adapter/);
   });
 
-  it('gives prerender: false to static and entry routes only', async () => {
+  it('gives prerender: false to every injected route except fallback', async () => {
     const root = await makeRoot();
     await writeRenderingRoutes(root, 'request');
     const { injected } = await runSetup({
@@ -339,10 +342,10 @@ export default { integrations: [sitemap({ i18n: { defaultLocale: 'en', locales: 
     for (const call of injected) {
       const kind = kindOf(call.entrypoint);
       seen.add(kind);
-      if (kind === 'static' || kind === 'entry') {
-        assert.equal(call.prerender, false, kind);
-      } else {
+      if (kind === 'fallback') {
         assert.equal(Object.hasOwn(call, 'prerender'), false, kind);
+      } else {
+        assert.equal(call.prerender, false, kind);
       }
     }
     assert.deepEqual([...seen].sort(), ['entry', 'fallback', 'listing', 'static']);
@@ -359,7 +362,7 @@ export default { integrations: [sitemap({ i18n: { defaultLocale: 'en', locales: 
     );
   });
 
-  it('aborts when a listing or fallback view exports prerender = false', async () => {
+  it('aborts when a fallback view exports prerender = false', async () => {
     const root = await makeRoot();
     await writeRenderingRoutes(root, 'request');
     const { integration } = await runSetup({
@@ -377,14 +380,85 @@ export default { integrations: [sitemap({ i18n: { defaultLocale: 'en', locales: 
       () => setup('src/views/missing.astro', false),
       /fallback view exports prerender = false/,
     );
-    await assert.rejects(
-      () => setup('src/views/blog.astro', false),
-      /listing view exports prerender = false/,
-    );
+    await setup('src/views/blog.astro', false);
     await setup('src/views/missing.astro', true);
-    await setup('src/views/blog.astro', true);
     await setup('src/views/post.astro', false);
     await setup('src/views/about.astro', false);
+  });
+
+  it('refuses an on-demand {page} route that matches a {slug} route', async () => {
+    const root = await makeRoot();
+    await writeRenderingRoutes(root, 'request');
+    const { integration } = await runSetup({
+      root,
+      adapter: { name: '@astrojs/node', hooks: {} } as AstroIntegration,
+    });
+    const routeSetup = integration.hooks['astro:route:setup'];
+    assert.ok(routeSetup);
+    const clashing = {
+      component: 'src/views/blog.astro',
+      prerender: false,
+      route: '/en/blog/[page]',
+    };
+    await assert.rejects(
+      async () => routeSetup({ route: clashing, logger: silentLogger() }),
+      /row \d[\s\S]*Export prerender = true from the listing view[\s\S]*blog\/page\/\{page\}/,
+    );
+    const pageOne = {
+      component: 'src/views/blog.astro',
+      prerender: false,
+      route: '/en/blog/[...page]',
+    };
+    const prerendered = {
+      component: 'src/views/blog.astro',
+      prerender: true,
+      route: '/en/blog/[page]',
+    };
+    await routeSetup({ route: pageOne, logger: silentLogger() });
+    await routeSetup({ route: prerendered, logger: silentLogger() });
+  });
+
+  it('boots an on-demand {page} route that has its own segment', async () => {
+    const root = await makeRoot();
+    await writeRenderingRoutes(root, 'request', {
+      en: 'blog/page/{page}',
+      de: 'artikel/seite/{page}',
+    });
+    const { injected, integration } = await runSetup({
+      root,
+      adapter: { name: '@astrojs/node', hooks: {} } as AstroIntegration,
+    });
+    const listings = injected.filter((call) => call.entrypoint.endsWith(`${path.sep}blog.astro`));
+    assert.ok(listings.length >= 2);
+    for (const call of listings) assert.equal(call.prerender, false, call.pattern);
+    assert.ok(listings.some((call) => call.pattern === '/en/blog/page/[page]'));
+    const routeSetup = integration.hooks['astro:route:setup'];
+    assert.ok(routeSetup);
+    const numbered = {
+      component: 'src/views/blog.astro',
+      prerender: false,
+      route: '/en/blog/page/[page]',
+    };
+    await routeSetup({ route: numbered, logger: silentLogger() });
+  });
+
+  it('aborts when a pageSize row has no {page} row', async () => {
+    const root = await makeRoot();
+    const srcDir = path.join(root, 'src');
+    await writeIntlConfig(
+      srcDir,
+      `export default {
+  locales: ['en', 'de'],
+  defaultLocale: 'en',
+  routing: { prefixDefaultLocale: true },
+  routes: [
+    { slug: { en: 'blog', de: 'artikel' }, collection: 'blog', pageSize: 10, view: 'blog' },
+  ],
+  collections: { blog: { slugField: 'slug' } },
+};
+`,
+    );
+    await assert.rejects(() => runSetup({ root }), /Add a \{page\} row/);
   });
 
   it('treats viewRendering request as build under astro dev', async () => {
@@ -404,14 +478,23 @@ export default { integrations: [sitemap({ i18n: { defaultLocale: 'en', locales: 
     const { integration } = await runSetup({ root, command: 'dev' });
     const routeSetup = integration.hooks['astro:route:setup'];
     assert.ok(routeSetup);
+    const devRoute = {
+      component: 'src/views/blog.astro',
+      prerender: false,
+      route: '/en/blog/[page]',
+    };
     await routeSetup({
-      route: { component: 'src/views/blog.astro', prerender: false },
+      route: devRoute,
       logger: silentLogger(),
     });
   });
 });
 
-async function writeRenderingRoutes(root: string, viewRendering: 'build' | 'request') {
+async function writeRenderingRoutes(
+  root: string,
+  viewRendering: 'build' | 'request',
+  page: { en: string; de: string } = { en: 'blog/{page}', de: 'artikel/{page}' },
+) {
   const srcDir = path.join(root, 'src');
   await writeIntlConfig(
     srcDir,
@@ -424,6 +507,7 @@ async function writeRenderingRoutes(root: string, viewRendering: 'build' | 'requ
     { slug: { en: 'about', de: 'ueber' }, view: 'about' },
     { slug: { en: 'blog/{slug}', de: 'artikel/{slug}' }, collection: 'blog', view: 'post', fallbackView: 'missing' },
     { slug: { en: 'blog', de: 'artikel' }, collection: 'blog', pageSize: 10, view: 'blog' },
+    { slug: { en: '${page.en}', de: '${page.de}' }, collection: 'blog', pageSize: 10, view: 'blog' },
   ],
   collections: { blog: { slugField: 'slug' } },
 };

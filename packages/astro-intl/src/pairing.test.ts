@@ -199,11 +199,191 @@ describe('routeConfigIssues', () => {
       locales,
       routes: [
         { slug: { en: 'blog', de: 'artikel' }, view: 'x', collection: 'blog', pageSize: 10 },
+        {
+          slug: { en: 'blog/{page}', de: 'artikel/{page}' },
+          view: 'x',
+          collection: 'blog',
+          pageSize: 10,
+        },
         { slug: { en: 'blog/{slug}', de: 'artikel/{slug}' }, view: 'x', collection: 'blog' },
       ],
       collections: { blog: { slugField: 'slug' } },
     });
     assert.deepEqual(issues, []);
+  });
+
+  it('rejects a {page} token that is not the whole final segment', () => {
+    for (const slug of ['blog/{page}/more', 'blog/x{page}', '{page}/blog', 'pre{page}']) {
+      const issues = routeConfigIssues({
+        locales,
+        routes: [
+          { slug: { en: 'blog', de: 'artikel' }, view: 'x', collection: 'blog', pageSize: 10 },
+          { slug: { en: slug, de: 'artikel/{page}' }, view: 'x', collection: 'blog', pageSize: 10 },
+        ],
+        collections: { blog: { slugField: 'slug' } },
+      });
+      assert.ok(
+        issues.some((issue) => issue.includes('locale "en"') && issue.includes('{page}')),
+        slug,
+      );
+    }
+  });
+
+  it('rejects a tail that holds {page} and {slug}', () => {
+    const issues = routeConfigIssues({
+      locales,
+      routes: [
+        {
+          slug: { en: 'blog/{slug}/{page}', de: 'artikel/{page}' },
+          view: 'x',
+          collection: 'blog',
+          pageSize: 10,
+        },
+      ],
+      collections: { blog: { slugField: 'slug' } },
+    });
+    assert.ok(issues.some((issue) => issue.includes('cannot hold both {page} and {slug}')));
+  });
+
+  it('rejects a {page} row with no collection, no pageSize, or an entry', () => {
+    const bare = routeConfigIssues({
+      locales,
+      routes: [{ slug: { en: 'blog/{page}', de: 'artikel/{page}' }, view: 'x', pageSize: 10 }],
+    });
+    assert.ok(bare.some((issue) => issue === '{page} row needs a collection'));
+
+    const unsized = routeConfigIssues({
+      locales,
+      routes: [
+        { slug: { en: 'blog/{page}', de: 'artikel/{page}' }, view: 'x', collection: 'blog' },
+      ],
+      collections: { blog: { slugField: 'slug' } },
+    });
+    assert.ok(unsized.some((issue) => issue === '{page} row needs pageSize'));
+
+    const named = routeConfigIssues({
+      locales,
+      routes: [
+        {
+          slug: { en: 'blog/{page}', de: 'artikel/{page}' },
+          view: 'x',
+          collection: 'blog',
+          pageSize: 10,
+          entry: 'hello',
+        },
+      ],
+      collections: { blog: { slugField: 'slug' } },
+    });
+    assert.ok(named.some((issue) => issue === '{page} row cannot name an entry'));
+  });
+
+  it('rejects a page-1 row with no {page} row and a {page} row with no page-1 row', () => {
+    const pageOne = routeConfigIssues({
+      locales,
+      routes: [
+        { slug: { en: 'blog', de: 'artikel' }, view: 'x', collection: 'blog', pageSize: 10 },
+        { slug: { en: 'blog/{slug}', de: 'artikel/{slug}' }, view: 'x', collection: 'blog' },
+      ],
+      collections: { blog: { slugField: 'slug' } },
+    });
+    assert.ok(pageOne.some((issue) => issue.includes('Add a {page} row')));
+
+    const pageRow = routeConfigIssues({
+      locales,
+      routes: [
+        {
+          slug: { en: 'blog/{page}', de: 'artikel/{page}' },
+          view: 'x',
+          collection: 'blog',
+          pageSize: 10,
+        },
+        { slug: { en: 'blog/{slug}', de: 'artikel/{slug}' }, view: 'x', collection: 'blog' },
+      ],
+      collections: { blog: { slugField: 'slug' } },
+    });
+    assert.ok(pageRow.some((issue) => issue.includes('has no page-1 row')));
+  });
+
+  it('rejects different locale sets and two rows of the same kind', () => {
+    const localesDiffer = routeConfigIssues({
+      locales,
+      routes: [
+        { slug: { en: 'blog', de: 'artikel' }, view: 'x', collection: 'blog', pageSize: 10 },
+        {
+          slug: { en: 'blog/{page}', de: 'artikel/{page}', fr: 'journal/{page}' },
+          view: 'x',
+          collection: 'blog',
+          pageSize: 10,
+        },
+      ],
+      collections: { blog: { slugField: 'slug' } },
+    });
+    assert.ok(localesDiffer.some((issue) => issue.includes('name different locales')));
+
+    const twoFirst = routeConfigIssues({
+      locales,
+      routes: [
+        { slug: { en: 'blog', de: 'artikel' }, view: 'a', collection: 'blog', pageSize: 10 },
+        { slug: { en: 'news', de: 'neu' }, view: 'b', collection: 'blog', pageSize: 10 },
+        {
+          slug: { en: 'blog/{page}', de: 'artikel/{page}' },
+          view: 'a',
+          collection: 'blog',
+          pageSize: 10,
+        },
+      ],
+      collections: { blog: { slugField: 'slug' } },
+    });
+    assert.ok(twoFirst.some((issue) => issue.includes('two page-1 rows')));
+
+    const twoPages = routeConfigIssues({
+      locales,
+      routes: [
+        { slug: { en: 'blog', de: 'artikel' }, view: 'a', collection: 'blog', pageSize: 10 },
+        {
+          slug: { en: 'blog/{page}', de: 'artikel/{page}' },
+          view: 'a',
+          collection: 'blog',
+          pageSize: 10,
+        },
+        {
+          slug: { en: 'news/{page}', de: 'neu/{page}' },
+          view: 'b',
+          collection: 'blog',
+          pageSize: 10,
+        },
+      ],
+      collections: { blog: { slugField: 'slug' } },
+    });
+    assert.ok(twoPages.some((issue) => issue.includes('two {page} rows')));
+  });
+
+  it('allows a root listing and a {page} row with its own segment', () => {
+    const root = routeConfigIssues({
+      locales,
+      routes: [
+        { slug: { en: '/', de: '/' }, view: 'home', collection: 'posts', pageSize: 1 },
+        { slug: { en: '{page}', de: '{page}' }, view: 'home', collection: 'posts', pageSize: 1 },
+      ],
+      collections: { posts: {} },
+    });
+    assert.deepEqual(root, []);
+
+    const segment = routeConfigIssues({
+      locales,
+      routes: [
+        { slug: { en: 'blog', de: 'artikel' }, view: 'x', collection: 'blog', pageSize: 10 },
+        {
+          slug: { en: 'blog/page/{page}', de: 'artikel/seite/{page}' },
+          view: 'x',
+          collection: 'blog',
+          pageSize: 10,
+        },
+        { slug: { en: 'blog/{slug}', de: 'artikel/{slug}' }, view: 'x', collection: 'blog' },
+      ],
+      collections: { blog: { slugField: 'slug' } },
+    });
+    assert.deepEqual(segment, []);
   });
 
   it('rejects pageSize on a {slug} row and a non-positive pageSize', () => {
@@ -999,6 +1179,12 @@ describe('published tails with no entry', () => {
       routing: { prefixDefaultLocale: true },
       routes: [
         { slug: { en: 'blog', de: 'artikel' }, view: 'x', collection: 'blog', pageSize: 10 },
+        {
+          slug: { en: 'blog/{page}', de: 'artikel/{page}' },
+          view: 'x',
+          collection: 'blog',
+          pageSize: 10,
+        },
         { slug: { en: 'blog/{slug}', de: 'artikel/{slug}' }, view: 'x', collection: 'blog' },
       ],
       collections: { blog: { slugField: 'slug' } },
@@ -1069,6 +1255,12 @@ describe('published tails with no entry', () => {
       routing: { prefixDefaultLocale: true },
       routes: [
         { slug: { en: 'blog', de: 'artikel' }, view: 'x', collection: 'blog', pageSize: 10 },
+        {
+          slug: { en: 'blog/{page}', de: 'artikel/{page}' },
+          view: 'x',
+          collection: 'blog',
+          pageSize: 10,
+        },
         { slug: { en: 'blog/{slug}', de: 'artikel/{slug}' }, view: 'x', collection: 'blog' },
       ],
       collections: { blog: { slugField: 'slug' } },
@@ -1094,6 +1286,12 @@ describe('published tails with no entry', () => {
       routing: { prefixDefaultLocale: true },
       routes: [
         { slug: { en: 'blog', de: 'artikel' }, view: 'x', collection: 'blog', pageSize: 10 },
+        {
+          slug: { en: 'blog/{page}', de: 'artikel/{page}' },
+          view: 'x',
+          collection: 'blog',
+          pageSize: 10,
+        },
         { slug: { en: 'blog/{slug}', de: 'artikel/{slug}' }, view: 'x', collection: 'blog' },
       ],
       collections: { blog: { slugField: 'slug' } },
@@ -1104,6 +1302,37 @@ describe('published tails with no entry', () => {
     );
   });
 
+  it('keeps a numeric slug when the {page} row uses another section', () => {
+    const posts = [entry('blog', 'page-number', { id: 'page-number', locale: 'en', slug: '2' })];
+    for (let index = 0; index < 10; index += 1) {
+      posts.push(
+        entry('blog', `en-${index}`, { id: `en-${index}`, locale: 'en', slug: `en-${index}` }),
+      );
+    }
+    const paged: IntlConfig = {
+      locales: ['en', 'de'],
+      defaultLocale: 'en',
+      routing: { prefixDefaultLocale: true },
+      routes: [
+        { slug: { en: 'blog', de: 'artikel' }, view: 'x', collection: 'blog', pageSize: 10 },
+        {
+          slug: { en: 'blog/page/{page}', de: 'artikel/seite/{page}' },
+          view: 'x',
+          collection: 'blog',
+          pageSize: 10,
+        },
+        { slug: { en: 'blog/{slug}', de: 'artikel/{slug}' }, view: 'x', collection: 'blog' },
+      ],
+      collections: { blog: { slugField: 'slug' } },
+    };
+    const paired = pairCollections(paged, { blog: posts });
+    assert.equal(paired.routed.find((item) => item.entryId === 'blog/page-number')?.path, 'blog/2');
+    assert.equal(
+      paired.tails.some((item) => item.path === 'blog/page/2'),
+      true,
+    );
+  });
+
   it('keeps a numeric slug when that page number is not published', () => {
     const paged: IntlConfig = {
       locales: ['en', 'de'],
@@ -1111,6 +1340,12 @@ describe('published tails with no entry', () => {
       routing: { prefixDefaultLocale: true },
       routes: [
         { slug: { en: 'blog', de: 'artikel' }, view: 'x', collection: 'blog', pageSize: 10 },
+        {
+          slug: { en: 'blog/{page}', de: 'artikel/{page}' },
+          view: 'x',
+          collection: 'blog',
+          pageSize: 10,
+        },
         { slug: { en: 'blog/{slug}', de: 'artikel/{slug}' }, view: 'x', collection: 'blog' },
       ],
       collections: { blog: { slugField: 'slug' } },

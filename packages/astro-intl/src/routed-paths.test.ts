@@ -1,5 +1,8 @@
 import assert from 'node:assert/strict';
+import { createRequire } from 'node:module';
+import { dirname, join } from 'node:path';
 import { describe, it } from 'node:test';
+import { pathToFileURL } from 'node:url';
 import type { PaginateFunction } from 'astro';
 import type { IntlConfig } from './define-intl.ts';
 import type { CollectionEntryLike } from './pairing.ts';
@@ -12,6 +15,7 @@ import {
   staticPathsFor,
 } from './routed-paths.ts';
 import { type CompiledRoute, compileRoutes } from './routing.ts';
+import { requestPaginate } from './view-props.ts';
 
 type RouteRow = NonNullable<IntlConfig['routes']>[number];
 
@@ -39,6 +43,12 @@ const config: IntlConfig = {
       entry: 'pin',
     },
     { slug: { en: 'blog', de: 'artikel' }, view: 'index', collection: 'blog', pageSize: 1 },
+    {
+      slug: { en: 'blog/{page}', de: 'artikel/{page}' },
+      view: 'index',
+      collection: 'blog',
+      pageSize: 1,
+    },
     {
       slug: { en: 'blog/{slug}', de: 'artikel/{slug}' },
       view: 'post',
@@ -134,26 +144,99 @@ describe('entryPathsFor', () => {
   });
 });
 
+const require = createRequire(import.meta.url);
+
+async function astroPaginate(param: 'page' | '...page'): Promise<PaginateFunction> {
+  const astroJson = require.resolve('astro/package.json');
+  const paginateHref = pathToFileURL(join(dirname(astroJson), 'dist/core/render/paginate.js')).href;
+  const { generatePaginateFunction } = (await import(paginateHref)) as {
+    generatePaginateFunction: (
+      route: { params: string[]; segments: unknown[] },
+      base: string,
+      trailingSlash: string,
+    ) => PaginateFunction;
+  };
+  return generatePaginateFunction({ params: [param], segments: [] }, '/', 'always');
+}
+
 describe('listingPathsFor', () => {
-  it('uses the written tail on page 1 and the page number after it', () => {
+  it('emits page 1 from [...page] and later pages from [page]', async () => {
     const query = queryFor();
-    const pages = listingPathsFor(
-      config,
+    const first = compiledRoute('/en/blog/[...page]', 'listing');
+    const rest = compiledRoute('/en/blog/[page]', 'listing');
+    const spread = await astroPaginate('...page');
+    const named = await astroPaginate('page');
+    for (const paginate of [spread, requestPaginate]) {
+      const pages = listingPathsFor(config, query, first, paginate, undefined, markedRelativeUrl);
+      assert.deepEqual(
+        pages.map((item) => item.props.path),
+        ['blog'],
+      );
+      assert.equal(pages[0]?.props.page.url.next, markedRelativeUrl('en', 'blog/2'));
+    }
+    for (const paginate of [named, requestPaginate]) {
+      const pages = listingPathsFor(config, query, rest, paginate, undefined, markedRelativeUrl);
+      assert.deepEqual(
+        pages.map((item) => item.props.path),
+        ['blog/2', 'blog/3', 'blog/4'],
+      );
+      assert.equal(pages[0]?.props.page.url.prev, markedRelativeUrl('en', 'blog'));
+      assert.equal(pages[0]?.props.page.url.current, markedRelativeUrl('en', 'blog/2'));
+    }
+  });
+
+  it('links page 1 to the {page} row when that row adds a segment', () => {
+    const section: IntlConfig = {
+      locales: ['en', 'de'],
+      defaultLocale: 'en',
+      routing: { prefixDefaultLocale: true },
+      routes: [
+        { slug: { en: 'blog', de: 'artikel' }, view: 'index', collection: 'blog', pageSize: 1 },
+        {
+          slug: { en: 'blog/page/{page}', de: 'artikel/seite/{page}' },
+          view: 'index',
+          collection: 'blog',
+          pageSize: 1,
+        },
+      ],
+      collections: { blog: {} },
+    };
+    const posts = [
+      entry('a-en', { id: 'a', locale: 'en' }),
+      entry('b-en', { id: 'b', locale: 'en' }),
+    ];
+    const query = createIntlQuery({
+      config: section,
+      collections: { blog: posts },
+      getAbsoluteLocaleUrl: () => '',
+    });
+    const compiled = compileRoutes(section);
+    const pageOne = listingPathsFor(
+      section,
       query,
-      compiledRoute('/en/blog/[...page]', 'listing'),
+      routeFor(compiled, '/en/blog/[...page]', 'listing'),
+      paginateFn,
+      undefined,
+      markedRelativeUrl,
+    );
+    const pageTwo = listingPathsFor(
+      section,
+      query,
+      routeFor(compiled, '/en/blog/page/[page]', 'listing'),
       paginateFn,
       undefined,
       markedRelativeUrl,
     );
     assert.deepEqual(
-      pages.map((item) => item.props.path),
-      ['blog', 'blog/2', 'blog/3', 'blog/4'],
+      pageOne.map((item) => item.props.path),
+      ['blog'],
     );
-    assert.equal(pages[0]?.params.page, undefined);
-    assert.equal(pages[1]?.params.page, '2');
-    assert.equal(pages[0]?.props.page.url.next, markedRelativeUrl('en', 'blog/2'));
-    assert.equal(pages[1]?.props.page.url.prev, markedRelativeUrl('en', 'blog'));
-    assert.equal(pages[1]?.props.page.url.current, markedRelativeUrl('en', 'blog/2'));
+    assert.deepEqual(
+      pageTwo.map((item) => item.props.path),
+      ['blog/page/2'],
+    );
+    assert.equal(pageOne[0]?.props.page.url.next, markedRelativeUrl('en', 'blog/page/2'));
+    assert.equal(pageTwo[0]?.props.page.url.prev, markedRelativeUrl('en', 'blog'));
   });
 
   it('numbers a root listing from the bare page', () => {
@@ -161,7 +244,10 @@ describe('listingPathsFor', () => {
       locales: ['en', 'de'],
       defaultLocale: 'en',
       routing: { prefixDefaultLocale: false },
-      routes: [{ slug: { en: '/', de: '/' }, view: 'home', collection: 'posts', pageSize: 1 }],
+      routes: [
+        { slug: { en: '/', de: '/' }, view: 'home', collection: 'posts', pageSize: 1 },
+        { slug: { en: '{page}', de: '{page}' }, view: 'home', collection: 'posts', pageSize: 1 },
+      ],
       collections: { posts: {} },
     };
     const posts = [
@@ -173,19 +259,34 @@ describe('listingPathsFor', () => {
       collections: { posts },
       getAbsoluteLocaleUrl: (locale, path = '') => `https://example.com/${locale}/${path}`,
     });
+    const compiled = compileRoutes(home);
     const pages = listingPathsFor(
       home,
       query,
-      routeFor(compileRoutes(home), '/[...page]', 'listing'),
+      routeFor(compiled, '/[...page]', 'listing'),
+      paginateFn,
+      undefined,
+      markedRelativeUrl,
+    );
+    const rest = listingPathsFor(
+      home,
+      query,
+      routeFor(compiled, '/[page]', 'listing'),
       paginateFn,
       undefined,
       markedRelativeUrl,
     );
     assert.deepEqual(
       pages.map((item) => item.props.path),
-      ['/', '2'],
+      ['/'],
+    );
+    assert.deepEqual(
+      rest.map((item) => item.props.path),
+      ['2'],
     );
     assert.equal(pages[0]?.props.page.url.current, markedRelativeUrl('en', ''));
+    assert.equal(pages[0]?.props.page.url.next, markedRelativeUrl('en', '2'));
+    assert.equal(rest[0]?.props.page.url.prev, markedRelativeUrl('en', ''));
   });
 
   it('does not count another row’s numeric tail under the listing', () => {
@@ -195,6 +296,7 @@ describe('listingPathsFor', () => {
       routing: { prefixDefaultLocale: true },
       routes: [
         { slug: { en: 'blog' }, view: 'index', collection: 'blog', pageSize: 10 },
+        { slug: { en: 'blog/{page}' }, view: 'index', collection: 'blog', pageSize: 10 },
         { slug: { en: 'blog/2024' }, view: 'archive' },
       ],
       collections: { blog: {} },
@@ -239,12 +341,12 @@ describe('listingPathsFor', () => {
         listingPathsFor(
           config,
           queryFor(),
-          compiledRoute('/en/blog/[...page]', 'listing'),
+          compiledRoute('/en/blog/[page]', 'listing'),
           extra,
           undefined,
           markedRelativeUrl,
         ),
-      /listing "blog" in "en" emits page 5, which pairing did not publish/,
+      /listing "blog\/\{page\}" in "en" emits page 5, which pairing did not publish/,
     );
   });
 });

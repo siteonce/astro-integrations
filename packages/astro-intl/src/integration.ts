@@ -2,12 +2,13 @@
  * Astro integration entry — named (and default) export `astroIntl()`.
  * Loads `src/intl.config.ts`, writes locale list and prefix policy through to
  * Astro `i18n`, and checks catalog files. Injects one route per compiled route
- * row and locale. `viewRendering: 'request'` injects static and entry routes
- * on demand and refuses to boot without an adapter. Under `astro dev`,
- * `viewRendering` is treated as `'build'`. Listing and fallback routes stay
- * prerendered. A listing or fallback view that exports `prerender = false`
- * fails startup outside `astro dev`. A view's `prerender` export wins for the
- * other kinds.
+ * row and locale. `viewRendering: 'request'` injects static, entry, and listing
+ * routes on demand and refuses to boot without an adapter. Under `astro dev`,
+ * `viewRendering` is treated as `'build'`. Fallback routes stay prerendered.
+ * A fallback view that exports `prerender = false` fails startup outside
+ * `astro dev`. An on-demand `{page}` route that shares its shape with a
+ * `{slug}` route fails startup outside `astro dev`. A view's `prerender`
+ * export wins for the other kinds.
  * Entrypoints are the views under `src/views/`. A row's fallback view is
  * injected for locales without a translation, and nothing is injected when the
  * row names none. Records reserved
@@ -24,7 +25,13 @@ import { createJiti } from 'jiti';
 import * as z from 'zod';
 import { type IntlConfig, intlConfigSchema, messagesDir } from './define-intl.ts';
 import { fileRouteCollision, isIntlRoute, reservedTailsFromRoutes } from './reserved-paths.ts';
-import { type CompiledRoute, compileRoutes, viewEntrypoint } from './routing.ts';
+import {
+  type CompiledRoute,
+  compileRoutes,
+  pageSlugClash,
+  pageSlugClashMessage,
+  viewEntrypoint,
+} from './routing.ts';
 import { setIntlConfig, setRouteTails } from './runtime.ts';
 import { sitemapI18nIsSet } from './sitemap-i18n.ts';
 import { urlFormatMismatch } from './url-format.ts';
@@ -107,24 +114,23 @@ async function loadIntlConfig(configPath: string): Promise<IntlConfig> {
   return parsed.data;
 }
 
-function refusedOnDemandView(kind: 'listing' | 'fallback'): string {
-  if (kind === 'listing') {
-    return (
-      '@repo/astro-intl: a listing view exports prerender = false. ' +
-      'Numbered listing pages fall under the {slug} route, and Astro ranks [slug] above [...page].'
-    );
-  }
+function refusedFallbackView(): string {
   return (
     '@repo/astro-intl: a fallback view exports prerender = false. ' +
     'A fallback route shares its pattern with the {slug} route, and two on-demand routes cannot share one pattern.'
   );
 }
 
+/** Astro passes the route pattern on the route object. The public type omits it. */
+function setupRoutePattern(route: object): string | undefined {
+  const pattern = 'route' in route ? route.route : undefined;
+  return typeof pattern === 'string' ? pattern : undefined;
+}
+
 export function astroIntl(): AstroIntegration {
   let projectRoot = '';
   let injected: CompiledRoute[] = [];
   let ownEntrypoints = new Set<string>();
-  let listingEntrypoints = new Set<string>();
   let fallbackEntrypoints = new Set<string>();
   let viewRendering: IntlConfig['viewRendering'];
 
@@ -205,7 +211,6 @@ export function astroIntl(): AstroIntegration {
         const srcDir = fileURLToPath(config.srcDir);
         const entrypointForView = new Map<string, string>();
         const entrypoints = new Set<string>();
-        const listing = new Set<string>();
         const fallback = new Set<string>();
         let compiled: CompiledRoute[];
         try {
@@ -216,15 +221,13 @@ export function astroIntl(): AstroIntegration {
               entrypoint = viewEntrypoint(srcDir, route.view, existsSync);
               entrypointForView.set(route.view, entrypoint);
             }
-            const onDemand =
-              viewRendering === 'request' && (route.kind === 'static' || route.kind === 'entry');
+            const onDemand = viewRendering === 'request' && route.kind !== 'fallback';
             injectRoute({
               pattern: route.pattern,
               entrypoint,
               ...(onDemand ? { prerender: false } : {}),
             });
             entrypoints.add(entrypoint);
-            if (route.kind === 'listing') listing.add(entrypoint);
             if (route.kind === 'fallback') fallback.add(entrypoint);
           }
         } catch (error) {
@@ -235,7 +238,6 @@ export function astroIntl(): AstroIntegration {
         projectRoot = fileURLToPath(config.root);
         injected = compiled;
         ownEntrypoints = entrypoints;
-        listingEntrypoints = listing;
         fallbackEntrypoints = fallback;
 
         updateConfig({
@@ -253,11 +255,16 @@ export function astroIntl(): AstroIntegration {
       'astro:route:setup': ({ route, logger }) => {
         if (viewRendering !== 'request' || route.prerender !== false) return;
         const component = resolve(projectRoot, route.component);
-        let kind: 'listing' | 'fallback' | undefined;
-        if (fallbackEntrypoints.has(component)) kind = 'fallback';
-        else if (listingEntrypoints.has(component)) kind = 'listing';
-        if (!kind) return;
-        const message = refusedOnDemandView(kind);
+        if (fallbackEntrypoints.has(component)) {
+          const message = refusedFallbackView();
+          logger.error(message);
+          throw new Error(message);
+        }
+        const pattern = setupRoutePattern(route);
+        if (pattern === undefined) return;
+        const clash = pageSlugClash(injected, pattern);
+        if (!clash) return;
+        const message = pageSlugClashMessage(clash);
         logger.error(message);
         throw new Error(message);
       },

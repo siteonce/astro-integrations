@@ -108,11 +108,25 @@ export function fileRouteCollision(
 function patternsCollide(filePattern: string, route: CompiledRoute): boolean {
   const fileSegments = segments(filePattern);
   const injectedSegments = segments(route.pattern);
+  if (route.kind === 'listing' && injectedSegments.at(-1) === '[page]') {
+    return pageParamCollides(fileSegments, injectedSegments);
+  }
   if (route.kind === 'static' || route.kind === 'listing') {
     return spreadCollides(fileSegments, injectedSegments, route.kind === 'listing');
   }
   // `entry` and `fallback` are both a `[slug]` pattern.
   return entryCollides(fileSegments, injectedSegments);
+}
+
+/** A `[page]` listing hits a page number or a `[param]` of that same shape, not the bare tail. */
+function pageParamCollides(fileSegments: string[], injectedSegments: string[]): boolean {
+  if (fileSegments.length !== injectedSegments.length || fileSegments.length === 0) return false;
+  for (let index = 0; index < injectedSegments.length - 1; index++) {
+    const injected = injectedSegments[index];
+    if (fileSegments[index] !== injected) return false;
+  }
+  const last = fileSegments.at(-1) ?? '';
+  return isSingleParam(last) || /^\d+$/u.test(last);
 }
 
 function entryCollides(fileSegments: string[], injectedSegments: string[]): boolean {

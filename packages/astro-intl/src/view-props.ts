@@ -29,11 +29,11 @@ type PaginateArgs = {
 };
 
 /**
- * `paginate` for a view's `getStaticPaths`. It only serves intl's `[...page]`
- * listing routes. Those routes stay prerendered, so an on-demand view does not
- * paginate. `viewProps` still passes this so `getStaticPaths` never sees a
- * missing `paginate`. Page 1's `page` param is `undefined`. `end` is the last
- * item's index. `listingPaths` replaces `page.url`.
+ * `paginate` for a view's `getStaticPaths` when Astro did not pass its own.
+ * Page 1's `page` param is `undefined`, matching `[...page]`. Later pages use
+ * the number, which also matches `[page]`. `end` is the last item's index.
+ * `listingPaths` keeps page 1 on a `[...page]` route and drops it on `[page]`,
+ * and replaces `page.url`.
  */
 function paginateRequest<T>(data: readonly T[], args: PaginateArgs = {}) {
   const pageSize = args.pageSize || 10;

@@ -60,13 +60,17 @@ A snapshot monorepo that is the foundation for every Astro **content site** buil
 
 **`{slug}`**: The route-row token that publishes an entry tail. The text before it is the **section**. The entry **slug** is the last segment. _Avoid_: a movable capture; renaming the brace; a page number
 
-**`pageSize`**: How many entries one chunk of a collection tail holds. A positive integer on that route row. The written tail is page 1. The row does not store a page count. _Avoid_: pages (as a count of URLs); a CMS API page size
+**`{page}`**: The route-row token for listing pages after the first. It is the whole final segment of that row’s tail. The number replaces it. Page 1 is not published on this row. _Avoid_: a movable capture; appending the number without this row; publishing `blog/1`
+
+**page-1 row**: The route row that publishes listing page 1 at its written tail. It names the same collection and `pageSize` as the `{page}` row, and it has no `{page}` token. _Avoid_: a static row; hiding later pages on this tail
+
+**`pageSize`**: How many entries one chunk of a listing holds. A positive integer on the page-1 row and the `{page}` row. Omit it and the row stays that one tail. The rows do not store a page count. _Avoid_: pages (as a count of URLs); a CMS API page size
 
 **routed collection**: A listed collection whose entries have a public URL. A `{slug}` row publishes that URL: the **section** plus the **slug**. _Avoid_: giving records a slug; treating a collection tail as an entry URL
 
 **entry**: One item in a collection. Locale siblings share one pairing `id`. _Avoid_: document; a **view** that no collection claims
 
-**`viewRendering`**: Intl config setting for when injected **views** render: `'build'` (prerendered, the default) or `'request'` (static and `{slug}` routes on demand; listing and fallback routes stay prerendered). No effect under `astro dev`. The app sets it from its deploy class. _Avoid_: onDemand, a deploy class inside intl, previewMode
+**`viewRendering`**: Intl config setting for when injected **views** render: `'build'` (prerendered, the default) or `'request'` (static, `{slug}`, and listing routes on demand; fallback routes stay prerendered). An on-demand `{page}` route beside a `{slug}` route of the same shape fails startup. No effect under `astro dev`. The app sets it from its deploy class. _Avoid_: onDemand, a deploy class inside intl, previewMode
 
 **hybrid preview**: A preview where the build pairs the URLs and the view loads fresh CMS content per request with `getLiveEntry`. Needs `viewRendering: 'request'`. _Avoid_: live pairing (not built), draft mode
 

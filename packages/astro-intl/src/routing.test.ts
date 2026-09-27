@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { join } from 'node:path';
 import { describe, it } from 'node:test';
 import type { IntlConfig } from './define-intl.ts';
-import { compileRoutes, viewEntrypoint } from './routing.ts';
+import { compileRoutes, pageSlugClash, pageSlugClashMessage, viewEntrypoint } from './routing.ts';
 
 const locales = ['en', 'de'] as const;
 
@@ -16,7 +16,14 @@ describe('compileRoutes', () => {
         { slug: { en: '/', de: '/' }, view: 'home' },
         { slug: { en: 'about', de: 'ueber' }, view: { en: 'about', de: 'ueber' } },
         { slug: { en: '/', de: '/' }, collection: 'posts', pageSize: 1, view: 'index' },
+        { slug: { en: '{page}', de: '{page}' }, collection: 'posts', pageSize: 1, view: 'index' },
         { slug: { en: 'blog', de: 'artikel' }, collection: 'blog', pageSize: 10, view: 'blog' },
+        {
+          slug: { en: 'blog/{page}', de: 'artikel/{page}' },
+          collection: 'blog',
+          pageSize: 10,
+          view: 'blog',
+        },
         { slug: { en: 'notes', de: 'notizen' }, collection: 'notes', view: 'notes' },
         {
           slug: { en: 'team', de: 'mannschaft' },
@@ -41,34 +48,38 @@ describe('compileRoutes', () => {
       { pattern: '/de/ueber/[...index]', view: 'ueber', locale: 'de', rowIndex: 1, kind: 'static' },
       { pattern: '/en/[...page]', view: 'index', locale: 'en', rowIndex: 2, kind: 'listing' },
       { pattern: '/de/[...page]', view: 'index', locale: 'de', rowIndex: 2, kind: 'listing' },
-      { pattern: '/en/blog/[...page]', view: 'blog', locale: 'en', rowIndex: 3, kind: 'listing' },
+      { pattern: '/en/[page]', view: 'index', locale: 'en', rowIndex: 3, kind: 'listing' },
+      { pattern: '/de/[page]', view: 'index', locale: 'de', rowIndex: 3, kind: 'listing' },
+      { pattern: '/en/blog/[...page]', view: 'blog', locale: 'en', rowIndex: 4, kind: 'listing' },
       {
         pattern: '/de/artikel/[...page]',
         view: 'blog',
         locale: 'de',
-        rowIndex: 3,
+        rowIndex: 4,
         kind: 'listing',
       },
-      { pattern: '/en/notes/[...index]', view: 'notes', locale: 'en', rowIndex: 4, kind: 'static' },
+      { pattern: '/en/blog/[page]', view: 'blog', locale: 'en', rowIndex: 5, kind: 'listing' },
+      { pattern: '/de/artikel/[page]', view: 'blog', locale: 'de', rowIndex: 5, kind: 'listing' },
+      { pattern: '/en/notes/[...index]', view: 'notes', locale: 'en', rowIndex: 6, kind: 'static' },
       {
         pattern: '/de/notizen/[...index]',
         view: 'notes',
         locale: 'de',
-        rowIndex: 4,
+        rowIndex: 6,
         kind: 'static',
       },
-      { pattern: '/en/team/[...index]', view: 'person', locale: 'en', rowIndex: 5, kind: 'static' },
+      { pattern: '/en/team/[...index]', view: 'person', locale: 'en', rowIndex: 7, kind: 'static' },
       {
         pattern: '/de/mannschaft/[...index]',
         view: 'person',
         locale: 'de',
-        rowIndex: 5,
+        rowIndex: 7,
         kind: 'static',
       },
-      { pattern: '/en/blog/[slug]', view: 'post', locale: 'en', rowIndex: 6, kind: 'entry' },
-      { pattern: '/de/artikel/[slug]', view: 'post', locale: 'de', rowIndex: 6, kind: 'entry' },
-      { pattern: '/en/careers/[slug]', view: 'career', locale: 'en', rowIndex: 7, kind: 'entry' },
-      { pattern: '/de/karriere/[slug]', view: 'career', locale: 'de', rowIndex: 7, kind: 'entry' },
+      { pattern: '/en/blog/[slug]', view: 'post', locale: 'en', rowIndex: 8, kind: 'entry' },
+      { pattern: '/de/artikel/[slug]', view: 'post', locale: 'de', rowIndex: 8, kind: 'entry' },
+      { pattern: '/en/careers/[slug]', view: 'career', locale: 'en', rowIndex: 9, kind: 'entry' },
+      { pattern: '/de/karriere/[slug]', view: 'career', locale: 'de', rowIndex: 9, kind: 'entry' },
     ]);
   });
 
@@ -178,6 +189,94 @@ describe('compileRoutes', () => {
     assert.throws(() => compileRoutes(config), {
       message: '@repo/astro-intl: route pattern "/en/about/[...index]" repeats (rows 0 and 3).',
     });
+  });
+
+  it('compiles a {page} segment the row writes itself', () => {
+    const config: IntlConfig = {
+      locales: [...locales],
+      defaultLocale: 'en',
+      routing: { prefixDefaultLocale: true },
+      routes: [
+        { slug: { en: 'blog', de: 'artikel' }, collection: 'blog', pageSize: 10, view: 'blog' },
+        {
+          slug: { en: 'blog/page/{page}', de: 'artikel/seite/{page}' },
+          collection: 'blog',
+          pageSize: 10,
+          view: 'blog',
+        },
+      ],
+    };
+    assert.deepEqual(
+      compileRoutes(config).map(({ pattern }) => pattern),
+      [
+        '/en/blog/[...page]',
+        '/de/artikel/[...page]',
+        '/en/blog/page/[page]',
+        '/de/artikel/seite/[page]',
+      ],
+    );
+  });
+});
+
+describe('pageSlugClash', () => {
+  it('names both rows when [page] and [slug] share a section', () => {
+    const config: IntlConfig = {
+      locales: [...locales],
+      defaultLocale: 'en',
+      routing: { prefixDefaultLocale: true },
+      routes: [
+        { slug: { en: 'blog/{slug}', de: 'artikel/{slug}' }, collection: 'blog', view: 'post' },
+        { slug: { en: 'blog', de: 'artikel' }, collection: 'blog', pageSize: 10, view: 'blog' },
+        {
+          slug: { en: 'blog/{page}', de: 'artikel/{page}' },
+          collection: 'blog',
+          pageSize: 10,
+          view: 'blog',
+        },
+      ],
+    };
+    const routes = compileRoutes(config);
+    const clash = pageSlugClash(routes, '/en/blog/[page]');
+    assert.ok(clash);
+    assert.equal(clash.page.rowIndex, 2);
+    assert.equal(clash.entry.rowIndex, 0);
+    const message = pageSlugClashMessage(clash);
+    assert.match(message, /row 2/);
+    assert.match(message, /row 0/);
+    assert.match(message, /Export prerender = true from the listing view/);
+    assert.match(message, /blog\/page\/\{page\}/);
+    assert.equal(pageSlugClash(routes, '/en/blog/[...page]'), undefined);
+    assert.equal(pageSlugClash(routes, '/en/blog/[slug]'), undefined);
+    assert.ok(pageSlugClash(routes, '/de/artikel/[page]'));
+  });
+
+  it('allows a {page} row with its own segment and a root {page} beside {slug}', () => {
+    const own: IntlConfig = {
+      locales: [...locales],
+      defaultLocale: 'en',
+      routing: { prefixDefaultLocale: true },
+      routes: [
+        { slug: { en: 'blog/{slug}', de: 'artikel/{slug}' }, collection: 'blog', view: 'post' },
+        {
+          slug: { en: 'blog/page/{page}', de: 'artikel/seite/{page}' },
+          collection: 'blog',
+          pageSize: 10,
+          view: 'blog',
+        },
+      ],
+    };
+    assert.equal(pageSlugClash(compileRoutes(own), '/en/blog/page/[page]'), undefined);
+
+    const root: IntlConfig = {
+      locales: ['en'],
+      defaultLocale: 'en',
+      routing: { prefixDefaultLocale: false },
+      routes: [
+        { slug: { en: '{slug}' }, collection: 'posts', view: 'post' },
+        { slug: { en: '{page}' }, collection: 'posts', pageSize: 1, view: 'home' },
+      ],
+    };
+    assert.ok(pageSlugClash(compileRoutes(root), '/[page]'));
   });
 });
 

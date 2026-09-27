@@ -3,9 +3,11 @@ import { describe, it } from 'node:test';
 import {
   compilePath,
   listingPageCount,
+  listingPagePath,
   listingTail,
   localeUrlPath,
   normalizeSlug,
+  pageTokenSection,
 } from './path.ts';
 
 describe('compilePath', () => {
@@ -22,6 +24,20 @@ describe('compilePath', () => {
       () => compilePath('artikel', 'artikel/hallo-welt'),
       /slug "artikel\/hallo-welt" is not one segment/,
     );
+  });
+});
+
+describe('listingPagePath', () => {
+  it('keeps page 1 on the page-1 tail and replaces {page} after that', () => {
+    assert.equal(listingPagePath('blog', 'blog/{page}', 1), 'blog');
+    assert.equal(listingPagePath('blog', 'blog/{page}', 2), 'blog/2');
+    assert.equal(listingPagePath('blog', 'blog/page/{page}', 2), 'blog/page/2');
+    assert.equal(listingPagePath('artikel', 'artikel/seite/{page}', 3), 'artikel/seite/3');
+    assert.equal(listingPagePath('/', '{page}', 1), '/');
+    assert.equal(listingPagePath('/', '{page}', 2), '2');
+    assert.equal(pageTokenSection('blog/{page}'), 'blog');
+    assert.equal(pageTokenSection('blog/page/{page}'), 'blog/page');
+    assert.equal(pageTokenSection('{page}'), '/');
   });
 });
 

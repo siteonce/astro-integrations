@@ -1,10 +1,11 @@
-import { type IntlConfig, routeConfigIssues } from './define-intl.ts';
+import { type IntlConfig, isPageTokenRow, listingPair, routeConfigIssues } from './define-intl.ts';
 import { resolveEntryId } from './entry-id.ts';
 import {
   compilePath,
   listingPageCount,
-  listingTail,
+  listingPagePath,
   normalizeSlug,
+  pageTokenSection,
   patternSection,
 } from './path.ts';
 
@@ -160,8 +161,9 @@ function fixedEntryKeys(config: IntlConfig): Set<string> {
  * Pair listed collections: read id + locale from entry data, prefix the
  * collection name, and compile public tails from route rows. An entry row
  * publishes one named entry at the written tail. A `{slug}` row joins a
- * section and a leaf, or that one named entry. A collection tail publishes
- * the written tail and, with pageSize, numbered chunks of the listing.
+ * section and a leaf, or that one named entry. A page-1 row publishes page 1
+ * at its written tail. Its `{page}` row publishes later pages, with `{page}`
+ * replaced by the number.
  * A row with no collection publishes those tails with no entry and no pairing id.
  * Aborts on route-rule, uniqueness, and reserved-path failures.
  */
@@ -384,7 +386,7 @@ export function pairCollections(
     const wantsPattern = config.locales.some((locale) =>
       (route.slug[locale] ?? '').includes('{slug}'),
     );
-    if (wantsPattern) continue;
+    if (wantsPattern || isPageTokenRow(route)) continue;
     const written: Record<string, string> = {};
     for (const locale of config.locales) {
       written[locale] = normalizeSlug(route.slug[locale] ?? '');
@@ -394,6 +396,16 @@ export function pairCollections(
         claimTail(locale, written[locale] ?? '/', written);
       }
       continue;
+    }
+    const pair = listingPair(config.routes ?? [], route);
+    if (!pair) {
+      throw new Error(
+        `@repo/astro-intl: collection "${route.collection}" pageSize ${route.pageSize} has no {page} row.`,
+      );
+    }
+    const pageTails: Record<string, string> = {};
+    for (const locale of config.locales) {
+      pageTails[locale] = normalizeSlug(pair.pageRow.slug[locale] ?? '');
     }
     const localeField = listed[route.collection]?.localeField ?? 'locale';
     const pages = new Map<string, number>();
@@ -412,7 +424,11 @@ export function pairCollections(
       const siblings: Record<string, string> = {};
       for (const locale of config.locales) {
         if ((pages.get(locale) ?? 1) < page) continue;
-        siblings[locale] = listingTail(written[locale] ?? '/', page);
+        siblings[locale] = listingPagePath(
+          written[locale] ?? '/',
+          pageTails[locale] ?? '{page}',
+          page,
+        );
       }
       for (const locale of config.locales) {
         const path = siblings[locale];
@@ -420,8 +436,9 @@ export function pairCollections(
         if (page > 1) {
           const existing = byLocalePath.get(localePathKey(locale, path));
           if (existing?.slug === String(page)) {
+            const section = pageTokenSection(pageTails[locale] ?? '{page}');
             throw new Error(
-              `@repo/astro-intl: entry slug "${existing.slug}" matches published page ${page} on section "${written[locale]}".`,
+              `@repo/astro-intl: entry slug "${existing.slug}" matches published page ${page} on section "${section}".`,
             );
           }
         }

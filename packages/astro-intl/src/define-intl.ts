@@ -1,5 +1,5 @@
 import * as z from 'zod';
-import { patternSection } from './path.ts';
+import { normalizeSlug, patternSection } from './path.ts';
 
 const DEFAULT_MESSAGES_DIR = 'messages';
 
@@ -25,7 +25,10 @@ const routeAuthoringSchema = z.strictObject({
   slug: z.record(z.string(), z.string()),
   /** View name, or one name per locale. */
   view: z.union([z.string().min(1), z.record(z.string(), z.string().min(1))]),
-  /** Entries in one chunk of a collection tail. Omitted, the row is that one tail. */
+  /**
+   * Entries in one chunk. The page-1 row and the `{page}` row set the same value.
+   * Omitted, the row is that one tail.
+   */
   pageSize: z.number().int().positive().optional(),
   /**
    * View for a locale that has no translation. Only on a `{slug}` row.
@@ -97,6 +100,145 @@ function pageSizeIssue(pageSize: number | undefined): string | undefined {
   return undefined;
 }
 
+const PAGE_TOKEN = '{page}';
+
+type ListingRoute = {
+  slug: Readonly<Record<string, string>>;
+  collection?: string | undefined;
+  entry?: string | undefined;
+  pageSize?: number | undefined;
+};
+
+/** True when any tail on the row contains `{page}`. */
+export function isPageTokenRow(route: { slug: Readonly<Record<string, string>> }): boolean {
+  return Object.values(route.slug).some((slug) => slug.includes(PAGE_TOKEN));
+}
+
+/**
+ * The page-1 row and the `{page}` row that share `collection` and `pageSize`.
+ * `undefined` when this row is not one of those, or its partner is missing.
+ */
+export function listingPair<T extends ListingRoute>(
+  routes: readonly T[],
+  row: T,
+): { pageOne: T; pageRow: T } | undefined {
+  if (!isListingChunk(row)) return undefined;
+  const partner = routes.find(
+    (other) =>
+      other !== row &&
+      isListingChunk(other) &&
+      other.collection === row.collection &&
+      other.pageSize === row.pageSize &&
+      isPageTokenRow(other) !== isPageTokenRow(row),
+  );
+  if (!partner) return undefined;
+  return isPageTokenRow(row)
+    ? { pageOne: partner, pageRow: row }
+    : { pageOne: row, pageRow: partner };
+}
+
+function isListingChunk(route: ListingRoute): boolean {
+  return (
+    route.collection !== undefined &&
+    route.pageSize !== undefined &&
+    pageSizeIssue(route.pageSize) === undefined &&
+    !route.entry
+  );
+}
+
+/** `{page}` as the whole final segment, and not beside `{slug}`. */
+function pageTokenTailIssue(slug: string): string | undefined {
+  if (slug.includes('{slug}') && slug.includes(PAGE_TOKEN)) {
+    return 'a tail cannot hold both {page} and {slug}';
+  }
+  const normalized = normalizeSlug(slug);
+  const parts = normalized === '/' ? [] : normalized.split('/');
+  if (parts.at(-1) !== PAGE_TOKEN) return '{page} must be one whole final segment';
+  if (parts.slice(0, -1).some((part) => part.includes('{'))) {
+    return '{page} must be one whole final segment';
+  }
+  return undefined;
+}
+
+function pageTokenRowIssues(route: RouteRule): string[] {
+  const issues: string[] = [];
+  if (!route.collection) issues.push('{page} row needs a collection');
+  if (route.pageSize === undefined) issues.push('{page} row needs pageSize');
+  if (route.entry) issues.push('{page} row cannot name an entry');
+  for (const [locale, slug] of Object.entries(route.slug)) {
+    const issue = pageTokenTailIssue(slug ?? '');
+    if (issue) issues.push(`${issue} in locale "${locale}"`);
+  }
+  return issues;
+}
+
+function isPageOneRow(route: RouteRule): boolean {
+  if (!isListingChunk(route) || isPageTokenRow(route)) return false;
+  return !Object.values(route.slug).some((slug) => (slug ?? '').includes('{slug}'));
+}
+
+function isValidPageRow(route: RouteRule): boolean {
+  if (!isPageTokenRow(route) || !isListingChunk(route)) return false;
+  return Object.values(route.slug).every((slug) => pageTokenTailIssue(slug ?? '') === undefined);
+}
+
+function localeList(route: RouteRule): string {
+  return Object.keys(route.slug).sort().join(', ');
+}
+
+/** Page-1 rows and `{page}` rows that share a collection and `pageSize` must pair. */
+function listingPairIssues(routes: readonly RouteRule[]): string[] {
+  const issues: string[] = [];
+  const pageOnes = new Map<string, RouteRule[]>();
+  const pageRows = new Map<string, RouteRule[]>();
+  for (const route of routes) {
+    if (!route.collection || route.pageSize === undefined) continue;
+    const key = `${route.collection}\0${route.pageSize}`;
+    if (isValidPageRow(route)) {
+      const list = pageRows.get(key) ?? [];
+      list.push(route);
+      pageRows.set(key, list);
+    } else if (isPageOneRow(route)) {
+      const list = pageOnes.get(key) ?? [];
+      list.push(route);
+      pageOnes.set(key, list);
+    }
+  }
+  for (const key of new Set([...pageOnes.keys(), ...pageRows.keys()])) {
+    const separator = key.indexOf('\0');
+    const collection = key.slice(0, separator);
+    const size = key.slice(separator + 1);
+    const ones = pageOnes.get(key) ?? [];
+    const pages = pageRows.get(key) ?? [];
+    if (ones.length > 1) {
+      issues.push(`two page-1 rows name collection "${collection}" pageSize ${size}`);
+    }
+    if (pages.length > 1) {
+      issues.push(`two {page} rows name collection "${collection}" pageSize ${size}`);
+    }
+    if (ones.length === 0) {
+      issues.push(`{page} row for collection "${collection}" pageSize ${size} has no page-1 row`);
+    }
+    if (pages.length === 0) {
+      issues.push(
+        `page-1 row for collection "${collection}" pageSize ${size} has no {page} row. Add a {page} row.`,
+      );
+    }
+    const pageOne = ones[0];
+    const pageRow = pages[0];
+    if (ones.length === 1 && pages.length === 1 && pageOne && pageRow) {
+      const left = localeList(pageOne);
+      const right = localeList(pageRow);
+      if (left !== right) {
+        issues.push(
+          `page-1 row and {page} row for collection "${collection}" pageSize ${size} name different locales (${left} vs ${right})`,
+        );
+      }
+    }
+  }
+  return issues;
+}
+
 function viewNameIssues(name: string): string[] {
   const issues: string[] = [];
   if (name.endsWith('.astro')) {
@@ -149,6 +291,7 @@ export function routeConfigIssues(config: RouteRulesConfig): string[] {
 
     const sizeIssue = pageSizeIssue(route.pageSize);
     if (sizeIssue) issues.push(sizeIssue);
+    if (isPageTokenRow(route)) issues.push(...pageTokenRowIssues(route));
 
     if (!route.collection) {
       if (route.pageSize !== undefined) issues.push('pageSize requires a collection tail');
@@ -247,6 +390,7 @@ export function routeConfigIssues(config: RouteRulesConfig): string[] {
     }
   }
 
+  issues.push(...listingPairIssues(config.routes ?? []));
   return issues;
 }
 
@@ -266,9 +410,10 @@ export const intlConfigSchema = z
     routes: z.array(routeConfigSchema).optional(),
     /**
      * When injected views render. `'build'` prerenders them. `'request'` renders
-     * static and entry routes per request. Listing and fallback routes stay
-     * prerendered. A view's `prerender` export wins, except a listing or fallback
-     * view must not export `prerender = false`. Omitted means `'build'`.
+     * static, entry, and listing routes per request. Fallback routes stay
+     * prerendered. A view's `prerender` export wins. A fallback view must not
+     * export `prerender = false`. An on-demand `{page}` route that shares its
+     * shape with a `{slug}` route fails startup. Omitted means `'build'`.
      * No effect under `astro dev`.
      */
     viewRendering: z.enum(['build', 'request']).optional(),

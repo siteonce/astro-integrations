@@ -13,11 +13,14 @@ export type CompiledRoute = {
 type RouteRow = NonNullable<IntlConfig['routes']>[number];
 
 const SLUG_TOKEN = '{slug}';
+const PAGE_TOKEN = '{page}';
 
 /**
  * One pattern per row and locale, in that order.
  * A static row compiles to an optional spread, so Astro calls its `getStaticPaths`
  * and one row can publish nothing in a locale.
+ * A page-1 listing row compiles to `[...page]`. A `{page}` row replaces that
+ * token with `[page]`.
  * A `{slug}` row with a fallback view also emits a fallback route for each
  * locale that is not the default. The row's `fallbackView` wins over the
  * config's; `false` means none.
@@ -36,11 +39,12 @@ export function compileRoutes(config: IntlConfig): CompiledRoute[] {
 
       const normalized = normalizeSlug(row.slug[locale] ?? '');
       const kind = kindFor(row, normalized);
+      const pageToken = kind === 'listing' && normalized.includes(PAGE_TOKEN);
       const route: CompiledRoute = {
         pattern: patternFor(
           prefixFor(config, locale),
-          normalized.replaceAll(SLUG_TOKEN, '[slug]'),
-          spreadName(kind),
+          normalized.replaceAll(SLUG_TOKEN, '[slug]').replaceAll(PAGE_TOKEN, '[page]'),
+          pageToken ? undefined : spreadName(kind),
         ),
         view,
         locale,
@@ -65,6 +69,7 @@ function viewForLocale(view: RouteRow['view'], locale: string): string | undefin
 
 function kindFor(row: RouteRow, tail: string): 'static' | 'entry' | 'listing' {
   if (tail.includes(SLUG_TOKEN)) return 'entry';
+  if (tail.includes(PAGE_TOKEN)) return 'listing';
   if (row.collection && row.pageSize !== undefined && !row.entry) return 'listing';
   return 'static';
 }
@@ -85,6 +90,56 @@ function patternFor(prefix: string, tail: string, spread: 'page' | 'index' | und
   if (spread === undefined) return base;
   const param = `/[...${spread}]`;
   return base === '/' ? param : `${base}${param}`;
+}
+
+function canonicalPattern(pattern: string): string {
+  const stripped = pattern.replace(/^\/+|\/+$/gu, '');
+  return stripped === '' ? '/' : `/${stripped}`;
+}
+
+/** One dynamic final segment, such as `[page]`. A spread is not one. */
+function singleDynamicLeaf(pattern: string): { head: string; leaf: string } | undefined {
+  const parts = canonicalPattern(pattern)
+    .split('/')
+    .filter((part) => part.length > 0);
+  const leaf = parts.at(-1);
+  if (!leaf || !/^\[[^.\]]+\]$/u.test(leaf)) return undefined;
+  return { head: parts.slice(0, -1).join('/'), leaf };
+}
+
+/**
+ * The `{page}` route at `pattern`, when a `{slug}` route has the same prefix,
+ * the same section, and one dynamic final segment. `[page]` and `[slug]` tie,
+ * and Astro sorts `[page]` first.
+ */
+export function pageSlugClash(
+  routes: readonly CompiledRoute[],
+  pattern: string,
+): { page: CompiledRoute; entry: CompiledRoute } | undefined {
+  const pageLeaf = singleDynamicLeaf(pattern);
+  if (pageLeaf?.leaf !== '[page]') return undefined;
+  const page = routes.find(
+    (route) =>
+      route.kind === 'listing' && canonicalPattern(route.pattern) === canonicalPattern(pattern),
+  );
+  if (!page) return undefined;
+  const entry = routes.find((route) => {
+    if (route.kind !== 'entry') return false;
+    const leaf = singleDynamicLeaf(route.pattern);
+    return leaf?.leaf === '[slug]' && leaf.head === pageLeaf.head;
+  });
+  if (!entry) return undefined;
+  return { page, entry };
+}
+
+/** Names both rows and both ways to separate them. */
+export function pageSlugClashMessage(clash: { page: CompiledRoute; entry: CompiledRoute }): string {
+  return (
+    `@repo/astro-intl: on-demand {page} route "${clash.page.pattern}" (row ${clash.page.rowIndex}) ` +
+    `has the same shape as {slug} route "${clash.entry.pattern}" (row ${clash.entry.rowIndex}). ` +
+    'Export prerender = true from the listing view, or give the {page} row its own segment ' +
+    '(for example blog/page/{page}).'
+  );
 }
 
 function pushRoute(

@@ -70,6 +70,15 @@ describe('fileRouteCollision', () => {
     assertNoCollision('/en/about/2', compiled('/en/about/[...index]', 'static', 'about'));
     assertNoCollision('/en/other', compiled('/en/about/[...index]', 'static', 'about'));
   });
+
+  it('flags a number or param on a [page] listing and ignores the bare tail', () => {
+    const numbered = compiled('/en/blog/[page]', 'listing', 'blog');
+    assertCollision('/en/blog/2', numbered);
+    assertCollision('/en/blog/[n]', numbered);
+    assertNoCollision('/en/blog', numbered);
+    assertNoCollision('/en/blog/[...rest]', numbered);
+    assertNoCollision('/en/blog/rss.xml', numbered);
+  });
 });
 
 describe('isIntlRoute', () => {

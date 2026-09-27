@@ -56,7 +56,7 @@ export function resetIntlQuery(): void {
   cachedGeneration = -1;
 }
 
-/** The app registers the listing callback. Pairing uses it when a collection tail sets pageSize. */
+/** The app registers the listing callback. Pairing uses it for a page-1 row and its `{page}` row. */
 export function setListingEntries(fn: ListingEntries | undefined): void {
   setListingEntriesFn(fn);
   resetIntlQuery();
