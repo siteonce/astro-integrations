@@ -400,7 +400,7 @@ export function pairCollections(
     const pair = listingPair(config.routes ?? [], route);
     if (!pair) {
       throw new Error(
-        `@repo/astro-intl: collection "${route.collection}" pageSize ${route.pageSize} has no {page} row.`,
+        `@repo/astro-intl: collection "${route.collection}" pageSize ${route.pageSize} has no {page} row. Add a {page} row. A listing that fits on one page omits pageSize, and the row stays that one tail.`,
       );
     }
     const pageTails: Record<string, string> = {};

@@ -221,7 +221,7 @@ function listingPairIssues(routes: readonly RouteRule[]): string[] {
     }
     if (pages.length === 0) {
       issues.push(
-        `page-1 row for collection "${collection}" pageSize ${size} has no {page} row. Add a {page} row.`,
+        `page-1 row for collection "${collection}" pageSize ${size} has no {page} row. Add a {page} row. A listing that fits on one page omits pageSize, and the row stays that one tail.`,
       );
     }
     const pageOne = ones[0];

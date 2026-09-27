@@ -286,7 +286,13 @@ describe('routeConfigIssues', () => {
       ],
       collections: { blog: { slugField: 'slug' } },
     });
-    assert.ok(pageOne.some((issue) => issue.includes('Add a {page} row')));
+    assert.ok(
+      pageOne.some((issue) =>
+        issue.includes(
+          'Add a {page} row. A listing that fits on one page omits pageSize, and the row stays that one tail.',
+        ),
+      ),
+    );
 
     const pageRow = routeConfigIssues({
       locales,

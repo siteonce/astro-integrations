@@ -53,6 +53,43 @@ async function writeIntlConfig(
   await writeFile(path.join(srcDir, 'intl.config.ts'), source);
 }
 
+type RoutesResolved = NonNullable<AstroIntegration['hooks']['astro:routes:resolved']>;
+type ResolvedRoute = Parameters<RoutesResolved>[0]['routes'][number];
+
+function resolvedRoute(options: {
+  entrypoint: string;
+  pattern: string;
+  isPrerendered: boolean;
+}): ResolvedRoute {
+  return {
+    type: 'page',
+    origin: 'external',
+    entrypoint: options.entrypoint,
+    pattern: options.pattern,
+    patternRegex: /$^/u,
+    isPrerendered: options.isPrerendered,
+    params: [],
+    segments: [],
+    fallbackRoutes: [],
+    generate: () => options.pattern,
+  };
+}
+
+function entrypointFor(injected: InjectedCall[], pattern: string): string {
+  const call = injected.find((item) => item.pattern === pattern);
+  assert.ok(call, pattern);
+  return call.entrypoint;
+}
+
+async function resolveRoutes(
+  integration: AstroIntegration,
+  routes: ResolvedRoute[],
+): Promise<void> {
+  const hook = integration.hooks['astro:routes:resolved'];
+  assert.ok(hook);
+  await hook({ routes, logger: silentLogger() });
+}
+
 function silentLogger(): SetupParams['logger'] {
   const logger = {
     info() {},
@@ -389,33 +426,36 @@ export default { integrations: [sitemap({ i18n: { defaultLocale: 'en', locales: 
   it('refuses an on-demand {page} route that matches a {slug} route', async () => {
     const root = await makeRoot();
     await writeRenderingRoutes(root, 'request');
-    const { integration } = await runSetup({
+    const { injected, integration } = await runSetup({
       root,
       adapter: { name: '@astrojs/node', hooks: {} } as AstroIntegration,
     });
-    const routeSetup = integration.hooks['astro:route:setup'];
-    assert.ok(routeSetup);
-    const clashing = {
-      component: 'src/views/blog.astro',
-      prerender: false,
-      route: '/en/blog/[page]',
-    };
+    const page = resolvedRoute({
+      entrypoint: entrypointFor(injected, '/en/blog/[page]'),
+      pattern: '/en/blog/[page]',
+      isPrerendered: false,
+    });
+    const slug = resolvedRoute({
+      entrypoint: entrypointFor(injected, '/en/blog/[slug]'),
+      pattern: '/en/blog/[slug]',
+      isPrerendered: false,
+    });
     await assert.rejects(
-      async () => routeSetup({ route: clashing, logger: silentLogger() }),
+      () => resolveRoutes(integration, [slug, page]),
       /row \d[\s\S]*Export prerender = true from the listing view[\s\S]*blog\/page\/\{page\}/,
     );
-    const pageOne = {
-      component: 'src/views/blog.astro',
-      prerender: false,
-      route: '/en/blog/[...page]',
-    };
-    const prerendered = {
-      component: 'src/views/blog.astro',
-      prerender: true,
-      route: '/en/blog/[page]',
-    };
-    await routeSetup({ route: pageOne, logger: silentLogger() });
-    await routeSetup({ route: prerendered, logger: silentLogger() });
+    const pageOne = resolvedRoute({
+      entrypoint: entrypointFor(injected, '/en/blog/[...page]'),
+      pattern: '/en/blog/[...page]',
+      isPrerendered: false,
+    });
+    const prerendered = resolvedRoute({
+      entrypoint: page.entrypoint,
+      pattern: '/en/blog/[page]',
+      isPrerendered: true,
+    });
+    await resolveRoutes(integration, [slug, pageOne]);
+    await resolveRoutes(integration, [slug, prerendered]);
   });
 
   it('boots an on-demand {page} route that has its own segment', async () => {
@@ -432,14 +472,17 @@ export default { integrations: [sitemap({ i18n: { defaultLocale: 'en', locales: 
     assert.ok(listings.length >= 2);
     for (const call of listings) assert.equal(call.prerender, false, call.pattern);
     assert.ok(listings.some((call) => call.pattern === '/en/blog/page/[page]'));
-    const routeSetup = integration.hooks['astro:route:setup'];
-    assert.ok(routeSetup);
-    const numbered = {
-      component: 'src/views/blog.astro',
-      prerender: false,
-      route: '/en/blog/page/[page]',
-    };
-    await routeSetup({ route: numbered, logger: silentLogger() });
+    const numbered = resolvedRoute({
+      entrypoint: entrypointFor(injected, '/en/blog/page/[page]'),
+      pattern: '/en/blog/page/[page]',
+      isPrerendered: false,
+    });
+    const slug = resolvedRoute({
+      entrypoint: entrypointFor(injected, '/en/blog/[slug]'),
+      pattern: '/en/blog/[slug]',
+      isPrerendered: false,
+    });
+    await resolveRoutes(integration, [slug, numbered]);
   });
 
   it('aborts when a pageSize row has no {page} row', async () => {
@@ -458,7 +501,10 @@ export default { integrations: [sitemap({ i18n: { defaultLocale: 'en', locales: 
 };
 `,
     );
-    await assert.rejects(() => runSetup({ root }), /Add a \{page\} row/);
+    await assert.rejects(
+      () => runSetup({ root }),
+      /Add a \{page\} row\. A listing that fits on one page omits pageSize/,
+    );
   });
 
   it('treats viewRendering request as build under astro dev', async () => {
@@ -475,18 +521,18 @@ export default { integrations: [sitemap({ i18n: { defaultLocale: 'en', locales: 
   it('does not abort when a listing view exports prerender = false under astro dev', async () => {
     const root = await makeRoot();
     await writeRenderingRoutes(root, 'request');
-    const { integration } = await runSetup({ root, command: 'dev' });
-    const routeSetup = integration.hooks['astro:route:setup'];
-    assert.ok(routeSetup);
-    const devRoute = {
-      component: 'src/views/blog.astro',
-      prerender: false,
-      route: '/en/blog/[page]',
-    };
-    await routeSetup({
-      route: devRoute,
-      logger: silentLogger(),
+    const { injected, integration } = await runSetup({ root, command: 'dev' });
+    const page = resolvedRoute({
+      entrypoint: entrypointFor(injected, '/en/blog/[page]'),
+      pattern: '/en/blog/[page]',
+      isPrerendered: false,
     });
+    const slug = resolvedRoute({
+      entrypoint: entrypointFor(injected, '/en/blog/[slug]'),
+      pattern: '/en/blog/[slug]',
+      isPrerendered: false,
+    });
+    await resolveRoutes(integration, [slug, page]);
   });
 });
 

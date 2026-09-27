@@ -121,12 +121,6 @@ function refusedFallbackView(): string {
   );
 }
 
-/** Astro passes the route pattern on the route object. The public type omits it. */
-function setupRoutePattern(route: object): string | undefined {
-  const pattern = 'route' in route ? route.route : undefined;
-  return typeof pattern === 'string' ? pattern : undefined;
-}
-
 export function astroIntl(): AstroIntegration {
   let projectRoot = '';
   let injected: CompiledRoute[] = [];
@@ -255,20 +249,24 @@ export function astroIntl(): AstroIntegration {
       'astro:route:setup': ({ route, logger }) => {
         if (viewRendering !== 'request' || route.prerender !== false) return;
         const component = resolve(projectRoot, route.component);
-        if (fallbackEntrypoints.has(component)) {
-          const message = refusedFallbackView();
-          logger.error(message);
-          throw new Error(message);
-        }
-        const pattern = setupRoutePattern(route);
-        if (pattern === undefined) return;
-        const clash = pageSlugClash(injected, pattern);
-        if (!clash) return;
-        const message = pageSlugClashMessage(clash);
+        if (!fallbackEntrypoints.has(component)) return;
+        const message = refusedFallbackView();
         logger.error(message);
         throw new Error(message);
       },
       'astro:routes:resolved': ({ routes, logger }) => {
+        const injectedPatterns = new Set(injected.map((route) => route.pattern));
+        if (viewRendering === 'request') {
+          for (const route of routes) {
+            if (route.isPrerendered !== false) continue;
+            if (!isIntlRoute(route, ownEntrypoints, projectRoot, injectedPatterns)) continue;
+            const clash = pageSlugClash(injected, route.pattern);
+            if (!clash) continue;
+            const message = pageSlugClashMessage(clash);
+            logger.error(message);
+            throw new Error(message);
+          }
+        }
         const collision = fileRouteCollision(
           routes.filter((route) => route.origin === 'project'),
           injected,
@@ -280,7 +278,6 @@ export function astroIntl(): AstroIntegration {
           logger.error(message);
           throw new Error(message);
         }
-        const injectedPatterns = new Set(injected.map((route) => route.pattern));
         setRouteTails(
           reservedTailsFromRoutes(
             routes.filter(
