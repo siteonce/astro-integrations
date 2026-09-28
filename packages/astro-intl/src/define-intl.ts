@@ -19,17 +19,30 @@ const collectionRefSchema = z.union([
   }),
 ]);
 
+const viewSchema = z.union([z.string().min(1), z.record(z.string(), z.string().min(1))]);
+
+/**
+ * Later listing pages. Page 1 is the row's `slug`.
+ * `slug` is the full tail per locale. `{page}` is its whole final segment.
+ * `view` defaults to the row's view.
+ */
+const paginationSchema = z.strictObject({
+  /** Entries in one chunk. A positive integer. The row does not store a page count. */
+  pageSize: z.number(),
+  slug: z.record(z.string(), z.string()),
+  view: viewSchema.optional(),
+});
+
 const routeAuthoringSchema = z.strictObject({
   /** Collection key, or `{ name, entry? }` with the pairing id. */
   collection: collectionRefSchema.optional(),
   slug: z.record(z.string(), z.string()),
   /** View name, or one name per locale. */
-  view: z.union([z.string().min(1), z.record(z.string(), z.string().min(1))]),
-  /**
-   * Entries in one chunk. The page-1 row and the `{page}` row set the same value.
-   * Omitted, the row is that one tail.
-   */
-  pageSize: z.number().int().positive().optional(),
+  view: viewSchema,
+  /** Pages 2 onward. Omitted, the row stays the one tail in `slug`. */
+  pagination: paginationSchema.optional(),
+  /** Rejected. The chunk width lives on `pagination`. */
+  pageSize: z.never({ error: 'pageSize moved to pagination.pageSize' }).optional(),
   /**
    * View for a locale that has no translation. Only on a `{slug}` row.
    * Replaces the config's `fallbackView`; `false` means those URLs 404.
@@ -39,13 +52,21 @@ const routeAuthoringSchema = z.strictObject({
 
 type CollectionRef = string | { name: string; entry?: string | undefined };
 
+type ViewName = string | Record<string, string>;
+
+type Pagination = {
+  pageSize: number;
+  slug: Record<string, string>;
+  view?: ViewName | undefined;
+};
+
 /** Collection key and optional pairing id. Checkers and pairing read this shape. */
 type FlatRoute = {
   slug: Record<string, string>;
-  view: string | Record<string, string>;
+  view: ViewName;
   collection?: string | undefined;
   entry?: string | undefined;
-  pageSize?: number | undefined;
+  pagination?: Pagination | undefined;
   fallbackView?: string | false | undefined;
 };
 
@@ -53,12 +74,12 @@ function flattenRoute(route: {
   slug: FlatRoute['slug'];
   view: FlatRoute['view'];
   collection?: CollectionRef | undefined;
-  pageSize?: number | undefined;
+  pagination?: Pagination | undefined;
   fallbackView?: string | false | undefined;
 }): FlatRoute {
-  const { collection, slug, view, pageSize, fallbackView } = route;
+  const { collection, slug, view, pagination, fallbackView } = route;
   const flat: FlatRoute = { slug, view };
-  if (pageSize !== undefined) flat.pageSize = pageSize;
+  if (pagination !== undefined) flat.pagination = pagination;
   if (fallbackView !== undefined) flat.fallbackView = fallbackView;
   if (typeof collection === 'object' && collection !== null) {
     flat.collection = collection.name;
@@ -79,7 +100,11 @@ type RouteRule = {
   view: string | Readonly<Record<string, string>>;
   collection?: string | undefined;
   entry?: string | undefined;
-  pageSize?: number | undefined;
+  pagination?: {
+    pageSize: number;
+    slug: Readonly<Record<string, string>>;
+    view?: string | Readonly<Record<string, string>> | undefined;
+  };
   fallbackView?: string | false | undefined;
 };
 
@@ -94,57 +119,7 @@ function routeWhere(collection: string, entry?: string): string {
   return entry ? `collection "${collection}" entry "${entry}"` : `collection "${collection}"`;
 }
 
-function pageSizeIssue(pageSize: number | undefined): string | undefined {
-  if (pageSize === undefined) return undefined;
-  if (!Number.isInteger(pageSize) || pageSize < 1) return 'pageSize must be a positive integer';
-  return undefined;
-}
-
 const PAGE_TOKEN = '{page}';
-
-type ListingRoute = {
-  slug: Readonly<Record<string, string>>;
-  collection?: string | undefined;
-  entry?: string | undefined;
-  pageSize?: number | undefined;
-};
-
-/** True when any tail on the row contains `{page}`. */
-export function isPageTokenRow(route: { slug: Readonly<Record<string, string>> }): boolean {
-  return Object.values(route.slug).some((slug) => slug.includes(PAGE_TOKEN));
-}
-
-/**
- * The page-1 row and the `{page}` row that share `collection` and `pageSize`.
- * `undefined` when this row is not one of those, or its partner is missing.
- */
-export function listingPair<T extends ListingRoute>(
-  routes: readonly T[],
-  row: T,
-): { pageOne: T; pageRow: T } | undefined {
-  if (!isListingChunk(row)) return undefined;
-  const partner = routes.find(
-    (other) =>
-      other !== row &&
-      isListingChunk(other) &&
-      other.collection === row.collection &&
-      other.pageSize === row.pageSize &&
-      isPageTokenRow(other) !== isPageTokenRow(row),
-  );
-  if (!partner) return undefined;
-  return isPageTokenRow(row)
-    ? { pageOne: partner, pageRow: row }
-    : { pageOne: row, pageRow: partner };
-}
-
-function isListingChunk(route: ListingRoute): boolean {
-  return (
-    route.collection !== undefined &&
-    route.pageSize !== undefined &&
-    pageSizeIssue(route.pageSize) === undefined &&
-    !route.entry
-  );
-}
 
 /** `{page}` as the whole final segment, and not beside `{slug}`. */
 function pageTokenTailIssue(slug: string): string | undefined {
@@ -160,81 +135,38 @@ function pageTokenTailIssue(slug: string): string | undefined {
   return undefined;
 }
 
-function pageTokenRowIssues(route: RouteRule): string[] {
+function localeList(slug: Readonly<Record<string, string>>): string {
+  return Object.keys(slug).sort().join(', ');
+}
+
+/** `{page}` stays in `pagination.slug`. The row's slug is the page-1 tail. */
+function paginationIssues(route: RouteRule): string[] {
   const issues: string[] = [];
-  if (!route.collection) issues.push('{page} row needs a collection');
-  if (route.pageSize === undefined) issues.push('{page} row needs pageSize');
-  if (route.entry) issues.push('{page} row cannot name an entry');
   for (const [locale, slug] of Object.entries(route.slug)) {
+    if ((slug ?? '').includes(PAGE_TOKEN)) {
+      issues.push(`{page} belongs in pagination.slug in locale "${locale}"`);
+    }
+  }
+  const pagination = route.pagination;
+  if (!pagination) return issues;
+  if (!Number.isInteger(pagination.pageSize) || pagination.pageSize < 1) {
+    issues.push('pagination.pageSize must be a positive integer');
+  }
+  if (!route.collection) issues.push('pagination requires a collection');
+  if (route.entry) issues.push('pagination cannot name an entry');
+  if (Object.values(route.slug).some((slug) => (slug ?? '').includes('{slug}'))) {
+    issues.push('pagination cannot sit on a {slug} row');
+  }
+  const rowLocales = localeList(route.slug);
+  const pageLocales = localeList(pagination.slug);
+  if (rowLocales !== pageLocales) {
+    issues.push(
+      `pagination.slug and slug name different locales (${rowLocales} vs ${pageLocales})`,
+    );
+  }
+  for (const [locale, slug] of Object.entries(pagination.slug)) {
     const issue = pageTokenTailIssue(slug ?? '');
     if (issue) issues.push(`${issue} in locale "${locale}"`);
-  }
-  return issues;
-}
-
-function isPageOneRow(route: RouteRule): boolean {
-  if (!isListingChunk(route) || isPageTokenRow(route)) return false;
-  return !Object.values(route.slug).some((slug) => (slug ?? '').includes('{slug}'));
-}
-
-function isValidPageRow(route: RouteRule): boolean {
-  if (!isPageTokenRow(route) || !isListingChunk(route)) return false;
-  return Object.values(route.slug).every((slug) => pageTokenTailIssue(slug ?? '') === undefined);
-}
-
-function localeList(route: RouteRule): string {
-  return Object.keys(route.slug).sort().join(', ');
-}
-
-/** Page-1 rows and `{page}` rows that share a collection and `pageSize` must pair. */
-function listingPairIssues(routes: readonly RouteRule[]): string[] {
-  const issues: string[] = [];
-  const pageOnes = new Map<string, RouteRule[]>();
-  const pageRows = new Map<string, RouteRule[]>();
-  for (const route of routes) {
-    if (!route.collection || route.pageSize === undefined) continue;
-    const key = `${route.collection}\0${route.pageSize}`;
-    if (isValidPageRow(route)) {
-      const list = pageRows.get(key) ?? [];
-      list.push(route);
-      pageRows.set(key, list);
-    } else if (isPageOneRow(route)) {
-      const list = pageOnes.get(key) ?? [];
-      list.push(route);
-      pageOnes.set(key, list);
-    }
-  }
-  for (const key of new Set([...pageOnes.keys(), ...pageRows.keys()])) {
-    const separator = key.indexOf('\0');
-    const collection = key.slice(0, separator);
-    const size = key.slice(separator + 1);
-    const ones = pageOnes.get(key) ?? [];
-    const pages = pageRows.get(key) ?? [];
-    if (ones.length > 1) {
-      issues.push(`two page-1 rows name collection "${collection}" pageSize ${size}`);
-    }
-    if (pages.length > 1) {
-      issues.push(`two {page} rows name collection "${collection}" pageSize ${size}`);
-    }
-    if (ones.length === 0) {
-      issues.push(`{page} row for collection "${collection}" pageSize ${size} has no page-1 row`);
-    }
-    if (pages.length === 0) {
-      issues.push(
-        `page-1 row for collection "${collection}" pageSize ${size} has no {page} row. Add a {page} row. A listing that fits on one page omits pageSize, and the row stays that one tail.`,
-      );
-    }
-    const pageOne = ones[0];
-    const pageRow = pages[0];
-    if (ones.length === 1 && pages.length === 1 && pageOne && pageRow) {
-      const left = localeList(pageOne);
-      const right = localeList(pageRow);
-      if (left !== right) {
-        issues.push(
-          `page-1 row and {page} row for collection "${collection}" pageSize ${size} name different locales (${left} vs ${right})`,
-        );
-      }
-    }
   }
   return issues;
 }
@@ -281,6 +213,12 @@ export function routeConfigIssues(config: RouteRulesConfig): string[] {
 
   for (const route of config.routes ?? []) {
     issues.push(...viewIssues(route.view, config.locales));
+    if (route.pagination?.view !== undefined) {
+      for (const issue of viewIssues(route.pagination.view, config.locales)) {
+        issues.push(issue.replace(/^view /u, 'pagination.view '));
+      }
+    }
+    issues.push(...paginationIssues(route));
     if (route.fallbackView !== undefined) {
       if (route.fallbackView !== false) issues.push(...viewNameIssues(route.fallbackView));
       const hasSlug = config.locales.some((locale) =>
@@ -289,12 +227,7 @@ export function routeConfigIssues(config: RouteRulesConfig): string[] {
       if (!hasSlug) issues.push('fallbackView needs a {slug} row');
     }
 
-    const sizeIssue = pageSizeIssue(route.pageSize);
-    if (sizeIssue) issues.push(sizeIssue);
-    if (isPageTokenRow(route)) issues.push(...pageTokenRowIssues(route));
-
     if (!route.collection) {
-      if (route.pageSize !== undefined) issues.push('pageSize requires a collection tail');
       for (const locale of config.locales) {
         if (!(locale in route.slug)) {
           issues.push(`route with no collection slug missing locale "${locale}"`);
@@ -329,9 +262,6 @@ export function routeConfigIssues(config: RouteRulesConfig): string[] {
     }
 
     if (!wantsPattern) {
-      if (route.pageSize !== undefined && route.entry) {
-        issues.push(`pageSize requires a collection tail (${where})`);
-      }
       for (const locale of config.locales) {
         if (!(locale in route.slug)) {
           issues.push(`route ${where} slug missing locale "${locale}"`);
@@ -345,9 +275,6 @@ export function routeConfigIssues(config: RouteRulesConfig): string[] {
       continue;
     }
 
-    if (route.pageSize !== undefined) {
-      issues.push(`pageSize requires a collection tail (${where})`);
-    }
     if (collection && !collection.slugField) {
       issues.push(`pattern row on collection "${collectionName}" which has no slugField`);
     }
@@ -390,7 +317,6 @@ export function routeConfigIssues(config: RouteRulesConfig): string[] {
     }
   }
 
-  issues.push(...listingPairIssues(config.routes ?? []));
   return issues;
 }
 
@@ -412,8 +338,8 @@ export const intlConfigSchema = z
      * When injected views render. `'build'` prerenders them. `'request'` renders
      * static, entry, and listing routes per request. Fallback routes stay
      * prerendered. A view's `prerender` export wins. A fallback view must not
-     * export `prerender = false`. An on-demand `{page}` route that shares its
-     * shape with a `{slug}` route fails startup. Omitted means `'build'`.
+     * export `prerender = false`. An on-demand `pagination.slug` route that shares
+     * its shape with a `{slug}` route fails startup. Omitted means `'build'`.
      * No effect under `astro dev`.
      */
     viewRendering: z.enum(['build', 'request']).optional(),

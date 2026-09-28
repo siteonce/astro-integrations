@@ -4,7 +4,7 @@
  */
 
 import type { PaginateFunction } from 'astro';
-import { type IntlConfig, listingPair } from './define-intl.ts';
+import type { IntlConfig } from './define-intl.ts';
 import { type ListingEntries, listingSelection, localePathKey } from './pairing.ts';
 import {
   compilePath,
@@ -65,7 +65,7 @@ export function entryPathsFor<T>(
  * Paginated rows for this listing route.
  * A `[...page]` route emits page 1. A `[page]` route emits pages 2 onward.
  * `path` is added per page. `page.url` comes from `relativeUrl`, not from `paginate`.
- * Page 1's `next` is the `{page}` row. Page 2's `prev` is the page-1 row.
+ * Page 1's `next` uses `pagination.slug`. Page 2's `prev` uses the row's `slug`.
  * `paginate` shares one props object across pages.
  */
 export function listingPathsFor<T>(
@@ -77,17 +77,14 @@ export function listingPathsFor<T>(
   relativeUrl: RelativeUrl,
 ) {
   const row = routeRow(config, route);
-  const label = normalizeSlug(row.slug[route.locale] ?? '');
-  if (row.pageSize === undefined) {
-    throw new Error(`@repo/astro-intl: listing "${label}" in "${route.locale}" has no pageSize.`);
-  }
-  const pair = listingPair(config.routes ?? [], row);
-  if (!pair) {
-    throw new Error(`@repo/astro-intl: listing row ${route.rowIndex} has no paired listing row.`);
-  }
-  const written = normalizeSlug(pair.pageOne.slug[route.locale] ?? '');
-  const pageTail = normalizeSlug(pair.pageRow.slug[route.locale] ?? '');
+  const pagination = row.pagination;
   const span = listingSpan(route.pattern);
+  const written = normalizeSlug(row.slug[route.locale] ?? '');
+  const pageTail = normalizeSlug(pagination?.slug[route.locale] ?? '');
+  const label = span === 'rest' ? pageTail : written;
+  if (!pagination) {
+    throw new Error(`@repo/astro-intl: listing "${label}" in "${route.locale}" has no pagination.`);
+  }
   const pathFor = (page: number) => listingPagePath(written, pageTail, page);
   const localeField = config.collections?.[row.collection ?? '']?.localeField ?? 'locale';
   const entries = listingSelection(
@@ -98,7 +95,7 @@ export function listingPathsFor<T>(
     listEntries,
   ) as readonly T[];
   const pages = paginate(entries, {
-    pageSize: row.pageSize,
+    pageSize: pagination.pageSize,
     props: { locale: route.locale, route: row },
   });
   const href = (page: number) => relativeUrl(route.locale, localeUrlPath(pathFor(page)));

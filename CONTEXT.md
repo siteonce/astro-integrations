@@ -60,11 +60,13 @@ A snapshot monorepo that is the foundation for every Astro **content site** buil
 
 **`{slug}`**: The route-row token that publishes an entry tail. The text before it is the **section**. The entry **slug** is the last segment. _Avoid_: a movable capture; renaming the brace; a page number
 
-**`{page}`**: The route-row token for listing pages after the first. It is the whole final segment of that row’s tail. The number replaces it. Page 1 is not published on this row. _Avoid_: a movable capture; appending the number without this row; publishing `blog/1`
+**`pagination`**: The object on a route row that publishes listing pages after the first. It holds `pageSize`, a full `slug` per locale, and an optional `view`. Page 1 is the row’s `slug`. _Avoid_: a second route row; a tail relative to the row’s `slug`; nesting a `{slug}` row inside it
 
-**page-1 row**: The route row that publishes listing page 1 at its written tail. It names the same collection and `pageSize` as the `{page}` row, and it has no `{page}` token. _Avoid_: a static row; hiding later pages on this tail
+**`{page}`**: The token in `pagination.slug` for listing pages after the first. It is the whole final segment of that tail. The number replaces it. That tail never publishes page 1. A literal page-1 tail such as `blog/1` is the row’s `slug`, and it is allowed. _Avoid_: a movable capture; a token in the row’s `slug`; publishing page 1 from this tail
 
-**`pageSize`**: How many entries one chunk of a listing holds. A positive integer on the page-1 row and the `{page}` row. Omit it and the row stays that one tail. The rows do not store a page count. _Avoid_: pages (as a count of URLs); a CMS API page size
+**page-1 tail**: The row’s `slug` when the row has `pagination`. It publishes listing page 1 at that written tail. _Avoid_: page-1 row (there is no separate row); a `{page}` token in this tail
+
+**`pageSize`**: How many entries one chunk of a listing holds. A positive integer on `pagination`. Omit `pagination` and the row stays that one tail. The row does not store a page count. _Avoid_: a top-level key; pages (as a count of URLs); a CMS API page size
 
 **routed collection**: A listed collection whose entries have a public URL. A `{slug}` row publishes that URL: the **section** plus the **slug**. _Avoid_: giving records a slug; treating a collection tail as an entry URL
 

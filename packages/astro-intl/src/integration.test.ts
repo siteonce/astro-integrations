@@ -289,8 +289,7 @@ export default { integrations: [sitemap({ i18n: { defaultLocale: 'en', locales: 
   routes: [
     { slug: { en: 'about', de: 'ueber' }, view: 'about' },
     { slug: { en: 'blog/{slug}', de: 'artikel/{slug}' }, collection: 'blog', view: 'post', fallbackView: 'missing' },
-    { slug: { en: 'blog', de: 'artikel' }, collection: 'blog', pageSize: 10, view: 'blog' },
-    { slug: { en: 'blog/{page}', de: 'artikel/{page}' }, collection: 'blog', pageSize: 10, view: 'blog' },
+    { slug: { en: 'blog', de: 'artikel' }, collection: 'blog', view: 'blog', pagination: { pageSize: 10, slug: { en: 'blog/{page}', de: 'artikel/{page}' } } },
   ],
   collections: { blog: { slugField: 'slug' } },
 };
@@ -442,7 +441,7 @@ export default { integrations: [sitemap({ i18n: { defaultLocale: 'en', locales: 
     });
     await assert.rejects(
       () => resolveRoutes(integration, [slug, page]),
-      /row \d[\s\S]*Export prerender = true from the listing view[\s\S]*blog\/page\/\{page\}/,
+      /row \d[\s\S]*Give pagination its own view[\s\S]*row's view[\s\S]*pagination\.slug[\s\S]*blog\/page\/\{page\}/,
     );
     const pageOne = resolvedRoute({
       entrypoint: entrypointFor(injected, '/en/blog/[...page]'),
@@ -485,7 +484,7 @@ export default { integrations: [sitemap({ i18n: { defaultLocale: 'en', locales: 
     await resolveRoutes(integration, [slug, numbered]);
   });
 
-  it('aborts when a pageSize row has no {page} row', async () => {
+  it('rejects a top-level pageSize and a {page} token on the row slug', async () => {
     const root = await makeRoot();
     const srcDir = path.join(root, 'src');
     await writeIntlConfig(
@@ -501,9 +500,148 @@ export default { integrations: [sitemap({ i18n: { defaultLocale: 'en', locales: 
 };
 `,
     );
+    await assert.rejects(() => runSetup({ root }), /pageSize moved to pagination\.pageSize/);
+
+    const tokenRoot = await makeRoot();
+    await writeIntlConfig(
+      path.join(tokenRoot, 'src'),
+      `export default {
+  locales: ['en', 'de'],
+  defaultLocale: 'en',
+  routing: { prefixDefaultLocale: true },
+  routes: [
+    { slug: { en: 'blog/{page}', de: 'artikel/{page}' }, collection: 'blog', view: 'blog' },
+  ],
+  collections: { blog: { slugField: 'slug' } },
+};
+`,
+    );
     await assert.rejects(
-      () => runSetup({ root }),
-      /Add a \{page\} row\. A listing that fits on one page omits pageSize/,
+      () => runSetup({ root: tokenRoot }),
+      /\{page\} belongs in pagination\.slug/,
+    );
+  });
+
+  it('uses pagination.view for the numbered route and skips the clash when that view is prerendered', async () => {
+    const root = await makeRoot();
+    const srcDir = path.join(root, 'src');
+    await writeIntlConfig(
+      srcDir,
+      `export default {
+  locales: ['en', 'de'],
+  defaultLocale: 'en',
+  routing: { prefixDefaultLocale: true },
+  viewRendering: 'request',
+  routes: [
+    { slug: { en: 'blog/{slug}', de: 'artikel/{slug}' }, collection: 'blog', view: 'post' },
+    {
+      slug: { en: 'blog', de: 'artikel' },
+      collection: 'blog',
+      view: 'blog',
+      pagination: {
+        pageSize: 10,
+        slug: { en: 'blog/{page}', de: 'artikel/{page}' },
+        view: 'archive',
+      },
+    },
+  ],
+  collections: { blog: { slugField: 'slug' } },
+};
+`,
+    );
+    await writeCatalogs(srcDir, ['en', 'de']);
+    const viewsDir = path.join(srcDir, 'views');
+    await mkdir(viewsDir, { recursive: true });
+    for (const name of ['post.astro', 'blog.astro', 'archive.astro']) {
+      await writeFile(path.join(viewsDir, name), '');
+    }
+    const { injected, integration } = await runSetup({
+      root,
+      adapter: { name: '@astrojs/node', hooks: {} } as AstroIntegration,
+    });
+    const page = entrypointFor(injected, '/en/blog/[page]');
+    const pageOne = entrypointFor(injected, '/en/blog/[...page]');
+    assert.ok(page.endsWith(`${path.sep}archive.astro`));
+    assert.ok(pageOne.endsWith(`${path.sep}blog.astro`));
+    const slug = resolvedRoute({
+      entrypoint: entrypointFor(injected, '/en/blog/[slug]'),
+      pattern: '/en/blog/[slug]',
+      isPrerendered: false,
+    });
+    await resolveRoutes(integration, [
+      slug,
+      resolvedRoute({ entrypoint: pageOne, pattern: '/en/blog/[...page]', isPrerendered: false }),
+      resolvedRoute({ entrypoint: page, pattern: '/en/blog/[page]', isPrerendered: true }),
+    ]);
+    await assert.rejects(
+      () =>
+        resolveRoutes(integration, [
+          slug,
+          resolvedRoute({ entrypoint: page, pattern: '/en/blog/[page]', isPrerendered: false }),
+        ]),
+      /Give pagination its own view[\s\S]*row's view[\s\S]*pagination\.slug/,
+    );
+  });
+
+  it('aborts when pagination.view is missing or names both files', async () => {
+    const missingRoot = await makeRoot();
+    const missingSrc = path.join(missingRoot, 'src');
+    await writeIntlConfig(
+      missingSrc,
+      `export default {
+  locales: ['en', 'de'],
+  defaultLocale: 'en',
+  routing: { prefixDefaultLocale: true },
+  routes: [
+    {
+      slug: { en: 'blog', de: 'artikel' },
+      collection: 'blog',
+      view: 'blog',
+      pagination: { pageSize: 10, slug: { en: 'blog/{page}', de: 'artikel/{page}' }, view: 'archive' },
+    },
+  ],
+  collections: { blog: {} },
+};
+`,
+    );
+    await writeCatalogs(missingSrc, ['en', 'de']);
+    const missingViews = path.join(missingSrc, 'views');
+    await mkdir(missingViews, { recursive: true });
+    await writeFile(path.join(missingViews, 'blog.astro'), '');
+    await assert.rejects(
+      () => runSetup({ root: missingRoot }),
+      /view "archive" has no file under src\/views\//,
+    );
+
+    const bothRoot = await makeRoot();
+    const bothSrc = path.join(bothRoot, 'src');
+    await writeIntlConfig(
+      bothSrc,
+      `export default {
+  locales: ['en', 'de'],
+  defaultLocale: 'en',
+  routing: { prefixDefaultLocale: true },
+  routes: [
+    {
+      slug: { en: 'blog', de: 'artikel' },
+      collection: 'blog',
+      view: 'blog',
+      pagination: { pageSize: 10, slug: { en: 'blog/{page}', de: 'artikel/{page}' }, view: 'archive' },
+    },
+  ],
+  collections: { blog: {} },
+};
+`,
+    );
+    await writeCatalogs(bothSrc, ['en', 'de']);
+    const bothViews = path.join(bothSrc, 'views');
+    await mkdir(path.join(bothViews, 'archive'), { recursive: true });
+    await writeFile(path.join(bothViews, 'blog.astro'), '');
+    await writeFile(path.join(bothViews, 'archive.astro'), '');
+    await writeFile(path.join(bothViews, 'archive', 'index.astro'), '');
+    await assert.rejects(
+      () => runSetup({ root: bothRoot }),
+      /view "archive" has both "archive\.astro" and "archive\/index\.astro"/,
     );
   });
 
@@ -552,8 +690,12 @@ async function writeRenderingRoutes(
   routes: [
     { slug: { en: 'about', de: 'ueber' }, view: 'about' },
     { slug: { en: 'blog/{slug}', de: 'artikel/{slug}' }, collection: 'blog', view: 'post', fallbackView: 'missing' },
-    { slug: { en: 'blog', de: 'artikel' }, collection: 'blog', pageSize: 10, view: 'blog' },
-    { slug: { en: '${page.en}', de: '${page.de}' }, collection: 'blog', pageSize: 10, view: 'blog' },
+    {
+      slug: { en: 'blog', de: 'artikel' },
+      collection: 'blog',
+      view: 'blog',
+      pagination: { pageSize: 10, slug: { en: '${page.en}', de: '${page.de}' } },
+    },
   ],
   collections: { blog: { slugField: 'slug' } },
 };

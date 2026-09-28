@@ -2,11 +2,12 @@
  * Astro integration entry — named (and default) export `astroIntl()`.
  * Loads `src/intl.config.ts`, writes locale list and prefix policy through to
  * Astro `i18n`, and checks catalog files. Injects one route per compiled route
- * row and locale. `viewRendering: 'request'` injects static, entry, and listing
- * routes on demand and refuses to boot without an adapter. Under `astro dev`,
+ * and locale. A row with `pagination` compiles to two. `viewRendering: 'request'`
+ * injects static, entry, and listing routes on demand and refuses to boot without
+ * an adapter. Under `astro dev`,
  * `viewRendering` is treated as `'build'`. Fallback routes stay prerendered.
  * A fallback view that exports `prerender = false` fails startup outside
- * `astro dev`. An on-demand `{page}` route that shares its shape with a
+ * `astro dev`. An on-demand `pagination.slug` route that shares its shape with a
  * `{slug}` route fails startup outside `astro dev`. A view's `prerender`
  * export wins for the other kinds.
  * Entrypoints are the views under `src/views/`. A row's fallback view is
@@ -65,7 +66,7 @@ export {
 export { leafSlug } from './locale-section.ts';
 export type { LocaleSwitcherLink } from './locale-switcher.ts';
 export { localeSwitcherLinks } from './locale-switcher.ts';
-export { listingPageCount, listingTail } from './path.ts';
+export { listingPageCount } from './path.ts';
 export type { Relation } from './relation.ts';
 export { localized, localizedValue, relation } from './relation.ts';
 export { getIntlRuntime, setIntlConfig } from './runtime.ts';

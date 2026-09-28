@@ -42,12 +42,11 @@ const config: IntlConfig = {
       collection: 'blog',
       entry: 'pin',
     },
-    { slug: { en: 'blog', de: 'artikel' }, view: 'index', collection: 'blog', pageSize: 1 },
     {
-      slug: { en: 'blog/{page}', de: 'artikel/{page}' },
+      slug: { en: 'blog', de: 'artikel' },
       view: 'index',
       collection: 'blog',
-      pageSize: 1,
+      pagination: { pageSize: 1, slug: { en: 'blog/{page}', de: 'artikel/{page}' } },
     },
     {
       slug: { en: 'blog/{slug}', de: 'artikel/{slug}' },
@@ -185,18 +184,20 @@ describe('listingPathsFor', () => {
     }
   });
 
-  it('links page 1 to the {page} row when that row adds a segment', () => {
+  it('links page 1 to pagination.slug when that tail adds a segment', () => {
     const section: IntlConfig = {
       locales: ['en', 'de'],
       defaultLocale: 'en',
       routing: { prefixDefaultLocale: true },
       routes: [
-        { slug: { en: 'blog', de: 'artikel' }, view: 'index', collection: 'blog', pageSize: 1 },
         {
-          slug: { en: 'blog/page/{page}', de: 'artikel/seite/{page}' },
+          slug: { en: 'blog', de: 'artikel' },
           view: 'index',
           collection: 'blog',
-          pageSize: 1,
+          pagination: {
+            pageSize: 1,
+            slug: { en: 'blog/page/{page}', de: 'artikel/seite/{page}' },
+          },
         },
       ],
       collections: { blog: {} },
@@ -245,8 +246,12 @@ describe('listingPathsFor', () => {
       defaultLocale: 'en',
       routing: { prefixDefaultLocale: false },
       routes: [
-        { slug: { en: '/', de: '/' }, view: 'home', collection: 'posts', pageSize: 1 },
-        { slug: { en: '{page}', de: '{page}' }, view: 'home', collection: 'posts', pageSize: 1 },
+        {
+          slug: { en: '/', de: '/' },
+          view: 'home',
+          collection: 'posts',
+          pagination: { pageSize: 1, slug: { en: '{page}', de: '{page}' } },
+        },
       ],
       collections: { posts: {} },
     };
@@ -295,8 +300,12 @@ describe('listingPathsFor', () => {
       defaultLocale: 'en',
       routing: { prefixDefaultLocale: true },
       routes: [
-        { slug: { en: 'blog' }, view: 'index', collection: 'blog', pageSize: 10 },
-        { slug: { en: 'blog/{page}' }, view: 'index', collection: 'blog', pageSize: 10 },
+        {
+          slug: { en: 'blog' },
+          view: 'index',
+          collection: 'blog',
+          pagination: { pageSize: 10, slug: { en: 'blog/{page}' } },
+        },
         { slug: { en: 'blog/2024' }, view: 'archive' },
       ],
       collections: { blog: {} },

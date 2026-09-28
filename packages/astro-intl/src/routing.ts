@@ -19,8 +19,9 @@ const PAGE_TOKEN = '{page}';
  * One pattern per row and locale, in that order.
  * A static row compiles to an optional spread, so Astro calls its `getStaticPaths`
  * and one row can publish nothing in a locale.
- * A page-1 listing row compiles to `[...page]`. A `{page}` row replaces that
- * token with `[page]`.
+ * A row with `pagination` compiles to two routes per locale. Page 1 is the row's
+ * slug as `[...page]`, rendered by the row's view. Pages 2 onward replace `{page}`
+ * in `pagination.slug` with `[page]`, rendered by `pagination.view` or the row's view.
  * A `{slug}` row with a fallback view also emits a fallback route for each
  * locale that is not the default. The row's `fallbackView` wins over the
  * config's; `false` means none.
@@ -39,12 +40,11 @@ export function compileRoutes(config: IntlConfig): CompiledRoute[] {
 
       const normalized = normalizeSlug(row.slug[locale] ?? '');
       const kind = kindFor(row, normalized);
-      const pageToken = kind === 'listing' && normalized.includes(PAGE_TOKEN);
       const route: CompiledRoute = {
         pattern: patternFor(
           prefixFor(config, locale),
-          normalized.replaceAll(SLUG_TOKEN, '[slug]').replaceAll(PAGE_TOKEN, '[page]'),
-          pageToken ? undefined : spreadName(kind),
+          normalized.replaceAll(SLUG_TOKEN, '[slug]'),
+          spreadName(kind),
         ),
         view,
         locale,
@@ -55,6 +55,26 @@ export function compileRoutes(config: IntlConfig): CompiledRoute[] {
       if (kind === 'entry' && locale !== config.defaultLocale && fallbackView) {
         pushRoute(compiled, seen, { ...route, kind: 'fallback', view: fallbackView });
       }
+    }
+
+    const pagination = row.pagination;
+    if (!pagination) continue;
+    for (const locale of config.locales) {
+      if (!(locale in pagination.slug)) continue;
+      const view = viewForLocale(pagination.view ?? row.view, locale);
+      if (view === undefined) continue;
+      const normalized = normalizeSlug(pagination.slug[locale] ?? '');
+      pushRoute(compiled, seen, {
+        pattern: patternFor(
+          prefixFor(config, locale),
+          normalized.replaceAll(PAGE_TOKEN, '[page]'),
+          undefined,
+        ),
+        view,
+        locale,
+        rowIndex,
+        kind: 'listing',
+      });
     }
   }
 
@@ -69,8 +89,7 @@ function viewForLocale(view: RouteRow['view'], locale: string): string | undefin
 
 function kindFor(row: RouteRow, tail: string): 'static' | 'entry' | 'listing' {
   if (tail.includes(SLUG_TOKEN)) return 'entry';
-  if (tail.includes(PAGE_TOKEN)) return 'listing';
-  if (row.collection && row.pageSize !== undefined && !row.entry) return 'listing';
+  if (row.pagination) return 'listing';
   return 'static';
 }
 
@@ -132,13 +151,15 @@ export function pageSlugClash(
   return { page, entry };
 }
 
-/** Names both rows and both ways to separate them. */
+/** Names both routes and the ways to separate them. */
 export function pageSlugClashMessage(clash: { page: CompiledRoute; entry: CompiledRoute }): string {
+  const example = clash.page.pattern.replaceAll('[page]', '2');
   return (
     `@repo/astro-intl: on-demand {page} route "${clash.page.pattern}" (row ${clash.page.rowIndex}) ` +
     `has the same shape as {slug} route "${clash.entry.pattern}" (row ${clash.entry.rowIndex}). ` +
-    'Export prerender = true from the listing view, or give the {page} row its own segment ' +
-    '(for example blog/page/{page}).'
+    `Give pagination its own view that exports prerender = true. ${example} stays, and page 1 stays on demand. ` +
+    "Export prerender = true from the row's view. This also prerenders page 1. " +
+    'Give pagination.slug its own segment (for example blog/page/{page}).'
   );
 }
 

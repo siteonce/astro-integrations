@@ -194,16 +194,15 @@ describe('routeConfigIssues', () => {
     assert.deepEqual(issues, []);
   });
 
-  it('allows a collection tail with pageSize beside one {slug} row', () => {
+  it('allows pagination beside one {slug} row', () => {
     const issues = routeConfigIssues({
       locales,
       routes: [
-        { slug: { en: 'blog', de: 'artikel' }, view: 'x', collection: 'blog', pageSize: 10 },
         {
-          slug: { en: 'blog/{page}', de: 'artikel/{page}' },
+          slug: { en: 'blog', de: 'artikel' },
           view: 'x',
           collection: 'blog',
-          pageSize: 10,
+          pagination: { pageSize: 10, slug: { en: 'blog/{page}', de: 'artikel/{page}' } },
         },
         { slug: { en: 'blog/{slug}', de: 'artikel/{slug}' }, view: 'x', collection: 'blog' },
       ],
@@ -217,8 +216,12 @@ describe('routeConfigIssues', () => {
       const issues = routeConfigIssues({
         locales,
         routes: [
-          { slug: { en: 'blog', de: 'artikel' }, view: 'x', collection: 'blog', pageSize: 10 },
-          { slug: { en: slug, de: 'artikel/{page}' }, view: 'x', collection: 'blog', pageSize: 10 },
+          {
+            slug: { en: 'blog', de: 'artikel' },
+            view: 'x',
+            collection: 'blog',
+            pagination: { pageSize: 10, slug: { en: slug, de: 'artikel/{page}' } },
+          },
         ],
         collections: { blog: { slugField: 'slug' } },
       });
@@ -229,15 +232,18 @@ describe('routeConfigIssues', () => {
     }
   });
 
-  it('rejects a tail that holds {page} and {slug}', () => {
+  it('rejects a pagination tail that holds {page} and {slug}', () => {
     const issues = routeConfigIssues({
       locales,
       routes: [
         {
-          slug: { en: 'blog/{slug}/{page}', de: 'artikel/{page}' },
+          slug: { en: 'blog', de: 'artikel' },
           view: 'x',
           collection: 'blog',
-          pageSize: 10,
+          pagination: {
+            pageSize: 10,
+            slug: { en: 'blog/{slug}/{page}', de: 'artikel/{page}' },
+          },
         },
       ],
       collections: { blog: { slugField: 'slug' } },
@@ -245,131 +251,116 @@ describe('routeConfigIssues', () => {
     assert.ok(issues.some((issue) => issue.includes('cannot hold both {page} and {slug}')));
   });
 
-  it('rejects a {page} row with no collection, no pageSize, or an entry', () => {
-    const bare = routeConfigIssues({
-      locales,
-      routes: [{ slug: { en: 'blog/{page}', de: 'artikel/{page}' }, view: 'x', pageSize: 10 }],
-    });
-    assert.ok(bare.some((issue) => issue === '{page} row needs a collection'));
-
-    const unsized = routeConfigIssues({
+  it('rejects {page} on the row slug', () => {
+    const issues = routeConfigIssues({
       locales,
       routes: [
-        { slug: { en: 'blog/{page}', de: 'artikel/{page}' }, view: 'x', collection: 'blog' },
+        {
+          slug: { en: 'blog/{page}', de: 'artikel' },
+          view: 'x',
+          collection: 'blog',
+          pagination: { pageSize: 10, slug: { en: 'blog/{page}', de: 'artikel/{page}' } },
+        },
       ],
       collections: { blog: { slugField: 'slug' } },
     });
-    assert.ok(unsized.some((issue) => issue === '{page} row needs pageSize'));
+    assert.ok(issues.some((issue) => issue === '{page} belongs in pagination.slug in locale "en"'));
+  });
+
+  it('rejects pagination with no collection, an entry, or a {slug} row', () => {
+    const bare = routeConfigIssues({
+      locales,
+      routes: [
+        {
+          slug: { en: 'blog', de: 'artikel' },
+          view: 'x',
+          pagination: { pageSize: 10, slug: { en: 'blog/{page}', de: 'artikel/{page}' } },
+        },
+      ],
+    });
+    assert.ok(bare.some((issue) => issue === 'pagination requires a collection'));
 
     const named = routeConfigIssues({
       locales,
       routes: [
         {
-          slug: { en: 'blog/{page}', de: 'artikel/{page}' },
+          slug: { en: 'blog', de: 'artikel' },
           view: 'x',
           collection: 'blog',
-          pageSize: 10,
           entry: 'hello',
+          pagination: { pageSize: 10, slug: { en: 'blog/{page}', de: 'artikel/{page}' } },
         },
       ],
       collections: { blog: { slugField: 'slug' } },
     });
-    assert.ok(named.some((issue) => issue === '{page} row cannot name an entry'));
-  });
+    assert.ok(named.some((issue) => issue === 'pagination cannot name an entry'));
 
-  it('rejects a page-1 row with no {page} row and a {page} row with no page-1 row', () => {
-    const pageOne = routeConfigIssues({
-      locales,
-      routes: [
-        { slug: { en: 'blog', de: 'artikel' }, view: 'x', collection: 'blog', pageSize: 10 },
-        { slug: { en: 'blog/{slug}', de: 'artikel/{slug}' }, view: 'x', collection: 'blog' },
-      ],
-      collections: { blog: { slugField: 'slug' } },
-    });
-    assert.ok(
-      pageOne.some((issue) =>
-        issue.includes(
-          'Add a {page} row. A listing that fits on one page omits pageSize, and the row stays that one tail.',
-        ),
-      ),
-    );
-
-    const pageRow = routeConfigIssues({
+    const pattern = routeConfigIssues({
       locales,
       routes: [
         {
-          slug: { en: 'blog/{page}', de: 'artikel/{page}' },
+          slug: { en: 'blog/{slug}', de: 'artikel/{slug}' },
           view: 'x',
           collection: 'blog',
-          pageSize: 10,
+          pagination: { pageSize: 10, slug: { en: 'blog/{page}', de: 'artikel/{page}' } },
         },
-        { slug: { en: 'blog/{slug}', de: 'artikel/{slug}' }, view: 'x', collection: 'blog' },
       ],
       collections: { blog: { slugField: 'slug' } },
     });
-    assert.ok(pageRow.some((issue) => issue.includes('has no page-1 row')));
+    assert.ok(pattern.some((issue) => issue === 'pagination cannot sit on a {slug} row'));
   });
 
-  it('rejects different locale sets and two rows of the same kind', () => {
-    const localesDiffer = routeConfigIssues({
+  it('rejects pagination.slug locales that differ from the row slug', () => {
+    const issues = routeConfigIssues({
       locales,
       routes: [
-        { slug: { en: 'blog', de: 'artikel' }, view: 'x', collection: 'blog', pageSize: 10 },
         {
-          slug: { en: 'blog/{page}', de: 'artikel/{page}', fr: 'journal/{page}' },
+          slug: { en: 'blog', de: 'artikel' },
           view: 'x',
           collection: 'blog',
-          pageSize: 10,
+          pagination: {
+            pageSize: 10,
+            slug: { en: 'blog/{page}', de: 'artikel/{page}', fr: 'journal/{page}' },
+          },
         },
       ],
       collections: { blog: { slugField: 'slug' } },
     });
-    assert.ok(localesDiffer.some((issue) => issue.includes('name different locales')));
+    assert.ok(issues.some((issue) => issue.includes('name different locales')));
+  });
 
-    const twoFirst = routeConfigIssues({
+  it('allows two pagination rows on one collection', () => {
+    const issues = routeConfigIssues({
       locales,
       routes: [
-        { slug: { en: 'blog', de: 'artikel' }, view: 'a', collection: 'blog', pageSize: 10 },
-        { slug: { en: 'news', de: 'neu' }, view: 'b', collection: 'blog', pageSize: 10 },
         {
-          slug: { en: 'blog/{page}', de: 'artikel/{page}' },
+          slug: { en: 'blog', de: 'artikel' },
           view: 'a',
           collection: 'blog',
-          pageSize: 10,
-        },
-      ],
-      collections: { blog: { slugField: 'slug' } },
-    });
-    assert.ok(twoFirst.some((issue) => issue.includes('two page-1 rows')));
-
-    const twoPages = routeConfigIssues({
-      locales,
-      routes: [
-        { slug: { en: 'blog', de: 'artikel' }, view: 'a', collection: 'blog', pageSize: 10 },
-        {
-          slug: { en: 'blog/{page}', de: 'artikel/{page}' },
-          view: 'a',
-          collection: 'blog',
-          pageSize: 10,
+          pagination: { pageSize: 10, slug: { en: 'blog/{page}', de: 'artikel/{page}' } },
         },
         {
-          slug: { en: 'news/{page}', de: 'neu/{page}' },
+          slug: { en: 'news', de: 'neu' },
           view: 'b',
           collection: 'blog',
-          pageSize: 10,
+          pagination: { pageSize: 5, slug: { en: 'news/{page}', de: 'neu/{page}' } },
         },
       ],
-      collections: { blog: { slugField: 'slug' } },
+      collections: { blog: {} },
     });
-    assert.ok(twoPages.some((issue) => issue.includes('two {page} rows')));
+    assert.deepEqual(issues, []);
   });
 
-  it('allows a root listing and a {page} row with its own segment', () => {
+  it('allows a root listing and a pagination tail with its own segment', () => {
     const root = routeConfigIssues({
       locales,
       routes: [
-        { slug: { en: '/', de: '/' }, view: 'home', collection: 'posts', pageSize: 1 },
-        { slug: { en: '{page}', de: '{page}' }, view: 'home', collection: 'posts', pageSize: 1 },
+        {
+          slug: { en: '/', de: '/' },
+          view: 'home',
+          collection: 'posts',
+          pagination: { pageSize: 1, slug: { en: '{page}', de: '{page}' } },
+        },
       ],
       collections: { posts: {} },
     });
@@ -378,12 +369,14 @@ describe('routeConfigIssues', () => {
     const segment = routeConfigIssues({
       locales,
       routes: [
-        { slug: { en: 'blog', de: 'artikel' }, view: 'x', collection: 'blog', pageSize: 10 },
         {
-          slug: { en: 'blog/page/{page}', de: 'artikel/seite/{page}' },
+          slug: { en: 'blog', de: 'artikel' },
           view: 'x',
           collection: 'blog',
-          pageSize: 10,
+          pagination: {
+            pageSize: 10,
+            slug: { en: 'blog/page/{page}', de: 'artikel/seite/{page}' },
+          },
         },
         { slug: { en: 'blog/{slug}', de: 'artikel/{slug}' }, view: 'x', collection: 'blog' },
       ],
@@ -392,28 +385,89 @@ describe('routeConfigIssues', () => {
     assert.deepEqual(segment, []);
   });
 
-  it('rejects pageSize on a {slug} row and a non-positive pageSize', () => {
-    const onPattern = routeConfigIssues({
+  it('rejects a non-positive pagination.pageSize and a top-level pageSize', () => {
+    const sized = routeConfigIssues({
       locales,
       routes: [
         {
-          slug: { en: 'blog/{slug}', de: 'artikel/{slug}' },
+          slug: { en: 'blog', de: 'artikel' },
           view: 'x',
           collection: 'blog',
-          pageSize: 10,
+          pagination: { pageSize: 0, slug: { en: 'blog/{page}', de: 'artikel/{page}' } },
         },
       ],
       collections: { blog: { slugField: 'slug' } },
     });
-    assert.ok(onPattern.some((issue) => issue.includes('pageSize requires a collection tail')));
+    assert.ok(sized.some((issue) => issue === 'pagination.pageSize must be a positive integer'));
+
+    const fractional = routeConfigIssues({
+      locales,
+      routes: [
+        {
+          slug: { en: 'blog', de: 'artikel' },
+          view: 'x',
+          collection: 'blog',
+          pagination: { pageSize: 1.5, slug: { en: 'blog/{page}', de: 'artikel/{page}' } },
+        },
+      ],
+      collections: { blog: { slugField: 'slug' } },
+    });
+    assert.ok(
+      fractional.some((issue) => issue === 'pagination.pageSize must be a positive integer'),
+    );
+
     const parsed = intlConfigSchema.safeParse({
       locales: ['en', 'de'],
       defaultLocale: 'en',
       routing: { prefixDefaultLocale: true },
-      routes: [{ slug: { en: 'blog', de: 'artikel' }, view: 'x', collection: 'blog', pageSize: 0 }],
+      routes: [{ slug: { en: 'blog', de: 'artikel' }, view: 'x', collection: 'blog', pageSize: 1 }],
       collections: { blog: { slugField: 'slug' } },
     });
     assert.equal(parsed.success, false);
+    if (parsed.success) return;
+    assert.match(parsed.error.message, /pageSize moved to pagination\.pageSize/);
+  });
+
+  it('rejects a pagination.view that fails the view checks', () => {
+    const extension = routeConfigIssues({
+      locales,
+      routes: [
+        {
+          slug: { en: 'blog', de: 'artikel' },
+          view: 'x',
+          collection: 'blog',
+          pagination: {
+            pageSize: 10,
+            slug: { en: 'blog/{page}', de: 'artikel/{page}' },
+            view: 'archive.astro',
+          },
+        },
+      ],
+      collections: { blog: { slugField: 'slug' } },
+    });
+    assert.ok(
+      extension.some(
+        (issue) => issue === 'pagination.view "archive.astro" includes a file extension',
+      ),
+    );
+
+    const keys = routeConfigIssues({
+      locales,
+      routes: [
+        {
+          slug: { en: 'blog', de: 'artikel' },
+          view: 'x',
+          collection: 'blog',
+          pagination: {
+            pageSize: 10,
+            slug: { en: 'blog/{page}', de: 'artikel/{page}' },
+            view: { en: 'archive' },
+          },
+        },
+      ],
+      collections: { blog: { slugField: 'slug' } },
+    });
+    assert.ok(keys.some((issue) => issue.startsWith('pagination.view keys must be')));
   });
 
   it('rejects two pattern rows for one collection', () => {
@@ -1167,6 +1221,58 @@ describe('published tails with no entry', () => {
     );
   });
 
+  it('publishes a literal page-1 tail and leaves the unnumbered tail free', () => {
+    const posts: ReturnType<typeof entry>[] = [];
+    for (let index = 0; index < 12; index += 1) {
+      posts.push(
+        entry('blog', `en-${index}`, { id: `en-${index}`, locale: 'en', slug: `en-${index}` }),
+      );
+    }
+    const listing = {
+      slug: { en: 'blog/1', de: 'artikel/1' },
+      view: 'x',
+      collection: 'blog',
+      pagination: { pageSize: 10, slug: { en: 'blog/{page}', de: 'artikel/{page}' } },
+    };
+    const base = {
+      locales: ['en', 'de'],
+      defaultLocale: 'en',
+      routing: { prefixDefaultLocale: true },
+      collections: { blog: { slugField: 'slug' } },
+    };
+    const alone: IntlConfig = {
+      ...base,
+      routes: [
+        listing,
+        { slug: { en: 'blog/{slug}', de: 'artikel/{slug}' }, view: 'x', collection: 'blog' },
+      ],
+    };
+    const aloneTails = pairCollections(alone, { blog: posts }).tails.map(
+      (item) => `${item.locale}:${item.path}`,
+    );
+    assert.deepEqual(aloneTails.sort(), ['de:artikel/1', 'en:blog/1', 'en:blog/2']);
+
+    const withStatic: IntlConfig = {
+      ...base,
+      routes: [
+        listing,
+        { slug: { en: 'blog', de: 'artikel' }, view: 'index' },
+        { slug: { en: 'blog/{slug}', de: 'artikel/{slug}' }, view: 'x', collection: 'blog' },
+      ],
+    };
+    assert.deepEqual(routeConfigIssues(withStatic), []);
+    const tails = pairCollections(withStatic, { blog: posts }).tails.map(
+      (item) => `${item.locale}:${item.path}`,
+    );
+    assert.deepEqual(tails.sort(), [
+      'de:artikel',
+      'de:artikel/1',
+      'en:blog',
+      'en:blog/1',
+      'en:blog/2',
+    ]);
+  });
+
   it('publishes listing chunks per locale and omits page 1 as a number', () => {
     const posts: ReturnType<typeof entry>[] = [];
     for (let index = 0; index < 25; index += 1) {
@@ -1184,12 +1290,11 @@ describe('published tails with no entry', () => {
       defaultLocale: 'en',
       routing: { prefixDefaultLocale: true },
       routes: [
-        { slug: { en: 'blog', de: 'artikel' }, view: 'x', collection: 'blog', pageSize: 10 },
         {
-          slug: { en: 'blog/{page}', de: 'artikel/{page}' },
+          slug: { en: 'blog', de: 'artikel' },
           view: 'x',
           collection: 'blog',
-          pageSize: 10,
+          pagination: { pageSize: 10, slug: { en: 'blog/{page}', de: 'artikel/seite/{page}' } },
         },
         { slug: { en: 'blog/{slug}', de: 'artikel/{slug}' }, view: 'x', collection: 'blog' },
       ],
@@ -1201,7 +1306,7 @@ describe('published tails with no entry', () => {
       getAbsoluteLocaleUrl: absolute,
     });
     const slugs = query.getPairedSlugs();
-    for (const path of ['blog', 'blog/2', 'blog/3', 'artikel', 'artikel/2']) {
+    for (const path of ['blog', 'blog/2', 'blog/3', 'artikel', 'artikel/seite/2']) {
       assert.equal(
         slugs.some((item) => item.slug === path),
         true,
@@ -1210,14 +1315,15 @@ describe('published tails with no entry', () => {
     }
     assert.equal(
       slugs.some(
-        (item) => item.slug === 'blog/1' || item.slug === 'artikel/1' || item.slug === 'artikel/3',
+        (item) =>
+          item.slug === 'blog/1' || item.slug === 'artikel/1' || item.slug === 'artikel/seite/3',
       ),
       false,
     );
     assert.deepEqual(query.getAlternatePathsForPath('en', 'blog/3'), { en: 'blog/3' });
     assert.deepEqual(query.getAlternatePathsForPath('en', 'blog/2'), {
       en: 'blog/2',
-      de: 'artikel/2',
+      de: 'artikel/seite/2',
     });
     assert.equal(query.getContentByPath('en', 'blog/2'), undefined);
     const page3 = query.getSitemapEntries().find((item) => item.path === 'blog/3');
@@ -1260,12 +1366,11 @@ describe('published tails with no entry', () => {
       defaultLocale: 'en',
       routing: { prefixDefaultLocale: true },
       routes: [
-        { slug: { en: 'blog', de: 'artikel' }, view: 'x', collection: 'blog', pageSize: 10 },
         {
-          slug: { en: 'blog/{page}', de: 'artikel/{page}' },
+          slug: { en: 'blog', de: 'artikel' },
           view: 'x',
           collection: 'blog',
-          pageSize: 10,
+          pagination: { pageSize: 10, slug: { en: 'blog/{page}', de: 'artikel/{page}' } },
         },
         { slug: { en: 'blog/{slug}', de: 'artikel/{slug}' }, view: 'x', collection: 'blog' },
       ],
@@ -1291,12 +1396,11 @@ describe('published tails with no entry', () => {
       defaultLocale: 'en',
       routing: { prefixDefaultLocale: true },
       routes: [
-        { slug: { en: 'blog', de: 'artikel' }, view: 'x', collection: 'blog', pageSize: 10 },
         {
-          slug: { en: 'blog/{page}', de: 'artikel/{page}' },
+          slug: { en: 'blog', de: 'artikel' },
           view: 'x',
           collection: 'blog',
-          pageSize: 10,
+          pagination: { pageSize: 10, slug: { en: 'blog/{page}', de: 'artikel/{page}' } },
         },
         { slug: { en: 'blog/{slug}', de: 'artikel/{slug}' }, view: 'x', collection: 'blog' },
       ],
@@ -1320,12 +1424,14 @@ describe('published tails with no entry', () => {
       defaultLocale: 'en',
       routing: { prefixDefaultLocale: true },
       routes: [
-        { slug: { en: 'blog', de: 'artikel' }, view: 'x', collection: 'blog', pageSize: 10 },
         {
-          slug: { en: 'blog/page/{page}', de: 'artikel/seite/{page}' },
+          slug: { en: 'blog', de: 'artikel' },
           view: 'x',
           collection: 'blog',
-          pageSize: 10,
+          pagination: {
+            pageSize: 10,
+            slug: { en: 'blog/page/{page}', de: 'artikel/seite/{page}' },
+          },
         },
         { slug: { en: 'blog/{slug}', de: 'artikel/{slug}' }, view: 'x', collection: 'blog' },
       ],
@@ -1345,12 +1451,11 @@ describe('published tails with no entry', () => {
       defaultLocale: 'en',
       routing: { prefixDefaultLocale: true },
       routes: [
-        { slug: { en: 'blog', de: 'artikel' }, view: 'x', collection: 'blog', pageSize: 10 },
         {
-          slug: { en: 'blog/{page}', de: 'artikel/{page}' },
+          slug: { en: 'blog', de: 'artikel' },
           view: 'x',
           collection: 'blog',
-          pageSize: 10,
+          pagination: { pageSize: 10, slug: { en: 'blog/{page}', de: 'artikel/{page}' } },
         },
         { slug: { en: 'blog/{slug}', de: 'artikel/{slug}' }, view: 'x', collection: 'blog' },
       ],
@@ -1366,7 +1471,7 @@ describe('published tails with no entry', () => {
     );
   });
 
-  it('omits pageSize and publishes the one written tail', () => {
+  it('omits pagination and publishes the one written tail', () => {
     const posts: ReturnType<typeof entry>[] = [];
     for (let index = 0; index < 25; index += 1) {
       posts.push(

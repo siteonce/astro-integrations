@@ -16,12 +16,12 @@ export default defineIntl({
   // View for a `{slug}` URL whose entry has no translation in that locale, on
   // every `{slug}` row. `views/fallback.astro` redirects to the default-locale entry.
   fallbackView: 'fallback',
-  // `view` and `fallbackView` name views. Intl injects one route per row and locale.
-  routes: routes.map(({ slug, view, collection, pageSize, fallbackView }) => ({
+  // `view` and `fallbackView` name views. A row with `pagination` injects two routes per locale.
+  routes: routes.map(({ slug, view, collection, pagination, fallbackView }) => ({
     slug,
     view,
     ...(collection ? { collection } : {}),
-    ...(pageSize !== undefined ? { pageSize } : {}),
+    ...(pagination !== undefined ? { pagination } : {}),
     ...(fallbackView !== undefined ? { fallbackView } : {}),
   })),
   collections: {

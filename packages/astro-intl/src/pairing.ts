@@ -1,4 +1,4 @@
-import { type IntlConfig, isPageTokenRow, listingPair, routeConfigIssues } from './define-intl.ts';
+import { type IntlConfig, routeConfigIssues } from './define-intl.ts';
 import { resolveEntryId } from './entry-id.ts';
 import {
   compilePath,
@@ -161,9 +161,8 @@ function fixedEntryKeys(config: IntlConfig): Set<string> {
  * Pair listed collections: read id + locale from entry data, prefix the
  * collection name, and compile public tails from route rows. An entry row
  * publishes one named entry at the written tail. A `{slug}` row joins a
- * section and a leaf, or that one named entry. A page-1 row publishes page 1
- * at its written tail. Its `{page}` row publishes later pages, with `{page}`
- * replaced by the number.
+ * section and a leaf, or that one named entry. A row with `pagination` publishes
+ * page 1 at its `slug`. Later pages replace `{page}` in `pagination.slug`.
  * A row with no collection publishes those tails with no entry and no pairing id.
  * Aborts on route-rule, uniqueness, and reserved-path failures.
  */
@@ -386,26 +385,21 @@ export function pairCollections(
     const wantsPattern = config.locales.some((locale) =>
       (route.slug[locale] ?? '').includes('{slug}'),
     );
-    if (wantsPattern || isPageTokenRow(route)) continue;
+    if (wantsPattern) continue;
     const written: Record<string, string> = {};
     for (const locale of config.locales) {
       written[locale] = normalizeSlug(route.slug[locale] ?? '');
     }
-    if (route.pageSize === undefined) {
+    const pagination = route.pagination;
+    if (!pagination) {
       for (const locale of config.locales) {
         claimTail(locale, written[locale] ?? '/', written);
       }
       continue;
     }
-    const pair = listingPair(config.routes ?? [], route);
-    if (!pair) {
-      throw new Error(
-        `@repo/astro-intl: collection "${route.collection}" pageSize ${route.pageSize} has no {page} row. Add a {page} row. A listing that fits on one page omits pageSize, and the row stays that one tail.`,
-      );
-    }
     const pageTails: Record<string, string> = {};
     for (const locale of config.locales) {
-      pageTails[locale] = normalizeSlug(pair.pageRow.slug[locale] ?? '');
+      pageTails[locale] = normalizeSlug(pagination.slug[locale] ?? '');
     }
     const localeField = listed[route.collection]?.localeField ?? 'locale';
     const pages = new Map<string, number>();
@@ -417,7 +411,7 @@ export function pairCollections(
         localeField,
         listEntries,
       );
-      pages.set(locale, listingPageCount(selected.length, route.pageSize));
+      pages.set(locale, listingPageCount(selected.length, pagination.pageSize));
     }
     const maxPage = Math.max(1, ...pages.values());
     for (let page = 1; page <= maxPage; page += 1) {

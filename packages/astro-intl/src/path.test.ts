@@ -4,7 +4,6 @@ import {
   compilePath,
   listingPageCount,
   listingPagePath,
-  listingTail,
   localeUrlPath,
   normalizeSlug,
   pageTokenSection,
@@ -41,15 +40,7 @@ describe('listingPagePath', () => {
   });
 });
 
-describe('listingTail', () => {
-  it('keeps page 1 on the written tail and appends later pages', () => {
-    assert.equal(listingTail('blog', 1), 'blog');
-    assert.equal(listingTail('blog', 2), 'blog/2');
-    assert.equal(listingTail('artikel', 3), 'artikel/3');
-    assert.equal(listingTail('/', 1), '/');
-    assert.equal(listingTail('/', 2), '2');
-  });
-
+describe('listingPageCount', () => {
   it('counts chunks and keeps one tail when the list is empty', () => {
     assert.equal(listingPageCount(25, 10), 3);
     assert.equal(listingPageCount(12, 10), 2);
