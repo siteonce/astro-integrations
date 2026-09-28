@@ -428,6 +428,24 @@ describe('listingPathsFor', () => {
     assert.equal(locale, 'de');
   });
 
+  it('passes the route locale to sort', () => {
+    let locale: string | undefined;
+    listingPathsFor(
+      config,
+      queryFor(),
+      compiledRoute('/de/artikel/[...page]', 'listing'),
+      paginateFn,
+      {
+        sort: (context) => {
+          locale = context.locale;
+          return () => 0;
+        },
+      },
+      markedRelativeUrl,
+    );
+    assert.equal(locale, 'de');
+  });
+
   it('throws when order drops an entry', () => {
     assert.throws(
       () =>

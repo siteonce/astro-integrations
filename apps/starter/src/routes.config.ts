@@ -4,7 +4,8 @@ import type { RouteConfig } from '@repo/astro-intl';
 // A string names one view for every locale. An object names one per locale.
 // `pagination` publishes the later pages. Its `slug` is the full tail per locale,
 // and `{page}` is the number. Page 1 is this row's `slug`. `pagination.view`
-// defaults to the row's view. Omit `pagination` and the row stays that one tail.
+// defaults to the row's view. A separate `pagination.view` must pass the same
+// `sort` or `order` as the row's view. Omit `pagination` and the row stays that one tail.
 // `fallbackView` on a `{slug}` row replaces the one in `intl.config.ts`.
 // `false` means that row's untranslated URLs 404.
 export type StarterRoute = RouteConfig;

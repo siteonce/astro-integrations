@@ -60,7 +60,7 @@ A snapshot monorepo that is the foundation for every Astro **content site** buil
 
 **`{slug}`**: The route-row token that publishes an entry tail. The text before it is the **section**. The entry **slug** is the last segment. _Avoid_: a movable capture; renaming the brace; a page number
 
-**`pagination`**: The object on a route row that publishes listing pages after the first. It holds `pageSize`, a full `slug` per locale, and an optional `view`. Page 1 is the row’s `slug`. _Avoid_: a second route row; a tail relative to the row’s `slug`; nesting a `{slug}` row inside it
+**`pagination`**: The object on a route row that publishes listing pages after the first. It holds `pageSize`, a full `slug` per locale, and an optional `view`. Page 1 is the row’s `slug`. _Avoid_: a second route row; a tail relative to the row’s `slug`; nesting a `{slug}` row inside it; a different listing order in `pagination.view` than in the row’s view
 
 **`{page}`**: The token in `pagination.slug` for listing pages after the first. It is the whole final segment of that tail. The number replaces it. That tail never publishes page 1. A literal page-1 tail such as `blog/1` is the row’s `slug`, and it is allowed. _Avoid_: a movable capture; a token in the row’s `slug`; publishing page 1 from this tail
 
@@ -68,7 +68,7 @@ A snapshot monorepo that is the foundation for every Astro **content site** buil
 
 **`pageSize`**: How many entries one chunk of a listing holds. A positive integer on `pagination`. Omit `pagination` and the row stays that one tail. The row does not store a page count. _Avoid_: a top-level key; pages (as a count of URLs); a CMS API page size
 
-**listing order**: The required `sort` or `order` on `listingPaths`. `sort` builds a comparator from the route’s locale. `order` reorders the whole list and must keep the same entries. _Avoid_: a default order; a global listing hook; filtering in `order`
+**listing order**: The required `sort` or `order` on `listingPaths`. `sort` builds a comparator from the route’s locale. `order` reorders the whole list and must keep the same entries. Split views pass the same ordering. _Avoid_: a default order; a global listing hook; filtering in `order`
 
 **routed collection**: A listed collection whose entries have a public URL. A `{slug}` row publishes that URL: the **section** plus the **slug**. _Avoid_: giving records a slug; treating a collection tail as an entry URL
 
