@@ -14,12 +14,16 @@ The **visitor** reads that site. Locale, the document they land on, and the sear
 
 A **snapshot** for Astro **content sites**. No promised upgrades. Workspace packages stay in-tree. The visitor gets documents in their language, a locale switch that lands on the same document, and head tags driven by that document.
 
+## No magic
+
+Tooling does what the customer wrote. A URL, route, or render mode exists because a config line names it, not because another field implies it. Where Astro needs something the customer did not write, such as a spread segment, the owning file names it next to the line that causes it. Tooling empowers the customer with literal building blocks. It does not act on their behalf out of sight.
+
 ## Reading order
 
-| File | Agreement |
-| --- | --- |
-| [`site.md`](site.md) | What the visitor gets |
-| [`snapshot.md`](snapshot.md) | What the customer copies and owns |
-| [`intl.md`](intl.md) | Translation on top of Astro |
-| [`publishing.md`](publishing.md) | Who emits URLs, feeds, and robots |
-| [`later.md`](later.md) | Parked, and what this product refuses |
+| File                             | Agreement                             |
+| -------------------------------- | ------------------------------------- |
+| [`site.md`](site.md)             | What the visitor gets                 |
+| [`snapshot.md`](snapshot.md)     | What the customer copies and owns     |
+| [`intl.md`](intl.md)             | Translation on top of Astro           |
+| [`publishing.md`](publishing.md) | Who emits URLs, feeds, and robots     |
+| [`later.md`](later.md)           | Parked, and what this product refuses |
