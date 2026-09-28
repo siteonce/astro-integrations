@@ -28,18 +28,6 @@ async function makeRoot(): Promise<string> {
   return root;
 }
 
-async function writeCatalogs(
-  srcDir: string,
-  locales: string[],
-  messagesDir = 'messages',
-): Promise<void> {
-  const dir = path.join(srcDir, messagesDir);
-  await mkdir(dir, { recursive: true });
-  for (const locale of locales) {
-    await writeFile(path.join(dir, `${locale}.json`), `${JSON.stringify({ ok: locale })}\n`);
-  }
-}
-
 async function writeIntlConfig(
   srcDir: string,
   source = `export default {
@@ -149,7 +137,6 @@ describe('astroIntl()', () => {
     const root = await makeRoot();
     const srcDir = path.join(root, 'src');
     await writeIntlConfig(srcDir);
-    await writeCatalogs(srcDir, ['en', 'de']);
 
     const { config } = await runSetup({ root });
     assert.deepEqual(config.i18n, {
@@ -163,7 +150,7 @@ describe('astroIntl()', () => {
     });
   });
 
-  it('honors messages.dir and redirectToDefaultLocale', async () => {
+  it('honors redirectToDefaultLocale', async () => {
     const root = await makeRoot();
     const srcDir = path.join(root, 'src');
     await writeIntlConfig(
@@ -172,11 +159,9 @@ describe('astroIntl()', () => {
   locales: ['en'],
   defaultLocale: 'en',
   routing: { prefixDefaultLocale: false, redirectToDefaultLocale: true },
-  messages: { dir: 'i18n-messages' },
 };
 `,
     );
-    await writeCatalogs(srcDir, ['en'], 'i18n-messages');
 
     const { config } = await runSetup({ root });
     assert.deepEqual(config.i18n, {
@@ -196,19 +181,10 @@ describe('astroIntl()', () => {
     await assert.rejects(() => runSetup({ root }), /intl\.config\.ts not found/);
   });
 
-  it('aborts when a configured locale has no catalog file', async () => {
-    const root = await makeRoot();
-    const srcDir = path.join(root, 'src');
-    await writeIntlConfig(srcDir);
-    await writeCatalogs(srcDir, ['en']);
-    await assert.rejects(() => runSetup({ root }), /catalog file for locale "de" not found/);
-  });
-
   it('aborts when overlapping i18n keys are already set on defineConfig', async () => {
     const root = await makeRoot();
     const srcDir = path.join(root, 'src');
     await writeIntlConfig(srcDir);
-    await writeCatalogs(srcDir, ['en', 'de']);
     await assert.rejects(
       () =>
         runSetup({
@@ -231,7 +207,6 @@ describe('astroIntl()', () => {
     const root = await makeRoot();
     const srcDir = path.join(root, 'src');
     await writeIntlConfig(srcDir);
-    await writeCatalogs(srcDir, ['en', 'de']);
     await writeFile(
       path.join(root, 'astro.config.mjs'),
       `import sitemap from '@astrojs/sitemap';
@@ -247,7 +222,6 @@ export default { integrations: [sitemap()] };
     const root = await makeRoot();
     const srcDir = path.join(root, 'src');
     await writeIntlConfig(srcDir);
-    await writeCatalogs(srcDir, ['en', 'de']);
     const sitemap = {
       name: '@astrojs/sitemap',
       hooks: {},
@@ -263,7 +237,6 @@ export default { integrations: [sitemap()] };
     const root = await makeRoot();
     const srcDir = path.join(root, 'src');
     await writeIntlConfig(srcDir);
-    await writeCatalogs(srcDir, ['en', 'de']);
     await writeFile(
       path.join(root, 'astro.config.mjs'),
       `import sitemap from '@astrojs/sitemap';
@@ -295,7 +268,6 @@ export default { integrations: [sitemap({ i18n: { defaultLocale: 'en', locales: 
 };
 `,
     );
-    await writeCatalogs(srcDir, ['en', 'de']);
     const viewsDir = path.join(srcDir, 'views');
     await mkdir(viewsDir, { recursive: true });
     for (const name of ['about.astro', 'post.astro', 'blog.astro', 'missing.astro']) {
@@ -339,7 +311,6 @@ export default { integrations: [sitemap({ i18n: { defaultLocale: 'en', locales: 
 };
 `,
     );
-    await writeCatalogs(srcDir, ['en', 'de']);
     await assert.rejects(() => runSetup({ root }), /view "missing" has no file under src\/views\//);
   });
 
@@ -356,7 +327,6 @@ export default { integrations: [sitemap({ i18n: { defaultLocale: 'en', locales: 
 };
 `,
     );
-    await writeCatalogs(srcDir, ['en', 'de']);
     await assert.rejects(() => runSetup({ root }), /no adapter/);
   });
 
@@ -549,7 +519,6 @@ export default { integrations: [sitemap({ i18n: { defaultLocale: 'en', locales: 
 };
 `,
     );
-    await writeCatalogs(srcDir, ['en', 'de']);
     const viewsDir = path.join(srcDir, 'views');
     await mkdir(viewsDir, { recursive: true });
     for (const name of ['post.astro', 'blog.astro', 'archive.astro']) {
@@ -604,7 +573,6 @@ export default { integrations: [sitemap({ i18n: { defaultLocale: 'en', locales: 
 };
 `,
     );
-    await writeCatalogs(missingSrc, ['en', 'de']);
     const missingViews = path.join(missingSrc, 'views');
     await mkdir(missingViews, { recursive: true });
     await writeFile(path.join(missingViews, 'blog.astro'), '');
@@ -633,7 +601,6 @@ export default { integrations: [sitemap({ i18n: { defaultLocale: 'en', locales: 
 };
 `,
     );
-    await writeCatalogs(bothSrc, ['en', 'de']);
     const bothViews = path.join(bothSrc, 'views');
     await mkdir(path.join(bothViews, 'archive'), { recursive: true });
     await writeFile(path.join(bothViews, 'blog.astro'), '');
@@ -701,7 +668,6 @@ async function writeRenderingRoutes(
 };
 `,
   );
-  await writeCatalogs(srcDir, ['en', 'de']);
   const viewsDir = path.join(srcDir, 'views');
   await mkdir(viewsDir, { recursive: true });
   for (const name of ['about.astro', 'post.astro', 'blog.astro', 'missing.astro']) {

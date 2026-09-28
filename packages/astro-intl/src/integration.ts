@@ -1,8 +1,8 @@
 /**
  * Astro integration entry — named (and default) export `astroIntl()`.
  * Loads `src/intl.config.ts`, writes locale list and prefix policy through to
- * Astro `i18n`, and checks catalog files. Injects one route per compiled route
- * and locale. A row with `pagination` compiles to two. `viewRendering: 'request'`
+ * Astro `i18n`. Injects one route per compiled route and locale. A row with
+ * `pagination` compiles to two. `viewRendering: 'request'`
  * injects static, entry, and listing routes on demand and refuses to boot without
  * an adapter. Under `astro dev`,
  * `viewRendering` is treated as `'build'`. Fallback routes stay prerendered.
@@ -24,7 +24,7 @@ import { fileURLToPath } from 'node:url';
 import type { AstroIntegration } from 'astro';
 import { createJiti } from 'jiti';
 import * as z from 'zod';
-import { type IntlConfig, intlConfigSchema, messagesDir } from './define-intl.ts';
+import { type IntlConfig, intlConfigSchema } from './define-intl.ts';
 import { fileRouteCollision, isIntlRoute, reservedTailsFromRoutes } from './reserved-paths.ts';
 import {
   type CompiledRoute,
@@ -42,6 +42,7 @@ export {
   type CollectionConfig,
   defineIntl,
   type IntlConfig,
+  type LocaleOf,
   type RouteConfig,
 } from './define-intl.ts';
 export { id, locale, slug } from './fragments.ts';
@@ -189,16 +190,6 @@ export function astroIntl(): AstroIntegration {
             '@repo/astro-intl: viewRendering is "request" and the site has no adapter.';
           logger.error(message);
           throw new Error(message);
-        }
-
-        const dir = messagesDir(intlConfig);
-        for (const locale of intlConfig.locales) {
-          const catalogPath = fileURLToPath(new URL(`${dir}/${locale}.json`, config.srcDir));
-          if (!existsSync(catalogPath)) {
-            logger.error(`Missing catalog file for locale "${locale}". Expected: ${catalogPath}`);
-            throw new Error(`@repo/astro-intl: catalog file for locale "${locale}" not found.`);
-          }
-          addWatchFile(catalogPath);
         }
 
         setIntlConfig(intlConfig);

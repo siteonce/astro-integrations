@@ -22,15 +22,18 @@ function formatMessage(locale: string, message: string, values?: CatalogValues):
 }
 
 /**
- * Pure translator factory. The caller passes already-loaded per-locale message
- * trees; this module never reads catalog files.
+ * Pure translator factory. The caller passes one message tree per locale.
+ * With an explicit locale type, a missing locale is a type error.
+ * This module never reads catalog files.
  *
  * Missing keys stay visible as the dotted path (`HomePage.title`). Values are
  * not merged from another locale.
  */
-export function createT(catalogs: Record<string, unknown>) {
+export function createT<L extends string = string>(catalogs: Record<L, unknown>) {
+  const byLocale = catalogs as Record<string, unknown>;
+
   function t(locale: string, key: string, values?: CatalogValues): string {
-    const message = lookup(catalogs[locale], key);
+    const message = lookup(byLocale[locale], key);
     if (message === undefined) return key;
     return formatMessage(locale, message, values);
   }

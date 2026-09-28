@@ -1,8 +1,6 @@
 import * as z from 'zod';
 import { normalizeSlug, patternSection } from './path.ts';
 
-const DEFAULT_MESSAGES_DIR = 'messages';
-
 export const collectionConfigSchema = z.strictObject({
   idField: z.string().min(1).optional(),
   localeField: z.string().min(1).optional(),
@@ -328,11 +326,6 @@ export const intlConfigSchema = z
       prefixDefaultLocale: z.boolean(),
       redirectToDefaultLocale: z.boolean().optional(),
     }),
-    messages: z
-      .strictObject({
-        dir: z.string().min(1),
-      })
-      .optional(),
     routes: z.array(routeConfigSchema).optional(),
     /**
      * When injected views render. `'build'` prerenders them. `'request'` renders
@@ -388,11 +381,15 @@ export function flattenIntlConfig(config: IntlConfigInput | IntlConfig): IntlCon
   } as IntlConfig;
 }
 
-/** Typed helper for `src/intl.config.ts`. Validation runs when `astroIntl()` loads the file. */
-export function defineIntl(config: IntlConfigInput): IntlConfigInput {
-  return config;
-}
+/** Locale union of a config that lists `locales`. */
+export type LocaleOf<C extends { locales: readonly string[] }> = C['locales'][number];
 
-export function messagesDir(config: IntlConfig): string {
-  return config.messages?.dir ?? DEFAULT_MESSAGES_DIR;
+/** Typed helper for `src/intl.config.ts`. Validation runs when `astroIntl()` loads the file. */
+export function defineIntl<const L extends string>(
+  config: Omit<IntlConfigInput, 'locales' | 'defaultLocale'> & {
+    locales: L[];
+    defaultLocale: NoInfer<L>;
+  },
+) {
+  return config;
 }

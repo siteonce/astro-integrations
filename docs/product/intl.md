@@ -114,13 +114,13 @@ Documents stay paired entries (`id` + `locale` on each sibling). Inline locale m
 
 ## Catalogs
 
-`createT` is pure: the app passes message objects in. Catalog JSON is not loaded into a virtual module.
+`createT` is pure: the app passes message objects in. Catalog JSON is not loaded into a virtual module. An app types `createT` with its locales, so a locale without a catalog fails type-check; intl does not check catalog files.
 
 ## Refuses to boot
 
 Fail at startup when:
 
-- `src/intl.config.ts` is missing, or a configured locale has no catalog file.
+- `src/intl.config.ts` is missing.
 - Overlapping `i18n` keys are already set on `defineConfig`, or `@astrojs/sitemap`'s `i18n` option is set.
 - A `(locale, path)` is duplicated, or a file route shadows an entry.
 - A row names a view that has no file under `src/views/`, or that has both `<view>.astro` and `<view>/index.astro`.
