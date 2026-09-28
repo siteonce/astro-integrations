@@ -39,6 +39,8 @@ A row that names an entry and no `{slug}` publishes the written tail. That entry
 
 A collection named without `{slug}` supplies its entries to the written tail and publishes no entry URL. `pagination` publishes the later pages. `pageSize` is how many entries fill one chunk. Omit `pagination` and the row stays that one tail. Page 1 is the row’s `slug`. Later pages replace `{page}` in `pagination.slug`. Each locale writes that tail in full (`blog/{page}`, `artikel/seite/{page}`). The row does not store a page count. Each locale publishes as many pages as its listing fills. A page’s alternates are the locales that publish that same page. The `{page}` tail never publishes page 1. A literal page-1 tail such as `blog/1` publishes that tail and leaves the unnumbered tail free. An entry slug that matches a published page number on that section aborts the build.
 
+`pagination.slug` is written in full, even when it repeats the row’s `slug`. It has no default. The obvious default, `<slug>/{page}`, has the shape that clashes with an on-demand `{slug}` route ([View rendering](#view-rendering)). A default would hand every site that clash without a line naming it. A tail relative to the row’s `slug` is refused as well. It would bend a literal page-1 tail (`blog/1` → `blog/1/2`) and tie later pages to page 1’s tail. The key stays `slug` because it holds the same kind of value as the row’s `slug`: a full tail per locale.
+
 The chunk count uses the app’s listing. The starter listing is that locale’s posts, newest first. A CMS supplies that same ordered list. A CMS page size is separate from `pagination.pageSize`.
 
 The content source decides which drafts exist. Outside local and preview, drafts never enter the collection, so no page, listing, sitemap URL, or alternate sees them. A CMS does this with its published view of the content. The listing orders and filters. It does not hide drafts.
@@ -144,5 +146,7 @@ Starter’s content source is Astro content collections. A CMS that presents the
 The path helpers do not return a `cacheKey` yet.
 
 The starter keeps `'build'` and has no adapter.
+
+The starter keeps `blog/{page}` beside `blog/{slug}` on purpose. That is the clashing shape. It keeps the check and its workarounds exercised, so they do not rot. It is not the recommended setup for an on-demand site.
 
 Some URLs still exist without a config line that names them. A static row compiles to a hidden `[...index]` spread. Fallback routes are injected for every non-default locale without a row naming them. `viewRendering` is treated as `'build'` under `astro dev`.
