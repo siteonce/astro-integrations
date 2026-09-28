@@ -5,7 +5,7 @@
 
 import type { PaginateFunction } from 'astro';
 import type { IntlConfig } from './define-intl.ts';
-import { type ListingEntries, listingSelection, localePathKey } from './pairing.ts';
+import { listingSelection, localePathKey } from './pairing.ts';
 import {
   compilePath,
   listingPagePath,
@@ -19,6 +19,17 @@ import type { CompiledRoute } from './routing.ts';
 type RelativeUrl = (locale: string, path?: string) => string;
 
 type RouteRow = NonNullable<IntlConfig['routes']>[number];
+
+/** Locale handed to `sort` and `order`. */
+export type ListingContext = { locale: string };
+
+/**
+ * `sort` builds a comparator. `order` reorders the whole list and must keep every entry.
+ * One is required.
+ */
+export type ListingOrder<T> =
+  | { sort: (context: ListingContext) => (a: T, b: T) => number; order?: never }
+  | { order: (entries: readonly T[], context: ListingContext) => readonly T[]; sort?: never };
 
 /**
  * The compiled route for one pattern and kind.
@@ -64,6 +75,7 @@ export function entryPathsFor<T>(
 /**
  * Paginated rows for this listing route.
  * A `[...page]` route emits page 1. A `[page]` route emits pages 2 onward.
+ * The locale filter selects the entries. `ordering` sorts or reorders that selection.
  * `path` is added per page. `page.url` comes from `relativeUrl`, not from `paginate`.
  * Page 1's `next` uses `pagination.slug`. Page 2's `prev` uses the row's `slug`.
  * `paginate` shares one props object across pages.
@@ -73,7 +85,7 @@ export function listingPathsFor<T>(
   query: IntlQuery,
   route: CompiledRoute,
   paginate: PaginateFunction,
-  listEntries: ListingEntries | undefined,
+  ordering: ListingOrder<T>,
   relativeUrl: RelativeUrl,
 ) {
   const row = routeRow(config, route);
@@ -87,13 +99,13 @@ export function listingPathsFor<T>(
   }
   const pathFor = (page: number) => listingPagePath(written, pageTail, page);
   const localeField = config.collections?.[row.collection ?? '']?.localeField ?? 'locale';
-  const entries = listingSelection(
+  const selected = listingSelection(
     query.collections,
     row.collection ?? '',
     route.locale,
     localeField,
-    listEntries,
   ) as readonly T[];
+  const entries = listingOrder(selected, ordering, route.locale, label);
   const pages = paginate(entries, {
     pageSize: pagination.pageSize,
     props: { locale: route.locale, route: row },
@@ -140,6 +152,51 @@ export function listingPathsFor<T>(
     );
   }
   return results;
+}
+
+/**
+ * Applies `sort` or `order` to the locale selection.
+ * Aborts when neither or both are set, or when the result is not a reorder of that selection.
+ */
+function listingOrder<T>(
+  selected: readonly T[],
+  ordering: ListingOrder<T>,
+  locale: string,
+  label: string,
+): readonly T[] {
+  const sort = ordering.sort;
+  const order = ordering.order;
+  const context: ListingContext = { locale };
+  let ordered: readonly T[];
+  if (typeof sort === 'function' && typeof order !== 'function') {
+    ordered = selected.toSorted(sort(context));
+  } else if (typeof order === 'function' && typeof sort !== 'function') {
+    ordered = order(selected, context);
+  } else if (typeof sort === 'function' && typeof order === 'function') {
+    throw new Error(
+      `@repo/astro-intl: listing "${label}" in "${locale}" sets both sort and order.`,
+    );
+  } else {
+    throw new Error(`@repo/astro-intl: listing "${label}" in "${locale}" needs sort or order.`);
+  }
+  if (!Array.isArray(ordered) || !sameEntries(selected, ordered)) {
+    throw new Error(
+      `@repo/astro-intl: listing "${label}" in "${locale}" order must keep every entry and only reorder.`,
+    );
+  }
+  return ordered;
+}
+
+/** Same entries, by object identity, with no duplicates. */
+function sameEntries<T>(selected: readonly T[], ordered: readonly T[]): boolean {
+  if (ordered.length !== selected.length) return false;
+  const allowed = new Set(selected);
+  const seen = new Set<T>();
+  for (const entry of ordered) {
+    if (!allowed.has(entry) || seen.has(entry)) return false;
+    seen.add(entry);
+  }
+  return true;
 }
 
 /** `[...page]` is page 1. `[page]` is pages 2 onward. */

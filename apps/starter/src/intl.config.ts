@@ -1,10 +1,5 @@
-import { defineIntl, setListingEntries } from '@repo/astro-intl';
+import { defineIntl } from '@repo/astro-intl';
 import { routes } from './routes.config.ts';
-import { listingQuery } from './utils/listing.ts';
-
-// Posts listing pages: that locale's posts, newest first. Other collections keep
-// that locale. The posts loader drops drafts outside local and preview.
-setListingEntries(listingQuery);
 
 export default defineIntl({
   locales: ['en', 'de'],

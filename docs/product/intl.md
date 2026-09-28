@@ -41,9 +41,9 @@ A collection named without `{slug}` supplies its entries to the written tail and
 
 `pagination.slug` is written in full, even when it repeats the row’s `slug`. It has no default. The obvious default, `<slug>/{page}`, has the shape that clashes with an on-demand `{slug}` route ([View rendering](#view-rendering)). A default would hand every site that clash without a line naming it. A tail relative to the row’s `slug` is refused as well. It would bend a literal page-1 tail (`blog/1` → `blog/1/2`) and tie later pages to page 1’s tail. The key stays `slug` because it holds the same kind of value as the row’s `slug`: a full tail per locale.
 
-The chunk count uses the app’s listing. The starter listing is that locale’s posts, newest first. A CMS supplies that same ordered list. A CMS page size is separate from `pagination.pageSize`.
+Pairing counts that locale’s entries (`localeField`). The view orders them with a required `sort` or `order` passed to `listingPaths`. Intl has no default order, because `getCollection()` order is non-deterministic. A CMS page size stays separate from `pageSize`.
 
-The content source decides which drafts exist. Outside local and preview, drafts never enter the collection, so no page, listing, sitemap URL, or alternate sees them. A CMS does this with its published view of the content. The listing orders and filters. It does not hide drafts.
+The content source decides which drafts exist. Outside local and preview, drafts never enter the collection, so no page, listing, sitemap URL, or alternate sees them. A CMS does this with its published view of the content. The view orders the list. Intl filters by locale.
 
 A collection with no slug stays **records**, except an entry a route names. A tail with no entry has no pairing `id`. Its alternates are the locales that publish that tail.
 
@@ -61,7 +61,7 @@ The row decides the route’s shape:
 - A row with `pagination`: page 1 is `<slug>/[...page]`, with the row’s view. The spread is empty for page 1. The helper keeps that page and drops the rest. Later pages are `pagination.slug` with `{page}` replaced by `[page]`, with `pagination.view` or the row’s view. Astro’s `paginate()` includes page 1 as `"1"`. The helper drops that page on the `[page]` route. The spreads exist so Astro calls the view’s `getStaticPaths`.
 - Any other row: `<tail>/[...index]`, one URL. The spread is empty for that URL. It exists so Astro calls the view’s `getStaticPaths`.
 
-Pairing counts the same list as `paginate()`, and a page count that disagrees aborts the build. Page 1 uses the row’s view. Later pages use `pagination.view`, or the row’s view when that is omitted. Each view calls `listingPaths` once. The helper reads `routePattern` and emits the pages for that route.
+Pairing counts the same list as `paginate()`, and a page count that disagrees aborts the build. `order` must return the same entries, and the build aborts when it does not. `listingPaths` aborts when neither `sort` nor `order` is set, and when both are set. Page 1 uses the row’s view. Later pages use `pagination.view`, or the row’s view when that is omitted. Each view calls `listingPaths` once. The helper reads `routePattern` and emits the pages for that route.
 
 A view is a full Astro page. The view owns its `getStaticPaths`, typed props, and `prerender`, and its `getStaticPaths` lists its URLs. `viewRendering` sets the default for `prerender` ([View rendering](#view-rendering)). It returns intl’s helper for its route: `staticPaths`, `entryPaths`, `listingPaths`, or `fallbackPaths`. A helper returns only what pairing published in that locale. A locale that does not publish a row’s tail gets no page.
 

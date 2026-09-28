@@ -10,6 +10,7 @@ import { createIntlQuery, type IntlQuery } from './query.ts';
 import {
   entryPathsFor,
   fallbackPathsFor,
+  type ListingOrder,
   listingPathsFor,
   routeFor,
   staticPathsFor,
@@ -97,6 +98,8 @@ function paginate(
 
 const paginateFn = paginate as unknown as PaginateFunction;
 
+const keepOrder: ListingOrder<CollectionEntryLike> = { sort: () => () => 0 };
+
 function compiledRoute(pattern: string, kind: CompiledRoute['kind']): CompiledRoute {
   return routeFor(compileRoutes(config), pattern, kind);
 }
@@ -165,8 +168,10 @@ describe('listingPathsFor', () => {
     const rest = compiledRoute('/en/blog/[page]', 'listing');
     const spread = await astroPaginate('...page');
     const named = await astroPaginate('page');
+    const list = (route: CompiledRoute, paginate: PaginateFunction) =>
+      listingPathsFor(config, query, route, paginate, keepOrder, markedRelativeUrl);
     for (const paginate of [spread, requestPaginate]) {
-      const pages = listingPathsFor(config, query, first, paginate, undefined, markedRelativeUrl);
+      const pages = list(first, paginate);
       assert.deepEqual(
         pages.map((item) => item.props.path),
         ['blog'],
@@ -174,7 +179,7 @@ describe('listingPathsFor', () => {
       assert.equal(pages[0]?.props.page.url.next, markedRelativeUrl('en', 'blog/2'));
     }
     for (const paginate of [named, requestPaginate]) {
-      const pages = listingPathsFor(config, query, rest, paginate, undefined, markedRelativeUrl);
+      const pages = list(rest, paginate);
       assert.deepEqual(
         pages.map((item) => item.props.path),
         ['blog/2', 'blog/3', 'blog/4'],
@@ -217,7 +222,7 @@ describe('listingPathsFor', () => {
       query,
       routeFor(compiled, '/en/blog/[...page]', 'listing'),
       paginateFn,
-      undefined,
+      keepOrder,
       markedRelativeUrl,
     );
     const pageTwo = listingPathsFor(
@@ -225,7 +230,7 @@ describe('listingPathsFor', () => {
       query,
       routeFor(compiled, '/en/blog/page/[page]', 'listing'),
       paginateFn,
-      undefined,
+      keepOrder,
       markedRelativeUrl,
     );
     assert.deepEqual(
@@ -270,7 +275,7 @@ describe('listingPathsFor', () => {
       query,
       routeFor(compiled, '/[...page]', 'listing'),
       paginateFn,
-      undefined,
+      keepOrder,
       markedRelativeUrl,
     );
     const rest = listingPathsFor(
@@ -278,7 +283,7 @@ describe('listingPathsFor', () => {
       query,
       routeFor(compiled, '/[page]', 'listing'),
       paginateFn,
-      undefined,
+      keepOrder,
       markedRelativeUrl,
     );
     assert.deepEqual(
@@ -320,7 +325,7 @@ describe('listingPathsFor', () => {
       query,
       routeFor(compileRoutes(archive), '/en/blog/[...page]', 'listing'),
       paginateFn,
-      undefined,
+      keepOrder,
       markedRelativeUrl,
     );
     assert.deepEqual(
@@ -352,10 +357,143 @@ describe('listingPathsFor', () => {
           queryFor(),
           compiledRoute('/en/blog/[page]', 'listing'),
           extra,
-          undefined,
+          keepOrder,
           markedRelativeUrl,
         ),
       /listing "blog\/\{page\}" in "en" emits page 5, which pairing did not publish/,
+    );
+  });
+
+  it('puts the higher number on page 1 when sort descends', () => {
+    const low = entry('low', { id: 'low', locale: 'en', n: 1 });
+    const high = entry('high', { id: 'high', locale: 'en', n: 9 });
+    const section: IntlConfig = {
+      locales: ['en', 'de'],
+      defaultLocale: 'en',
+      routing: { prefixDefaultLocale: true },
+      routes: [
+        {
+          slug: { en: 'blog', de: 'artikel' },
+          view: 'index',
+          collection: 'blog',
+          pagination: { pageSize: 1, slug: { en: 'blog/{page}', de: 'artikel/{page}' } },
+        },
+      ],
+      collections: { blog: {} },
+    };
+    const query = createIntlQuery({
+      config: section,
+      collections: { blog: [low, high] },
+      getAbsoluteLocaleUrl: () => '',
+    });
+    const compiled = compileRoutes(section);
+    const descend: ListingOrder<CollectionEntryLike> = {
+      sort: () => (a, b) => Number(b.data.n) - Number(a.data.n),
+    };
+    const pageOne = listingPathsFor(
+      section,
+      query,
+      routeFor(compiled, '/en/blog/[...page]', 'listing'),
+      requestPaginate,
+      descend,
+      markedRelativeUrl,
+    );
+    const pageTwo = listingPathsFor(
+      section,
+      query,
+      routeFor(compiled, '/en/blog/[page]', 'listing'),
+      requestPaginate,
+      descend,
+      markedRelativeUrl,
+    );
+    assert.equal(pageOne[0]?.props.page.data[0], high);
+    assert.equal(pageTwo[0]?.props.page.data[0], low);
+  });
+
+  it('passes the route locale to order', () => {
+    let locale: string | undefined;
+    listingPathsFor(
+      config,
+      queryFor(),
+      compiledRoute('/de/artikel/[...page]', 'listing'),
+      paginateFn,
+      {
+        order: (entries, context) => {
+          locale = context.locale;
+          return entries;
+        },
+      },
+      markedRelativeUrl,
+    );
+    assert.equal(locale, 'de');
+  });
+
+  it('throws when order drops an entry', () => {
+    assert.throws(
+      () =>
+        listingPathsFor(
+          config,
+          queryFor(),
+          compiledRoute('/en/blog/[...page]', 'listing'),
+          paginateFn,
+          { order: (entries) => entries.slice(1) },
+          markedRelativeUrl,
+        ),
+      /listing "blog" in "en" order must keep every entry and only reorder/,
+    );
+  });
+
+  it('throws when order duplicates an entry', () => {
+    assert.throws(
+      () =>
+        listingPathsFor(
+          config,
+          queryFor(),
+          compiledRoute('/en/blog/[...page]', 'listing'),
+          paginateFn,
+          {
+            order: (entries) => {
+              const first = entries[0];
+              if (first === undefined) return entries;
+              return entries.map((entry, index) => (index === 1 ? first : entry));
+            },
+          },
+          markedRelativeUrl,
+        ),
+      /listing "blog" in "en" order must keep every entry and only reorder/,
+    );
+  });
+
+  it('throws when neither sort nor order is set', () => {
+    assert.throws(
+      () =>
+        listingPathsFor(
+          config,
+          queryFor(),
+          compiledRoute('/en/blog/[...page]', 'listing'),
+          paginateFn,
+          {} as ListingOrder<CollectionEntryLike>,
+          markedRelativeUrl,
+        ),
+      /listing "blog" in "en" needs sort or order/,
+    );
+  });
+
+  it('throws when both sort and order are set', () => {
+    assert.throws(
+      () =>
+        listingPathsFor(
+          config,
+          queryFor(),
+          compiledRoute('/en/blog/[...page]', 'listing'),
+          paginateFn,
+          {
+            sort: () => () => 0,
+            order: (entries: readonly CollectionEntryLike[]) => entries,
+          } as unknown as ListingOrder<CollectionEntryLike>,
+          markedRelativeUrl,
+        ),
+      /listing "blog" in "en" sets both sort and order/,
     );
   });
 });

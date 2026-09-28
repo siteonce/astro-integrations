@@ -1,6 +1,7 @@
 ---
-// Listing. One chunk of that locale's published posts. The HTML title comes
-// from the catalog. `listingPaths` emits each page and its path.
+// Listing. One chunk of that locale's published posts, newest first. This view
+// sets that order. The HTML title comes from the catalog. `listingPaths` emits
+// each page and its path.
 import type { CollectionEntry } from 'astro:content';
 import { getAlternatePathsForPath, listingPaths, setIntlConfig, viewProps } from '@repo/astro-intl';
 import { Hreflang } from '@repo/astro-intl/components';
@@ -12,13 +13,16 @@ import SiteLayout from '../../layouts/site-layout.astro';
 import { ogConfig } from '../../og.config.ts';
 import { siteConfig } from '../../site.config.ts';
 import { createPageKit } from '../../utils/page-kit.ts';
+import { byDate } from '../../utils/sorting.ts';
 
 // Page bundles do not share the integration's in-memory runtime.
 setIntlConfig(intlConfig);
 
 export async function getStaticPaths({ paginate, routePattern }: GetStaticPathsOptions) {
   setIntlConfig(intlConfig);
-  return listingPaths<CollectionEntry<'posts'>>(routePattern, paginate);
+  return listingPaths<CollectionEntry<'posts'>>(routePattern, paginate, {
+    sort: () => byDate((post) => post.data.pubDate, 'desc'),
+  });
 }
 
 type Props = InferGetStaticPropsType<typeof getStaticPaths>;

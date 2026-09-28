@@ -1,10 +1,5 @@
 import type { PaginateFunction } from 'astro';
-import {
-  type CollectionEntryLike,
-  currentListingEntries,
-  type ListingEntries,
-  setListingEntriesFn,
-} from './pairing.ts';
+import type { CollectionEntryLike } from './pairing.ts';
 import {
   createIntlQuery,
   type DocumentHead,
@@ -23,6 +18,8 @@ import {
 import {
   entryPathsFor,
   fallbackPathsFor,
+  type ListingContext,
+  type ListingOrder,
   listingPathsFor,
   routeFor,
   staticPathsFor,
@@ -31,7 +28,7 @@ import { type CompiledRoute, compileRoutes } from './routing.ts';
 import { getIntlRuntime, runtimeGeneration } from './runtime.ts';
 
 export { hreflangLinks } from './hreflang.ts';
-export type { DocumentHead, PairedSlug, SitemapEntry };
+export type { DocumentHead, ListingContext, ListingOrder, PairedSlug, SitemapEntry };
 
 /** Collection read used by query helpers. Production uses `astro:content`. Intl does not call a CMS. */
 export type IntlLoaders = {
@@ -55,14 +52,6 @@ export function resetIntlQuery(): void {
   cached = undefined;
   cachedGeneration = -1;
 }
-
-/** The app registers the listing callback. Pairing uses it for a row with `pagination`. */
-export function setListingEntries(fn: ListingEntries | undefined): void {
-  setListingEntriesFn(fn);
-  resetIntlQuery();
-}
-
-export type { ListingEntries };
 
 async function defaultLoaders(): Promise<IntlLoaders> {
   const { getCollection } = await import('astro:content');
@@ -126,7 +115,6 @@ async function loadQuery(): Promise<IntlQuery> {
     reservedTails: runtime.reservedTails,
     fileRouteTails: runtime.routeTails,
     getAbsoluteLocaleUrl: loaders.getAbsoluteLocaleUrl,
-    listingEntries: currentListingEntries(),
   });
   assertRelations({
     locales: runtime.config.locales,
@@ -200,8 +188,16 @@ export async function entryPaths<T>(routePattern: string) {
   return entryPathsFor<T>(getIntlRuntime().config, query, route);
 }
 
-/** Paginated paths for the injected listing route at `routePattern`. */
-export async function listingPaths<T>(routePattern: string, paginate: PaginateFunction) {
+/**
+ * Paginated paths for the injected listing route at `routePattern`.
+ * `sort` compares two entries. `order` reorders the whole list and must keep every entry.
+ * One is required. Both receive the route's locale.
+ */
+export async function listingPaths<T>(
+  routePattern: string,
+  paginate: PaginateFunction,
+  ordering: ListingOrder<T>,
+) {
   const query = await loadQuery();
   const route = routeFor(compiledRoutes(), routePattern, 'listing');
   const { getRelativeLocaleUrl } = await import('astro:i18n');
@@ -210,7 +206,7 @@ export async function listingPaths<T>(routePattern: string, paginate: PaginateFu
     query,
     route,
     paginate,
-    currentListingEntries(),
+    ordering,
     getRelativeLocaleUrl,
   );
 }

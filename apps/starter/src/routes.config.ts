@@ -15,7 +15,7 @@ export const routes: StarterRoute[] = [
     view: 'home',
   },
   {
-    // Page 1 is this slug. Later pages replace `{page}`. Posts come from `listingQuery`.
+    // Page 1 is this slug. Later pages replace `{page}`. The view orders the posts.
     slug: { en: 'blog', de: 'artikel' },
     collection: 'posts',
     view: 'blog',

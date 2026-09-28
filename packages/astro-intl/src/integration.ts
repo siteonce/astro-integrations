@@ -58,9 +58,9 @@ export {
   getRelated,
   getSitemapEntries,
   hreflangLinks,
-  type ListingEntries,
+  type ListingContext,
+  type ListingOrder,
   listingPaths,
-  setListingEntries,
   staticPaths,
 } from './helpers.ts';
 export { leafSlug } from './locale-section.ts';

@@ -9,23 +9,6 @@ import {
   patternSection,
 } from './path.ts';
 
-/** Orders and filters the entries that fill a collection tail. The app owns draft rules. */
-export type ListingEntries = (
-  collection: string,
-  locale: string,
-  entries: readonly CollectionEntryLike[],
-) => readonly CollectionEntryLike[];
-
-let listingEntriesFn: ListingEntries | undefined;
-
-export function setListingEntriesFn(fn: ListingEntries | undefined): void {
-  listingEntriesFn = fn;
-}
-
-export function currentListingEntries(): ListingEntries | undefined {
-  return listingEntriesFn;
-}
-
 /** Entry shape pairing and relations read. The content source fills `id` and `data`. `filePath` is optional. */
 export type CollectionEntryLike = {
   id: string;
@@ -82,16 +65,14 @@ function readString(data: Record<string, unknown>, field: string): string | unde
   return typeof value === 'string' && value.length > 0 ? value : undefined;
 }
 
-/** Entries that fill one locale of a collection tail. A callback replaces the locale filter. */
+/** Entries in one locale of a collection tail. `localeField` selects them. */
 export function listingSelection(
   collections: Readonly<Record<string, readonly CollectionEntryLike[]>>,
   collection: string,
   locale: string,
   localeField: string,
-  listEntries: ListingEntries | undefined,
 ): readonly CollectionEntryLike[] {
   const source = collections[collection] ?? [];
-  if (listEntries) return listEntries(collection, locale, source);
   return source.filter((entry) => readString(entry.data, localeField) === locale);
 }
 
@@ -170,7 +151,6 @@ export function pairCollections(
   config: IntlConfig,
   collections: Record<string, CollectionEntryLike[]>,
   reservedTails: string[] = [],
-  listingEntries?: ListingEntries,
 ): PairingIndex {
   const issues = routeConfigIssues(config);
   const firstIssue = issues[0];
@@ -195,7 +175,6 @@ export function pairCollections(
   const seenIds = new Map<string, string>();
   const patterns = patternsByCollection(config);
   const fixedEntries = fixedEntryKeys(config);
-  const listEntries = listingEntries ?? currentListingEntries();
   const byDataId = new Map<string, IndexedEntry>();
 
   for (const name of Object.keys(listed)) {
@@ -404,13 +383,7 @@ export function pairCollections(
     const localeField = listed[route.collection]?.localeField ?? 'locale';
     const pages = new Map<string, number>();
     for (const locale of config.locales) {
-      const selected = listingSelection(
-        collections,
-        route.collection,
-        locale,
-        localeField,
-        listEntries,
-      );
+      const selected = listingSelection(collections, route.collection, locale, localeField);
       pages.set(locale, listingPageCount(selected.length, pagination.pageSize));
     }
     const maxPage = Math.max(1, ...pages.values());

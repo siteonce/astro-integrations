@@ -68,6 +68,8 @@ A snapshot monorepo that is the foundation for every Astro **content site** buil
 
 **`pageSize`**: How many entries one chunk of a listing holds. A positive integer on `pagination`. Omit `pagination` and the row stays that one tail. The row does not store a page count. _Avoid_: a top-level key; pages (as a count of URLs); a CMS API page size
 
+**listing order**: The required `sort` or `order` on `listingPaths`. `sort` builds a comparator from the route’s locale. `order` reorders the whole list and must keep the same entries. _Avoid_: a default order; a global listing hook; filtering in `order`
+
 **routed collection**: A listed collection whose entries have a public URL. A `{slug}` row publishes that URL: the **section** plus the **slug**. _Avoid_: giving records a slug; treating a collection tail as an entry URL
 
 **entry**: One item in a collection. Locale siblings share one pairing `id`. _Avoid_: document; a **view** that no collection claims

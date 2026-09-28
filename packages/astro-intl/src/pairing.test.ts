@@ -1331,7 +1331,7 @@ describe('published tails with no entry', () => {
     assert.equal(page3?.entryId, undefined);
   });
 
-  it('counts the listing query, not every stored entry', () => {
+  it('counts every entry in that locale toward listing pages', () => {
     const posts: ReturnType<typeof entry>[] = [];
     for (let index = 0; index < 15; index += 1) {
       posts.push(
@@ -1376,11 +1376,9 @@ describe('published tails with no entry', () => {
       ],
       collections: { blog: { slugField: 'slug' } },
     };
-    const paired = pairCollections(paged, { blog: posts }, [], (_collection, locale, entries) =>
-      entries.filter((item) => item.data.locale === locale && item.data.status !== 'draft'),
-    );
+    const paired = pairCollections(paged, { blog: posts });
     const tails = paired.tails.map((item) => `${item.locale}:${item.path}`).sort();
-    assert.deepEqual(tails, ['de:artikel', 'en:blog', 'en:blog/2']);
+    assert.deepEqual(tails, ['de:artikel', 'en:blog', 'en:blog/2', 'en:blog/3']);
     assert.ok(paired.routed.some((item) => item.path === 'blog/draft-0'));
   });
 
