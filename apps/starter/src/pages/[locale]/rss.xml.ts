@@ -6,7 +6,7 @@ import { persistIntlSitemapEntries } from '@repo/astro-intl-sitemap';
 import type { APIRoute } from 'astro';
 import intlConfig from '../../intl.config.ts';
 import { siteConfig } from '../../site.config.ts';
-import { byDate } from '../../utils/sorting.ts';
+import { postsNewestFirst } from '../../utils/sorting.ts';
 import { t } from '../../utils/t.ts';
 
 // Page bundles do not share the integration's in-memory runtime.
@@ -30,7 +30,7 @@ export const GET: APIRoute = async (context) => {
 
   const posts = (await getCollection('posts'))
     .filter((post) => post.data.locale === locale && post.data.status === 'published')
-    .toSorted(byDate((post) => post.data.pubDate, 'desc'));
+    .toSorted(postsNewestFirst);
 
   const items = await Promise.all(
     posts.map(async (post) => {

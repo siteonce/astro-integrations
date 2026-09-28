@@ -1,3 +1,5 @@
+import type { CollectionEntry } from 'astro:content';
+
 /** Comparator for `Array.prototype.toSorted`. Negative when `a` comes first. */
 export type Compare<T> = (a: T, b: T) => number;
 
@@ -42,3 +44,12 @@ export function sortBy<T>(...compares: Compare<T>[]): Compare<T> {
     return 0;
   };
 }
+
+/**
+ * Newest `pubDate` first. Same-day posts fall back to pairing id, so every build and locale
+ * agrees. Collation stays `en` because pairing ids are slugs, not reader-facing text.
+ */
+export const postsNewestFirst: Compare<CollectionEntry<'posts'>> = sortBy(
+  byDate((post) => post.data.pubDate, 'desc'),
+  byText((post) => post.data.id, 'en', 'asc'),
+);

@@ -12,7 +12,7 @@ import SiteLayout from '../../layouts/site-layout.astro';
 import { ogConfig } from '../../og.config.ts';
 import { siteConfig } from '../../site.config.ts';
 import { createPageKit } from '../../utils/page-kit.ts';
-import { byDate } from '../../utils/sorting.ts';
+import { postsNewestFirst } from '../../utils/sorting.ts';
 
 // Page bundles do not share the integration's in-memory runtime.
 setIntlConfig(intlConfig);
@@ -40,7 +40,7 @@ const Content = hasBody ? (await render(entry)).Content : undefined;
 
 const posts = (await kit.posts())
   .filter((post) => post.data.tags.some((tag) => tag.id === entry.data.id))
-  .toSorted(byDate((post) => post.data.pubDate, 'desc'));
+  .toSorted(postsNewestFirst);
 const items = await Promise.all(posts.map((post) => kit.postItem(post)));
 ---
 

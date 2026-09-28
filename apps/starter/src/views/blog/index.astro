@@ -13,7 +13,7 @@ import SiteLayout from '../../layouts/site-layout.astro';
 import { ogConfig } from '../../og.config.ts';
 import { siteConfig } from '../../site.config.ts';
 import { createPageKit } from '../../utils/page-kit.ts';
-import { byDate } from '../../utils/sorting.ts';
+import { postsNewestFirst } from '../../utils/sorting.ts';
 
 // Page bundles do not share the integration's in-memory runtime.
 setIntlConfig(intlConfig);
@@ -21,7 +21,7 @@ setIntlConfig(intlConfig);
 export async function getStaticPaths({ paginate, routePattern }: GetStaticPathsOptions) {
   setIntlConfig(intlConfig);
   return listingPaths<CollectionEntry<'posts'>>(routePattern, paginate, {
-    sort: () => byDate((post) => post.data.pubDate, 'desc'),
+    sort: () => postsNewestFirst,
   });
 }
 
