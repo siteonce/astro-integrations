@@ -57,13 +57,14 @@ export default defineConfig({
   },
   integrations: [
     astroIntl(),
-    ogImage({
-      config: ogConfig,
-      siteConfig,
-      deployConfig,
-      intlConfig,
-      catalogs,
-    }),
+    // TODO: Add ogImage back in once fixed
+    // ogImage({
+    //   config: ogConfig,
+    //   siteConfig,
+    //   deployConfig,
+    //   intlConfig,
+    //   catalogs,
+    // }),
     mdx(),
     svelte(),
     partytown({
