@@ -1,5 +1,5 @@
 import { getCollection } from 'astro:content';
-import { getAbsoluteLocaleUrl } from 'astro:i18n';
+import { getAbsoluteLocaleUrl, getRelativeLocaleUrl } from 'astro:i18n';
 import rss from '@astrojs/rss';
 import { getAlternatePaths, getSitemapEntries, setIntlConfig } from '@repo/astro-intl';
 import { persistIntlSitemapEntries } from '@repo/astro-intl-sitemap';
@@ -12,15 +12,21 @@ import { t } from '../../utils/t.ts';
 // Page bundles do not share the integration's in-memory runtime.
 setIntlConfig(intlConfig);
 
-// Per-locale feed. Channel copy from catalogs; item links from intl pairing.
+// The feed follows each locale's home. Channel copy from catalogs; item links from intl pairing.
 export const prerender = true;
 
 export function getStaticPaths() {
-  return intlConfig.locales.map((locale) => ({ params: { locale } }));
+  return intlConfig.locales.map((locale) => {
+    const segment = getRelativeLocaleUrl(locale).replace(/^\/+|\/+$/g, '');
+    return {
+      params: { locale: segment === '' ? undefined : segment },
+      props: { locale },
+    };
+  });
 }
 
-export const GET: APIRoute = async (context) => {
-  const locale = context.params.locale ?? context.currentLocale ?? intlConfig.defaultLocale;
+export const GET: APIRoute<{ locale: string }> = async (context) => {
+  const locale = context.props.locale;
   const entries = await getSitemapEntries();
   persistIntlSitemapEntries(entries);
 

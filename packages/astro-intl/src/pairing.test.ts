@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
-import { type IntlConfig, intlConfigSchema, routeConfigIssues } from './define-intl.ts';
+import { defineIntl, type IntlConfig, intlConfigSchema, routeConfigIssues } from './define-intl.ts';
 import { id, locale, slug } from './fragments.ts';
 import { hreflangLinks } from './hreflang.ts';
 import { type CollectionEntryLike, pairCollections } from './pairing.ts';
@@ -812,6 +812,30 @@ describe('pairCollections', () => {
       () => pairCollections(config, { pages: [], blog: [] }),
       /collections.authors is not a content collection/,
     );
+  });
+});
+
+describe('intlConfigSchema prefixDefaultLocale', () => {
+  it('resolves an omitted routing block to false', () => {
+    const authored = defineIntl({ locales: ['en', 'de'], defaultLocale: 'en' });
+    const parsed = intlConfigSchema.parse(authored);
+    const flag: boolean = parsed.routing.prefixDefaultLocale;
+    assert.equal(flag, false);
+  });
+
+  it('resolves an omitted prefixDefaultLocale to false and keeps an explicit true', () => {
+    const omitted = intlConfigSchema.parse({
+      locales: ['en', 'de'],
+      defaultLocale: 'en',
+      routing: {},
+    });
+    const explicit = intlConfigSchema.parse({
+      locales: ['en', 'de'],
+      defaultLocale: 'en',
+      routing: { prefixDefaultLocale: true },
+    });
+    assert.equal(omitted.routing.prefixDefaultLocale, false);
+    assert.equal(explicit.routing.prefixDefaultLocale, true);
   });
 });
 

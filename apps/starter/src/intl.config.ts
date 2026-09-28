@@ -4,10 +4,13 @@ import { routes } from './routes.config.ts';
 const intl = defineIntl({
   locales: ['en', 'de'],
   defaultLocale: 'en',
-  // `true` means the site root is the app's (see the redirect in `astro.config.mjs`).
-  // `false` means the default locale's home is `/`; remove that redirect then.
+  // `false` (also the default): the default locale's home is `/`, and nothing else
+  // may sit at `/`. Startup fails on a page or redirect there.
+  // `true`: every locale is prefixed, and the app must serve `/`. For example,
+  // add `redirects: { '/': '/<defaultLocale>/' }` in `astro.config.mjs`.
+  // Startup fails otherwise. See `docs/product/intl.md`.
   routing: {
-    prefixDefaultLocale: true,
+    prefixDefaultLocale: false,
   },
   // View for a `{slug}` URL whose entry has no translation in that locale, on
   // every `{slug}` row. `views/fallback.astro` redirects to the default-locale entry.

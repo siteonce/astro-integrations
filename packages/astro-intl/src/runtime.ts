@@ -1,4 +1,10 @@
-import { flattenIntlConfig, type IntlConfig, type IntlConfigInput } from './define-intl.ts';
+import * as z from 'zod';
+import {
+  type IntlConfig,
+  type IntlConfigInput,
+  isParsedIntlConfig,
+  safeParseIntlConfig,
+} from './define-intl.ts';
 
 export type IntlRuntime = {
   config: IntlConfig;
@@ -22,16 +28,23 @@ function reservedTails(): string[] {
 }
 
 function storedConfig(next: IntlConfig | IntlConfigInput): IntlConfig {
+  // A config this package already parsed keeps its entry id and defaults.
+  if (isParsedIntlConfig(next)) return next;
   const cached = flatConfigs.get(next);
   if (cached) return cached;
-  const flat = flattenIntlConfig(next);
-  if (flat !== next) flatConfigs.set(next, flat);
-  return flat;
+  // Defaults and collection flattening run once per authored object.
+  // The same object does not rebuild pairing.
+  const parsed = safeParseIntlConfig(next);
+  if (!parsed.success) {
+    throw new Error(
+      `@repo/astro-intl: intl config failed validation.\n${z.prettifyError(parsed.error)}`,
+    );
+  }
+  flatConfigs.set(next, parsed.data);
+  return parsed.data;
 }
 
 export function setIntlConfig(next: IntlConfig | IntlConfigInput | undefined): void {
-  // A collection object is stored as its key and optional pairing id.
-  // Replacing the object rebuilds pairing. The same object does not.
   const resolved = next === undefined ? undefined : storedConfig(next);
   if (resolved === config) return;
   config = resolved;

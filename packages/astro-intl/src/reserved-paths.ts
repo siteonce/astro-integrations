@@ -3,7 +3,7 @@ import type { CompiledRoute } from './routing.ts';
 
 /**
  * File-route tails that must not be claimed by a compiled document `path`.
- * A file route with a dynamic segment after `[locale]` reserves nothing.
+ * A file route with a dynamic segment after `[locale]` or `[...locale]` reserves nothing.
  * The caller drops intl's own injected routes before collecting tails.
  * Optional `reservedPaths` from config are merged by the caller.
  */
@@ -18,8 +18,8 @@ function stripSlashes(value: string): string {
 }
 
 /**
- * URL tail after an optional `[locale]` segment. `undefined` when a dynamic
- * segment follows `[locale]`.
+ * URL tail after an optional `[locale]` or `[...locale]` segment. `undefined`
+ * when a dynamic segment follows that locale segment.
  */
 export function tailFromRoute(route: RouteLike): string | undefined {
   const raw = route.pathname ?? route.pattern;
@@ -27,7 +27,8 @@ export function tailFromRoute(route: RouteLike): string | undefined {
   // Unprefixed root (`pages/index.astro` → `/`) is not a locale-prefixed
   // document tail. Homepage documents compile to path `'/'` under `[locale]/`.
   if (parts.length === 0) return undefined;
-  const withoutLocale = parts[0] === '[locale]' ? parts.slice(1) : parts;
+  const withoutLocale =
+    parts[0] === '[locale]' || parts[0] === '[...locale]' ? parts.slice(1) : parts;
   if (withoutLocale.length === 0) return '/';
   if (withoutLocale.some((part) => part.startsWith('[') && part.endsWith(']'))) {
     return undefined;

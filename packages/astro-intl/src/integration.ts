@@ -14,7 +14,8 @@
  * injected for locales without a translation, and nothing is injected when the
  * row names none. Records reserved
  * file-route tails for pairing collisions, excluding those injected routes.
- * When `prefixDefaultLocale` is true, startup fails unless some other route serves `/`.
+ * `prefixDefaultLocale` defaults to false. When it is true, startup fails unless
+ * some other route serves `/`.
  * Warns when `trailingSlash` and `build.format` disagree. Does not load catalog JSON and
  * does not create a virtual module.
  */
@@ -25,7 +26,7 @@ import { fileURLToPath } from 'node:url';
 import type { AstroIntegration } from 'astro';
 import { createJiti } from 'jiti';
 import * as z from 'zod';
-import { type IntlConfig, intlConfigSchema } from './define-intl.ts';
+import { type IntlConfig, safeParseIntlConfig } from './define-intl.ts';
 import {
   fileRouteCollision,
   isIntlRoute,
@@ -113,7 +114,7 @@ type AstroIntegrationConfigI18n = {
 async function loadIntlConfig(configPath: string): Promise<IntlConfig> {
   const jiti = createJiti(import.meta.url);
   const loaded = await jiti.import(configPath, { default: true });
-  const parsed = intlConfigSchema.safeParse(loaded);
+  const parsed = safeParseIntlConfig(loaded);
   if (!parsed.success) {
     throw new Error(
       `@repo/astro-intl: intl.config.ts failed validation.\n${z.prettifyError(parsed.error)}`,

@@ -10,7 +10,7 @@ Astro already owns locale prefixing, `getRelativeLocaleUrl`, `Astro.currentLocal
 
 The enhancement is what Astro does not own: **catalogs** (`t()`) and **pairing** entries across locales. A routed entry carries `id` (the same entry across locales) and `locale` (which sibling this is). When the collection has a slug, `slug` is one segment. The **section** in front of that segment is per locale and is not a field on the entry. The public tail comes from the route row. Folders, chrome, and the views are the app’s. Intl injects each view at the URLs its row publishes ([Routes](#routes)).
 
-Automatic routing with `prefixDefaultLocale` is enough.
+Automatic routing with `prefixDefaultLocale` is enough. It defaults to `false`.
 
 `astroIntl()` takes no options. It loads `src/intl.config.ts` by convention.
 
@@ -55,7 +55,11 @@ Intl keeps uniqueness of `(id, locale)` and of `(locale, path)`, lookup by local
 
 A row names one view for every locale, or one view per locale.
 
-A row’s `slug` is the tail after the locale prefix. `/` in a row is that locale’s home. With `prefixDefaultLocale: true`, the site root `/` belongs to no locale. The app serves it. The starter uses Astro’s `redirects` to the default locale’s home. With `false`, the default locale’s home row publishes `/`. The app must not serve `/` itself.
+A row’s `slug` is the tail after the locale prefix. `/` in a row is that locale’s home. `prefixDefaultLocale` defaults to `false`. Which value to use is the app’s call.
+
+With `false`, the default locale’s home is `/`. Other locales live under `/<locale>/`. Nothing else may sit at `/`. A page or a redirect there fails startup. Astro 404s `/<defaultLocale>/…` for pages in dev and on demand, and a static build never emits them.
+
+With `true`, every locale is prefixed. The site root `/` belongs to no locale. The app must serve it, or startup fails. One way is Astro’s `redirects`: `{ '/': '/<defaultLocale>/' }`.
 
 The row decides the route’s shape:
 

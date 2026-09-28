@@ -20,6 +20,8 @@ describe('reservedTailsFromRoutes', () => {
   it('takes the tail after [locale] for file routes', () => {
     assert.equal(tailFromRoute({ pattern: '[locale]/about' }), 'about');
     assert.equal(tailFromRoute({ pattern: '[locale]/rss.xml' }), 'rss.xml');
+    assert.equal(tailFromRoute({ pattern: '[...locale]/rss.xml' }), 'rss.xml');
+    assert.equal(tailFromRoute({ pattern: '/[...locale]/rss.xml' }), 'rss.xml');
     assert.deepEqual(
       reservedTailsFromRoutes([
         { pattern: '[locale]/[...path]' },
@@ -79,6 +81,13 @@ describe('fileRouteCollision', () => {
     assertNoCollision('/en/blog', numbered);
     assertNoCollision('/en/blog/[...rest]', numbered);
     assertNoCollision('/en/blog/rss.xml', numbered);
+  });
+
+  it('lets an unprefixed rss.xml sit beside the default-locale home', () => {
+    const home = compiled('/[...index]', 'static', 'home');
+    assertNoCollision('[...locale]/rss.xml', home);
+    assertNoCollision('/rss.xml', home);
+    assertNoCollision('[...locale]/rss.xml', compiled('/blog/[slug]', 'entry', 'post'));
   });
 });
 

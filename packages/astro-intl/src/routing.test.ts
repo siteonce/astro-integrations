@@ -1,8 +1,15 @@
 import assert from 'node:assert/strict';
 import { join } from 'node:path';
 import { describe, it } from 'node:test';
-import type { IntlConfig } from './define-intl.ts';
+import {
+  defineIntl,
+  type IntlConfig,
+  type IntlConfigInput,
+  safeParseIntlConfig,
+} from './define-intl.ts';
+import { pairCollections } from './pairing.ts';
 import { compileRoutes, pageSlugClash, pageSlugClashMessage, viewEntrypoint } from './routing.ts';
+import { getIntlRuntime, runtimeGeneration, setIntlConfig } from './runtime.ts';
 
 const locales = ['en', 'de'] as const;
 
@@ -353,5 +360,130 @@ describe('viewEntrypoint', () => {
     assert.throws(() => viewEntrypoint(srcDir, 'post', exists([])), {
       message: '@repo/astro-intl: view "post" has no file under src/views/.',
     });
+  });
+});
+
+describe('setIntlConfig prefix default', () => {
+  it('compiles an omitted prefixDefaultLocale to unprefixed default-locale paths', () => {
+    setIntlConfig(
+      defineIntl({
+        locales: ['en', 'de'],
+        defaultLocale: 'en',
+        routes: [
+          { slug: { en: '/', de: '/' }, view: 'home' },
+          { slug: { en: 'blog', de: 'artikel' }, view: 'blog' },
+        ],
+      }),
+    );
+    try {
+      const patterns = compileRoutes(getIntlRuntime().config).map((route) => route.pattern);
+      assert.deepEqual(patterns, [
+        '/[...index]',
+        '/de/[...index]',
+        '/blog/[...index]',
+        '/de/artikel/[...index]',
+      ]);
+    } finally {
+      setIntlConfig(undefined);
+    }
+  });
+});
+
+describe('setIntlConfig entry row', () => {
+  function authoredEntryConfig(): IntlConfigInput {
+    return {
+      locales: ['en', 'de'],
+      defaultLocale: 'en',
+      collections: { pages: {} },
+      routes: [
+        {
+          slug: { en: 'about', de: 'ueber' },
+          view: 'about',
+          collection: { name: 'pages', entry: 'about' },
+        },
+      ],
+    };
+  }
+
+  function assertEntryPaths(config: IntlConfig): void {
+    assert.equal(config.routes?.[0]?.collection, 'pages');
+    assert.equal(config.routes?.[0]?.entry, 'about');
+    assert.deepEqual(
+      compileRoutes(config).map((route) => route.pattern),
+      ['/about/[...index]', '/de/ueber/[...index]'],
+    );
+    const paired = pairCollections(config, {
+      pages: [
+        { id: 'about-en', data: { id: 'about', locale: 'en' } },
+        { id: 'about-de', data: { id: 'about', locale: 'de' } },
+      ],
+    });
+    assert.deepEqual(
+      paired.routed.map((item) => ({
+        entryId: item.entryId,
+        locale: item.locale,
+        path: item.path,
+      })),
+      [
+        { entryId: 'pages/about', locale: 'en', path: 'about' },
+        { entryId: 'pages/about', locale: 'de', path: 'ueber' },
+      ],
+    );
+  }
+
+  it('keeps an entry row that was already parsed', () => {
+    const result = safeParseIntlConfig(authoredEntryConfig());
+    assert.ok(result.success);
+    const parsed = result.data;
+    setIntlConfig(parsed);
+    try {
+      const stored = getIntlRuntime().config;
+      assert.equal(stored, parsed);
+      assertEntryPaths(stored);
+    } finally {
+      setIntlConfig(undefined);
+    }
+  });
+
+  it('parses an authored entry row to the same paths', () => {
+    const authored = authoredEntryConfig();
+    setIntlConfig(authored);
+    try {
+      assertEntryPaths(getIntlRuntime().config);
+    } finally {
+      setIntlConfig(undefined);
+    }
+  });
+
+  it('parses one authored object once', () => {
+    const authored = authoredEntryConfig();
+    setIntlConfig(authored);
+    try {
+      const stored = getIntlRuntime().config;
+      const generation = runtimeGeneration();
+      setIntlConfig(authored);
+      assert.equal(getIntlRuntime().config, stored);
+      assert.equal(runtimeGeneration(), generation);
+      assert.equal(stored.routes?.[0]?.entry, 'about');
+    } finally {
+      setIntlConfig(undefined);
+    }
+  });
+
+  it('prefixes a validation failure', () => {
+    assert.throws(
+      () =>
+        setIntlConfig({
+          locales: ['en'],
+          defaultLocale: 'fr',
+        }),
+      (error: unknown) => {
+        assert.ok(error instanceof Error);
+        assert.match(error.message, /^@repo\/astro-intl:/);
+        assert.match(error.message, /defaultLocale must be one of locales/);
+        assert.equal(error.name, 'Error');
+        return true;
+      },
+    );
   });
 });

@@ -6,6 +6,7 @@ import { afterEach, describe, it } from 'node:test';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import type { AstroConfig, AstroIntegration } from 'astro';
 import astroIntl from './integration.ts';
+import { getIntlRuntime } from './runtime.ts';
 
 type InjectedCall = {
   pattern: string;
@@ -147,6 +148,30 @@ async function runSetup(options: {
 }
 
 describe('astroIntl()', () => {
+  it('writes an omitted prefix as false in Astro i18n', async () => {
+    const root = await makeRoot();
+    const srcDir = path.join(root, 'src');
+    await writeIntlConfig(
+      srcDir,
+      `export default {
+  locales: ['en', 'de'],
+  defaultLocale: 'en',
+};
+`,
+    );
+
+    const { config } = await runSetup({ root });
+    assert.deepEqual(config.i18n, {
+      defaultLocale: 'en',
+      locales: ['en', 'de'],
+      routing: {
+        prefixDefaultLocale: false,
+        redirectToDefaultLocale: false,
+        fallbackType: 'redirect',
+      },
+    });
+  });
+
   it('writes Astro i18n from src/intl.config.ts', async () => {
     const root = await makeRoot();
     const srcDir = path.join(root, 'src');
@@ -309,6 +334,39 @@ export default { integrations: [sitemap({ i18n: { defaultLocale: 'en', locales: 
     assert.equal(
       injected.some((call) => Object.hasOwn(call, 'prerender')),
       false,
+    );
+  });
+
+  it('keeps an entry row loaded from intl.config.ts', async () => {
+    const root = await makeRoot();
+    const srcDir = path.join(root, 'src');
+    await writeIntlConfig(
+      srcDir,
+      `export default {
+  locales: ['en', 'de'],
+  defaultLocale: 'en',
+  routing: { prefixDefaultLocale: true },
+  routes: [
+    {
+      slug: { en: 'about', de: 'ueber' },
+      view: 'about',
+      collection: { name: 'pages', entry: 'about' },
+    },
+  ],
+  collections: { pages: {} },
+};
+`,
+    );
+    await mkdir(path.join(srcDir, 'views'), { recursive: true });
+    await writeFile(path.join(srcDir, 'views', 'about.astro'), '');
+
+    const { injected } = await runSetup({ root });
+    const route = getIntlRuntime().config.routes?.[0];
+    assert.equal(route?.collection, 'pages');
+    assert.equal(route?.entry, 'about');
+    assert.deepEqual(
+      injected.map(({ pattern }) => pattern),
+      ['/en/about/[...index]', '/de/ueber/[...index]'],
     );
   });
 

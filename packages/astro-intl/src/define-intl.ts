@@ -322,10 +322,16 @@ export const intlConfigSchema = z
   .strictObject({
     locales: z.array(z.string().min(1)).min(1),
     defaultLocale: z.string().min(1),
-    routing: z.strictObject({
-      prefixDefaultLocale: z.boolean(),
-      redirectToDefaultLocale: z.boolean().optional(),
-    }),
+    /**
+     * Locale prefix policy, written through to Astro `i18n`.
+     * Omitted means `prefixDefaultLocale: false`: the default locale lives at `/`.
+     */
+    routing: z
+      .strictObject({
+        prefixDefaultLocale: z.boolean().default(false),
+        redirectToDefaultLocale: z.boolean().optional(),
+      })
+      .prefault({}),
     routes: z.array(routeConfigSchema).optional(),
     /**
      * When injected views render. `'build'` prerenders them. `'request'` renders
@@ -363,22 +369,22 @@ export type IntlConfig = z.infer<typeof intlConfigSchema>;
 
 export type IntlConfigInput = z.input<typeof intlConfigSchema>;
 
+/** Objects returned by `safeParseIntlConfig`. */
+const parsedIntlConfigs = new WeakSet<object>();
+
+/** Whether `config` was returned by `safeParseIntlConfig`. */
+export function isParsedIntlConfig(config: object): config is IntlConfig {
+  return parsedIntlConfigs.has(config);
+}
+
 /**
- * Stores a collection object as its key and optional pairing id.
- * A config that is already that pair is returned unchanged.
+ * Parses an authored intl config and records the returned object.
+ * Returns the Zod issues instead of throwing.
  */
-export function flattenIntlConfig(config: IntlConfigInput | IntlConfig): IntlConfig {
-  if (
-    !config.routes?.some(
-      (route) => typeof route.collection === 'object' && route.collection !== null,
-    )
-  ) {
-    return config as IntlConfig;
-  }
-  return {
-    ...config,
-    routes: config.routes.map((route) => flattenRoute(route)),
-  } as IntlConfig;
+export function safeParseIntlConfig(input: unknown): ReturnType<typeof intlConfigSchema.safeParse> {
+  const parsed = intlConfigSchema.safeParse(input);
+  if (parsed.success) parsedIntlConfigs.add(parsed.data);
+  return parsed;
 }
 
 /** Locale union of a config that lists `locales`. */

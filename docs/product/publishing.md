@@ -42,7 +42,7 @@ Drafts stay out of the production sitemap because those routes are not built.
 
 ## RSS
 
-RSS stays in the app. Feeds are per locale (`/<locale>/rss.xml`). A root feed would mix languages or duplicate the default locale. `rss.xml` is a reserved tail.
+RSS stays in the app. Each locale’s feed is `rss.xml` under that locale’s home. With `prefixDefaultLocale: false`, the default locale’s feed is `/rss.xml`. Other locales’ feeds are `/<locale>/rss.xml`. It is not a mixed-language root feed. `rss.xml` is a reserved tail.
 
 Channel copy comes from catalogs. Item links come from pairing. Items are excerpts.
 
