@@ -1,30 +1,14 @@
 import type { ListingEntries } from '@repo/astro-intl';
-
-type DatedEntry = {
-  data: {
-    locale?: unknown;
-    pubDate?: unknown;
-  };
-};
-
-/** That locale's posts, newest first. Drafts never reach here in production. */
-export function listingEntries<T extends DatedEntry>(entries: readonly T[], locale: string): T[] {
-  return entries
-    .filter((entry) => entry.data.locale === locale)
-    .sort((a, b) => {
-      const aTime = a.data.pubDate instanceof Date ? a.data.pubDate.valueOf() : 0;
-      const bTime = b.data.pubDate instanceof Date ? b.data.pubDate.valueOf() : 0;
-      return bTime - aTime;
-    });
-}
+import { byDate } from './sorting.ts';
 
 /**
- * Which posts fill a listing tail. The posts collection: that locale's posts, newest first.
+ * Which entries fill a listing tail. Posts: that locale, newest `pubDate` first.
  * Other collections: that locale. The loader decides which drafts exist.
  */
 export const listingQuery: ListingEntries = (collection, locale, entries) => {
-  if (collection !== 'posts') {
-    return entries.filter((entry) => entry.data.locale === locale);
-  }
-  return listingEntries(entries, locale);
+  const inLocale = entries.filter((entry) => entry.data.locale === locale);
+  if (collection !== 'posts') return inLocale;
+  return inLocale.toSorted(
+    byDate((post) => (post.data.pubDate instanceof Date ? post.data.pubDate : new Date(0)), 'desc'),
+  );
 };

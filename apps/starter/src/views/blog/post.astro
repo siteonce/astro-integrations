@@ -22,6 +22,7 @@ import { siteConfig } from '../../site.config.ts';
 import { resolveFeatImage } from '../../utils/feat-image.ts';
 import { localeFolder } from '../../utils/locale-folder.ts';
 import { createPageKit } from '../../utils/page-kit.ts';
+import { byDate } from '../../utils/sorting.ts';
 
 // Page bundles do not share the integration's in-memory runtime.
 setIntlConfig(intlConfig);
@@ -48,7 +49,8 @@ const ogImage = ogImageFor(Astro.url.pathname, ogConfig);
 const hasBody = typeof entry.body === 'string' && entry.body.length > 0;
 const Content = hasBody ? (await render(entry)).Content : undefined;
 
-const posts = await kit.posts();
+// getRelatedContent keeps input order on ties, so give it a fixed order.
+const posts = (await kit.posts()).toSorted(byDate((post) => post.data.pubDate, 'desc'));
 const dateFmt = new Intl.DateTimeFormat(locale, { dateStyle: 'long' });
 const terms = await kit.terms(entry.data.tags);
 // getRelatedContent compares tags as strings, so give it the tag ids.

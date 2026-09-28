@@ -3,7 +3,6 @@ import { getRelativeLocaleUrl } from 'astro:i18n';
 import { getAlternatePaths, localeSwitcherLinks, type Relation } from '@repo/astro-intl';
 import intlConfig from '../intl.config.ts';
 import { resolveFeatImage } from './feat-image.ts';
-import { listingEntries } from './listing.ts';
 import { localeFolder } from './locale-folder.ts';
 import { useTranslations } from './t.ts';
 
@@ -60,8 +59,9 @@ export function createPageKit(locale: string) {
     };
   }
 
+  /** That locale's posts, in no order. */
   async function posts() {
-    return listingEntries(await getCollection('posts'), locale);
+    return (await getCollection('posts')).filter((post) => post.data.locale === locale);
   }
 
   function switcher(alternates: Record<string, string>) {
