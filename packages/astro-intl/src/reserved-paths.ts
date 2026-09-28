@@ -68,6 +68,15 @@ function isRestParam(segment: string): boolean {
 }
 
 /**
+ * True when a resolved route matches the pathname `/`.
+ * `patternRegex` is Astro's matcher, so a root rest route counts.
+ * The caller drops intl's own injected routes first.
+ */
+export function servesSiteRoot(routes: readonly { patternRegex: RegExp }[]): boolean {
+  return routes.some((route) => route.patternRegex.test('/'));
+}
+
+/**
  * True when this resolved route is one `astroIntl()` injected.
  * Other external routes, such as open-graph images, stay in the tail scan.
  */

@@ -13,8 +13,9 @@
  * Entrypoints are the views under `src/views/`. A row's fallback view is
  * injected for locales without a translation, and nothing is injected when the
  * row names none. Records reserved
- * file-route tails for pairing collisions, excluding those injected routes. Warns when
- * `trailingSlash` and `build.format` disagree. Does not load catalog JSON and
+ * file-route tails for pairing collisions, excluding those injected routes.
+ * When `prefixDefaultLocale` is true, startup fails unless some other route serves `/`.
+ * Warns when `trailingSlash` and `build.format` disagree. Does not load catalog JSON and
  * does not create a virtual module.
  */
 
@@ -25,7 +26,12 @@ import type { AstroIntegration } from 'astro';
 import { createJiti } from 'jiti';
 import * as z from 'zod';
 import { type IntlConfig, intlConfigSchema } from './define-intl.ts';
-import { fileRouteCollision, isIntlRoute, reservedTailsFromRoutes } from './reserved-paths.ts';
+import {
+  fileRouteCollision,
+  isIntlRoute,
+  reservedTailsFromRoutes,
+  servesSiteRoot,
+} from './reserved-paths.ts';
 import {
   type CompiledRoute,
   compileRoutes,
@@ -129,6 +135,7 @@ export function astroIntl(): AstroIntegration {
   let ownEntrypoints = new Set<string>();
   let fallbackEntrypoints = new Set<string>();
   let viewRendering: IntlConfig['viewRendering'];
+  let intlConfig: IntlConfig;
 
   return {
     name: '@repo/astro-intl',
@@ -169,7 +176,6 @@ export function astroIntl(): AstroIntegration {
           throw new Error(`@repo/astro-intl: @astrojs/sitemap i18n option is set.`);
         }
 
-        let intlConfig: IntlConfig;
         try {
           intlConfig = await loadIntlConfig(configPath);
         } catch (error) {
@@ -269,6 +275,18 @@ export function astroIntl(): AstroIntegration {
             `"${collision.injected.pattern}" (view "${collision.injected.view}").`;
           logger.error(message);
           throw new Error(message);
+        }
+        if (intlConfig.routing.prefixDefaultLocale) {
+          const appRoutes = routes.filter(
+            (route) => !isIntlRoute(route, ownEntrypoints, projectRoot, injectedPatterns),
+          );
+          if (!servesSiteRoot(appRoutes)) {
+            const message =
+              `@repo/astro-intl: prefixDefaultLocale is true, and nothing serves "/". ` +
+              `Add a redirect in defineConfig (redirects: { '/': '/${intlConfig.defaultLocale}/' }) or a src/pages/index file.`;
+            logger.error(message);
+            throw new Error(message);
+          }
         }
         setRouteTails(
           reservedTailsFromRoutes(

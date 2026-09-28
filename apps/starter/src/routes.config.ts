@@ -1,6 +1,7 @@
 import type { RouteConfig } from '@repo/astro-intl';
 
 // Data only. `view` names a view under `src/views/`.
+// Tails are relative to the locale prefix, and `'/'` is the locale's home.
 // A string names one view for every locale. An object names one per locale.
 // `pagination` publishes the later pages. Its `slug` is the full tail per locale,
 // and `{page}` is the number. Page 1 is this row's `slug`. `pagination.view`

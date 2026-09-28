@@ -4,6 +4,8 @@ import { routes } from './routes.config.ts';
 const intl = defineIntl({
   locales: ['en', 'de'],
   defaultLocale: 'en',
+  // `true` means the site root is the app's (see the redirect in `astro.config.mjs`).
+  // `false` means the default locale's home is `/`; remove that redirect then.
   routing: {
     prefixDefaultLocale: true,
   },

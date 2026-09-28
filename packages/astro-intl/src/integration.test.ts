@@ -69,6 +69,20 @@ function entrypointFor(injected: InjectedCall[], pattern: string): string {
   return call.entrypoint;
 }
 
+/** A config `redirects` entry at `/`, as `astro:routes:resolved` reports it. */
+function siteRootRoute(): ResolvedRoute {
+  return {
+    ...resolvedRoute({
+      entrypoint: '/',
+      pattern: '/',
+      isPrerendered: true,
+    }),
+    type: 'redirect',
+    origin: 'project',
+    patternRegex: /^\/$/u,
+  };
+}
+
 async function resolveRoutes(
   integration: AstroIntegration,
   routes: ResolvedRoute[],
@@ -423,8 +437,8 @@ export default { integrations: [sitemap({ i18n: { defaultLocale: 'en', locales: 
       pattern: '/en/blog/[page]',
       isPrerendered: true,
     });
-    await resolveRoutes(integration, [slug, pageOne]);
-    await resolveRoutes(integration, [slug, prerendered]);
+    await resolveRoutes(integration, [slug, pageOne, siteRootRoute()]);
+    await resolveRoutes(integration, [slug, prerendered, siteRootRoute()]);
   });
 
   it('boots an on-demand {page} route that has its own segment', async () => {
@@ -451,7 +465,7 @@ export default { integrations: [sitemap({ i18n: { defaultLocale: 'en', locales: 
       pattern: '/en/blog/[slug]',
       isPrerendered: false,
     });
-    await resolveRoutes(integration, [slug, numbered]);
+    await resolveRoutes(integration, [slug, numbered, siteRootRoute()]);
   });
 
   it('rejects a top-level pageSize and a {page} token on the row slug', async () => {
@@ -541,6 +555,7 @@ export default { integrations: [sitemap({ i18n: { defaultLocale: 'en', locales: 
       slug,
       resolvedRoute({ entrypoint: pageOne, pattern: '/en/blog/[...page]', isPrerendered: false }),
       resolvedRoute({ entrypoint: page, pattern: '/en/blog/[page]', isPrerendered: true }),
+      siteRootRoute(),
     ]);
     await assert.rejects(
       () =>
@@ -637,7 +652,39 @@ export default { integrations: [sitemap({ i18n: { defaultLocale: 'en', locales: 
       pattern: '/en/blog/[slug]',
       isPrerendered: false,
     });
-    await resolveRoutes(integration, [slug, page]);
+    await resolveRoutes(integration, [slug, page, siteRootRoute()]);
+  });
+
+  it('aborts when the prefix is on and nothing serves /', async () => {
+    const root = await makeRoot();
+    await writeIntlConfig(path.join(root, 'src'));
+    const { integration } = await runSetup({ root });
+    await assert.rejects(
+      () => resolveRoutes(integration, []),
+      /nothing serves "\/"\. Add a redirect in defineConfig \(redirects: \{ '\/': '\/en\/' \}\)/,
+    );
+  });
+
+  it('resolves when the prefix is on and a redirect serves /', async () => {
+    const root = await makeRoot();
+    await writeIntlConfig(path.join(root, 'src'));
+    const { integration } = await runSetup({ root });
+    await resolveRoutes(integration, [siteRootRoute()]);
+  });
+
+  it('resolves when the prefix is off and nothing serves /', async () => {
+    const root = await makeRoot();
+    await writeIntlConfig(
+      path.join(root, 'src'),
+      `export default {
+  locales: ['en', 'de'],
+  defaultLocale: 'en',
+  routing: { prefixDefaultLocale: false },
+};
+`,
+    );
+    const { integration } = await runSetup({ root });
+    await resolveRoutes(integration, []);
   });
 });
 

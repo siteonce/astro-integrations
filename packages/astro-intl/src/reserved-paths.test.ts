@@ -5,6 +5,7 @@ import {
   fileRouteCollision,
   isIntlRoute,
   reservedTailsFromRoutes,
+  servesSiteRoot,
   tailFromRoute,
 } from './reserved-paths.ts';
 import type { CompiledRoute } from './routing.ts';
@@ -78,6 +79,19 @@ describe('fileRouteCollision', () => {
     assertNoCollision('/en/blog', numbered);
     assertNoCollision('/en/blog/[...rest]', numbered);
     assertNoCollision('/en/blog/rss.xml', numbered);
+  });
+});
+
+describe('servesSiteRoot', () => {
+  it('matches a page or a redirect at /', () => {
+    assert.equal(servesSiteRoot([{ patternRegex: /^\/$/u }]), true);
+  });
+
+  it('rejects locale-prefixed routes', () => {
+    assert.equal(
+      servesSiteRoot([{ patternRegex: /^\/en\/$/u }, { patternRegex: /^\/de\/$/u }]),
+      false,
+    );
   });
 });
 

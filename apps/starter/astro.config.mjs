@@ -36,6 +36,10 @@ function mediaRemotePatterns() {
 export default defineConfig({
   site: siteConfig.siteUrl,
   trailingSlash: 'always',
+  // The site root belongs to no locale. Send it to the default locale's home.
+  redirects: {
+    '/': `/${intlConfig.defaultLocale}/`,
+  },
   image: {
     remotePatterns: mediaRemotePatterns(),
   },

@@ -1,7 +1,0 @@
----
-// Root is not a document. Redirect `/` to `/en/`; this page is not a locale picker.
-import { getRelativeLocaleUrl } from 'astro:i18n';
-import intlConfig from '../intl.config.ts';
-
-return Astro.redirect(getRelativeLocaleUrl(intlConfig.defaultLocale));
----

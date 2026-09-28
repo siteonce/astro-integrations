@@ -55,6 +55,8 @@ Intl keeps uniqueness of `(id, locale)` and of `(locale, path)`, lookup by local
 
 A row names one view for every locale, or one view per locale.
 
+A row’s `slug` is the tail after the locale prefix. `/` in a row is that locale’s home. With `prefixDefaultLocale: true`, the site root `/` belongs to no locale. The app serves it. The starter uses Astro’s `redirects` to the default locale’s home. With `false`, the default locale’s home row publishes `/`. The app must not serve `/` itself.
+
 The row decides the route’s shape:
 
 - A `{slug}` row: `<section>/[slug]`, one URL per published entry.
@@ -137,6 +139,7 @@ Fail at startup when:
 - `viewRendering` is `'request'` and an on-demand `pagination.slug` route has the same shape as a `{slug}` route, outside `astro dev`.
 - Two rows compile to the same route pattern.
 - An app file route would serve a URL an injected route emits and win over it.
+- `prefixDefaultLocale` is true and nothing serves `/`.
 - A **relation** pairing `id` is missing, a listed target has no sibling in the source locale, or a `localized()` map has a missing or extra locale key.
 
 ## Today
