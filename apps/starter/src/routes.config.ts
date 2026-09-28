@@ -17,7 +17,7 @@ export const routes: StarterRoute[] = [
   {
     // Page 1 is this slug. Later pages replace `{page}`. Posts come from `listingQuery`.
     slug: { en: 'blog', de: 'artikel' },
-    collection: 'blog',
+    collection: 'posts',
     view: 'blog',
     pagination: {
       pageSize: 1,
@@ -26,7 +26,7 @@ export const routes: StarterRoute[] = [
   },
   {
     slug: { en: 'blog/{slug}', de: 'artikel/{slug}' },
-    collection: 'blog',
+    collection: 'posts',
     view: 'blog/post',
   },
   {

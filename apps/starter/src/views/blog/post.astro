@@ -1,5 +1,5 @@
 ---
-// Post. One blog entry: the article, its byline, and related posts.
+// Post. One entry in the posts collection: the article, its byline, and related posts.
 // `entryPaths` emits one path per translated entry.
 import { type CollectionEntry, render } from 'astro:content';
 import {
@@ -28,7 +28,7 @@ setIntlConfig(intlConfig);
 
 export async function getStaticPaths({ routePattern }: GetStaticPathsOptions) {
   setIntlConfig(intlConfig);
-  return entryPaths<CollectionEntry<'blog'>>(routePattern);
+  return entryPaths<CollectionEntry<'posts'>>(routePattern);
 }
 
 type Props = InferGetStaticPropsType<typeof getStaticPaths>;
@@ -58,7 +58,7 @@ const withTagIds = <T extends { data: { tags: Relation[] } }>(post: T) => ({
 });
 const related = await Promise.all(
   getRelatedContent(withTagIds(entry), posts.map(withTagIds)).map(async (post) => ({
-    href: await kit.href('blog', post.data.id),
+    href: await kit.href('posts', post.data.id),
     title: post.data.seoTitle,
   })),
 );

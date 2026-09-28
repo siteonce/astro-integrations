@@ -3,7 +3,7 @@ import type { ImageMetadata } from 'astro';
 // Editorial media is a URL in frontmatter. The demo may store a co-located
 // relative path (`./feat.png`) so preview needs no cloud account.
 const images = import.meta.glob<ImageMetadata>(
-  '/src/content/blog/**/*.{png,jpg,jpeg,webp,avif,gif}',
+  '/src/content/posts/**/*.{png,jpg,jpeg,webp,avif,gif}',
   { eager: true, import: 'default' },
 );
 
@@ -32,7 +32,7 @@ export function resolveFeatImage(id: string, featImage: string): string | undefi
   // Demo co-located relative path — glob; do not invent a host.
   if (featImage.startsWith('./') || featImage.startsWith('../')) {
     const rel = featImage.replace(/^\.\//, '');
-    const local = images[`/src/content/blog/${id}/${rel}`];
+    const local = images[`/src/content/posts/${id}/${rel}`];
     return typeof local === 'string' ? local : local?.src;
   }
 

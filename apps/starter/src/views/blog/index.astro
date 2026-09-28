@@ -18,7 +18,7 @@ setIntlConfig(intlConfig);
 
 export async function getStaticPaths({ paginate, routePattern }: GetStaticPathsOptions) {
   setIntlConfig(intlConfig);
-  return listingPaths<CollectionEntry<'blog'>>(routePattern, paginate);
+  return listingPaths<CollectionEntry<'posts'>>(routePattern, paginate);
 }
 
 type Props = InferGetStaticPropsType<typeof getStaticPaths>;

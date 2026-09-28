@@ -27,16 +27,16 @@ export const GET: APIRoute = async (context) => {
     entries.filter((entry) => entry.locale === locale).map((entry) => [entry.path, entry]),
   );
 
-  const posts = (await getCollection('blog'))
+  const posts = (await getCollection('posts'))
     .filter((post) => post.data.locale === locale && post.data.status === 'published')
     .sort((a, b) => b.data.pubDate.valueOf() - a.data.pubDate.valueOf());
 
   const items = await Promise.all(
     posts.map(async (post) => {
-      const tails = await getAlternatePaths(`blog/${post.data.id}`);
+      const tails = await getAlternatePaths(`posts/${post.data.id}`);
       const compiled = tails[locale];
       if (!compiled) {
-        throw new Error(`starter: no compiled path for "blog/${post.data.id}" in "${locale}".`);
+        throw new Error(`starter: no compiled path for "posts/${post.data.id}" in "${locale}".`);
       }
       const loc = byPath.get(compiled)?.loc;
       return {

@@ -2,8 +2,8 @@ import { defineIntl, setListingEntries } from '@repo/astro-intl';
 import { routes } from './routes.config.ts';
 import { listingQuery } from './utils/listing.ts';
 
-// Blog listing pages: that locale's posts, newest first. Other collections keep
-// that locale. The blog loader drops drafts outside local and preview.
+// Posts listing pages: that locale's posts, newest first. Other collections keep
+// that locale. The posts loader drops drafts outside local and preview.
 setListingEntries(listingQuery);
 
 export default defineIntl({
@@ -25,7 +25,7 @@ export default defineIntl({
     ...(fallbackView !== undefined ? { fallbackView } : {}),
   })),
   collections: {
-    blog: { idField: 'id', localeField: 'locale', slugField: 'slug' },
+    posts: { idField: 'id', localeField: 'locale', slugField: 'slug' },
     tags: { idField: 'id', localeField: 'locale', slugField: 'slug' },
     authors: { idField: 'id', localeField: 'locale' },
   },

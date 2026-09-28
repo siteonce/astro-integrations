@@ -22,7 +22,7 @@ const posts = defineCollection({
   loader: withoutDrafts(
     glob({
       pattern: '**/*.{md,mdx}',
-      base: './src/content/blog',
+      base: './src/content/posts',
       generateId: entryFileId,
     }),
     keepDrafts,
@@ -87,4 +87,4 @@ const roles = defineCollection({
   }),
 });
 
-export const collections = { blog: posts, tags, authors, sources, roles };
+export const collections = { posts, tags, authors, sources, roles };

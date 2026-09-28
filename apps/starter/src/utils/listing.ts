@@ -19,11 +19,11 @@ export function listingEntries<T extends DatedEntry>(entries: readonly T[], loca
 }
 
 /**
- * Which posts fill a listing tail. Blog: that locale's posts, newest first.
+ * Which posts fill a listing tail. The posts collection: that locale's posts, newest first.
  * Other collections: that locale. The loader decides which drafts exist.
  */
 export const listingQuery: ListingEntries = (collection, locale, entries) => {
-  if (collection !== 'blog') {
+  if (collection !== 'posts') {
     return entries.filter((entry) => entry.data.locale === locale);
   }
   return listingEntries(entries, locale);

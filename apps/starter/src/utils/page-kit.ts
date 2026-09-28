@@ -7,7 +7,7 @@ import { listingEntries } from './listing.ts';
 import { localeFolder } from './locale-folder.ts';
 import { useTranslations } from './t.ts';
 
-type BlogPost = CollectionEntry<'blog'>;
+type Post = CollectionEntry<'posts'>;
 
 // Helpers for one view: catalog, compiled hrefs, listing posts, and the
 // locale switcher. A compiled href is read on first use and reused for that id.
@@ -47,10 +47,10 @@ export function createPageKit(locale: string) {
     );
   }
 
-  async function postItem(post: BlogPost) {
+  async function postItem(post: Post) {
     const src = resolveFeatImage(localeFolder(post), post.data.featImage);
     return {
-      href: await href('blog', post.data.id),
+      href: await href('posts', post.data.id),
       title: post.data.seoTitle,
       excerpt: post.data.excerpt,
       datetime: post.data.pubDate.toISOString(),
@@ -61,7 +61,7 @@ export function createPageKit(locale: string) {
   }
 
   async function posts() {
-    return listingEntries(await getCollection('blog'), locale);
+    return listingEntries(await getCollection('posts'), locale);
   }
 
   function switcher(alternates: Record<string, string>) {
