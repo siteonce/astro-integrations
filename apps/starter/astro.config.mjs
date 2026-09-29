@@ -10,14 +10,19 @@ import {
   serializeSitemap,
   sitemapFilter,
 } from '@repo/astro-intl-sitemap';
+// biome-ignore lint/correctness/noUnusedImports: used by the commented-out ogImage integration
 import ogImage from '@repo/astro-og-image';
 import { rehypeExternalLinks } from '@repo/astro-site/utils/rehype-external-links';
 import tailwindcss from '@tailwindcss/vite';
 import { defineConfig } from 'astro/config';
+// biome-ignore lint/correctness/noUnusedImports: used by the commented-out ogImage integration
 import intlConfig from './src/intl.config.ts';
+// biome-ignore lint/correctness/noUnusedImports: used by the commented-out ogImage integration
 import { ogConfig } from './src/og.config.ts';
 import { siteConfig } from './src/site.config.ts';
+// biome-ignore lint/correctness/noUnusedImports: used by the commented-out ogImage integration
 import { deployClass } from './src/utils/deploy.ts';
+// biome-ignore lint/correctness/noUnusedImports: used by the commented-out ogImage integration
 import { catalogs } from './src/utils/t.ts';
 
 // Allow the editorial-media host when MEDIA_BASE_URL is a valid origin.
