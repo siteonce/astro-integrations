@@ -54,7 +54,7 @@ A snapshot monorepo that is the foundation for every Astro **content site** buil
 
 **slug** (entry field): One public segment of a routed **entry**. Not the pairing `id`, not the locale prefix, and not the **section** in front of it. _Avoid_: full public tail, authored path, per-entry pathPrefix
 
-**pairing `id`**: Shared key that joins locale siblings of one **entry**. Authored on the entry (`data.id` by default). Distinct from the public `slug` and from Astro’s per-file collection `id`. Intl prefixes the collection name. _Avoid_: using slug as the group key; treating `entry.id` as the pairing key; generating the key from the folder tree; minting a second internal key
+**pairing `id`**: Shared key that joins locale siblings of one **entry**. Authored on the entry (`data.id` by default). `collections.fields.id` renames that field. Distinct from the public `slug` and from Astro’s per-file collection `id`. Intl prefixes the collection name. _Avoid_: using slug as the group key; treating `entry.id` as the pairing key; generating the key from the folder tree; minting a second internal key
 
 **section**: A locale-specific prefix in front of an entry **slug** (`blog` vs `artikel`, or several segments such as `about/history`). On a route row it is the text before `{slug}`. _Avoid_: pathPrefix (as an entry field), catalog key (for this)
 
@@ -70,7 +70,7 @@ A snapshot monorepo that is the foundation for every Astro **content site** buil
 
 **listing order**: The required `sort` or `order` on `listingPaths`. `sort` builds a comparator from the route’s locale. `order` reorders the whole list and must keep the same entries. A row’s two listing views pass the same ordering. _Avoid_: a default order; a global listing hook; filtering in `order`
 
-**routed collection**: A listed collection whose entries have a public URL. A `{slug}` row publishes that URL: the **section** plus the **slug**. _Avoid_: giving records a slug; treating a collection tail as an entry URL
+**routed collection**: A **translated** collection named on a `{slug}` row. That row publishes each entry’s URL: the **section** plus the **slug**. _Avoid_: giving records a slug; treating a collection tail as an entry URL
 
 **entry**: One item in a collection. Locale siblings share one pairing `id`. _Avoid_: document; a **view** that no collection claims
 
@@ -80,9 +80,13 @@ A snapshot monorepo that is the foundation for every Astro **content site** buil
 
 **fallback view**: The **view** named in `fallbackView` for a locale without a translation. The config names one for every `{slug}` row; a row may name its own, or `false` for none. It receives the default-locale entry and its URL. With none, those URLs 404. _Avoid_: missing view; conflating it with Astro’s `i18n.fallback` (intl never serves the default-locale page at the translated URL); redirect page (it may show a notice)
 
-**record**: A translated **entry** with no public URL. _Avoid_: routed (for this)
+**record**: An **entry** in a **translated** collection with no public URL. _Avoid_: routed (for this)
 
-**relation**: A pointer from an entry to another collection by pairing `id`. Authored as that id string; after parse `{ target, id }`, where `target` is the collection name. Resolve uses the current locale. The intl config lists its target collections in `relationTargets`. _Avoid_: `reference()` (for this helper); treating Astro’s collection file id as the stored pointer
+**relation**: A pointer from an entry to another collection, authored as an id string. After parse `{ target, id }`, where `target` is the collection name. A **translated** target stores the pairing `id` and resolves in the current locale. An **untranslated** target stores the collection entry id. Targets are `collections.translated` and `collections.untranslated`. _Avoid_: `reference()` (for this helper); treating Astro’s collection file id as the stored pointer on a **translated** target
+
+**translated** (collection): A collection paired on `(pairing id, locale)`. Intl loads it, pairs it, and keeps `(id, locale)` and `(locale, path)` unique. A **relation** to it resolves in the current locale. Named on a `{slug}` row, it is routed and its entries need the **slug** field. With no `{slug}` row, its entries are **records**, except an entry a route names. _Avoid_: listed (as this name)
+
+**untranslated** (collection): A collection a **relation** may point at that is not paired. The stored id is the collection entry id. A file collection sets that id from the filename. A CMS sets it from its document id. _Avoid_: locale-free, unlisted (as this name)
 
 ### Content schemas
 

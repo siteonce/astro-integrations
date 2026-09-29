@@ -8,7 +8,7 @@ Sit on Astro i18n. Enhance it.
 
 Astro already owns locale prefixing, `getRelativeLocaleUrl`, `Astro.currentLocale`, automatic routing, and content collections. Intl writes locale list and prefix policy into `defineConfig.i18n`. Callers use `astro:i18n` and `astro:content` under those names.
 
-The enhancement is what Astro does not own: **catalogs** (`t()`) and **pairing** entries across locales. A routed entry carries `id` (the same entry across locales) and `locale` (which sibling this is). When the collection has a slug, `slug` is one segment. The **section** in front of that segment is per locale and is not a field on the entry. The public tail comes from the route row. Folders, chrome, and the views are the app’s. Intl injects each view at the URLs its row publishes ([Routes](#routes)).
+The enhancement is what Astro does not own: **catalogs** (`t()`) and **pairing** entries across locales. A routed entry carries `id` (the same entry across locales), `locale` (which sibling this is), and a one-segment `slug`. The **section** in front of that segment is per locale and is not a field on the entry. The public tail comes from the route row. Folders, chrome, and the views are the app’s. Intl injects each view at the URLs its row publishes ([Routes](#routes)).
 
 Automatic routing with `prefixDefaultLocale` is enough. It defaults to `false`.
 
@@ -31,9 +31,24 @@ Pairing reads build-time collections (`getCollection`). It does not read live co
 
 ## Pairing
 
-Pairing reads `data[idField]` and `data[localeField]` (defaults `id` / `locale`) and prefixes the collection name. Pairing key = collection name + `/` + `data[idField]`. One `PairingIndex` (`byLocalePath`, `byLocaleEntryId`). Those fields are the contract for both content sources. File layout belongs to the app.
+The intl config names the **translated** collections and the **untranslated** ones:
 
-Pairing is on `id`. A `{slug}` row publishes one URL per entry: that locale’s **section** plus the one-segment **slug**. Naming an entry on that row publishes that entry alone. A collection with a slug still needs a `{slug}` row.
+```ts
+collections: {
+  translated: ['posts', 'tags', 'authors'],
+  untranslated: ['sources', 'roles'],
+  // Only for a translated collection whose fields have other names.
+  fields: {
+    posts: { id: 'uid', locale: 'lang', slug: 'path' },
+  },
+},
+```
+
+Intl loads each **translated** collection and pairs it on `(pairing id, locale)`. Pairing reads the id and locale fields and prefixes the collection name. Pairing key = collection name + `/` + the pairing `id`. One `PairingIndex` (`byLocalePath`, `byLocaleEntryId`). The fields are `id`, `locale`, and `slug`. `fields` renames them for one collection. Each name is optional: `id` (default `id`), `locale` (default `locale`), `slug` (default `slug`). It only renames. It switches no behavior. Both content sources present these fields. File layout belongs to the app.
+
+Startup fails when a name repeats or sits in both lists, a `fields` key is not in `translated`, a route row names a collection outside `translated`, or a name in either list is not a content collection.
+
+Pairing is on `id`. A `{slug}` row publishes one URL per entry: that locale’s **section** plus the one-segment **slug**. Naming an entry on that row publishes that entry alone. A **translated** collection named on a `{slug}` row is routed, and its entries need the **slug** field.
 
 A row that names an entry and no `{slug}` publishes the written tail. That entry’s slug is unused. The `{slug}` row does not publish that entry again.
 
@@ -41,13 +56,13 @@ A collection named without `{slug}` supplies its entries to the written tail and
 
 `pagination.slug` is written in full, even when it repeats the row’s `slug`. It has no default. The obvious default, `<slug>/{page}`, has the shape that clashes with an on-demand `{slug}` route ([View rendering](#view-rendering)). A default would hand every site that clash without a line naming it. A tail relative to the row’s `slug` is refused as well. It would bend a literal page-1 tail (`blog/1` → `blog/1/2`) and tie later pages to page 1’s tail. The key stays `slug` because it holds the same kind of value as the row’s `slug`: a full tail per locale.
 
-Pairing counts that locale’s entries (`localeField`). A CMS page size stays separate from `pageSize`.
+Pairing counts that locale’s entries. A CMS page size stays separate from `pageSize`.
 
 The view orders those entries with a required `sort` or `order` passed to `listingPaths`. Intl has no default order, because `getCollection()` order is non-deterministic. `@repo/astro-intl/sorting` supplies comparators for `sort` (`byDate`, `byNumber`, `byText`, `byFlag`) and `sortBy` to chain them. `byText` takes the listing’s locale from the `sort` context. Intl ships no helpers for `order`, because an `order` depends on entry metadata.
 
 The content source decides which drafts exist. Outside local and preview, drafts never enter the collection, so no page, listing, sitemap URL, or alternate sees them. A CMS does this with its published view of the content. The view orders the list. Intl filters by locale.
 
-A collection with no slug stays **records**, except an entry a route names. A tail with no entry has no pairing `id`. Its alternates are the locales that publish that tail.
+A **translated** collection with no `{slug}` row is **records**, except an entry a route names. A tail with no entry has no pairing `id`. Its alternates are the locales that publish that tail.
 
 Intl keeps uniqueness of `(id, locale)` and of `(locale, path)`, lookup by locale and public tail, and sibling tails.
 
@@ -110,15 +125,15 @@ A view that reads more data, such as relations or related posts, folds that data
 
 ## Relations
 
-A **relation** stores the pairing `id`. After parse it is `{ target, id }`, where `target` is the collection name. Resolve uses the current locale. Both content sources use this pointer.
+A **relation** is `{ target, id }` after parse, where `target` is the collection name. Both content sources use this pointer. Targets are the **translated** and **untranslated** collections.
 
-The intl config lists every collection a relation can point at (`relationTargets`). Intl reads relations through that list, so an on-demand view needs nothing beyond `setIntlConfig`. A `relation()` whose collection is not listed fails the build.
+Intl reads relations through those lists, so an on-demand view needs nothing beyond `setIntlConfig`. A `relation()` pointing at a collection in neither list fails the build.
 
-Listed targets use pairing (`getContentById`). Those entries carry `id` and `locale`.
+A **translated** target stores the pairing `id`. Resolve uses the current locale (`getContentById`). Those entries carry `id` and `locale`.
 
-Locale-free tables and inline locale maps are unlisted. The stored id is the collection entry id. A file collection sets that id from the filename. A CMS sets it from its document id.
+An **untranslated** target stores the collection entry id. Locale-free tables and inline locale maps are **untranslated**. A file collection sets that id from the filename. A CMS sets it from its document id.
 
-Documents stay paired entries (`id` + `locale` on each sibling). Inline locale maps are a lookup-target shape.
+Documents are paired entries (`id` + `locale` on each sibling). Inline locale maps are a lookup-target shape.
 
 ## Catalogs
 
@@ -146,7 +161,11 @@ Fail at startup when:
 - Two rows compile to the same route pattern.
 - An app file route would serve a URL an injected route emits and win over it.
 - `prefixDefaultLocale` is true and nothing serves `/`.
-- A **relation** pairing `id` is missing, a listed target has no sibling in the source locale, or a `localized()` map has a missing or extra locale key.
+- A collection name repeats, or sits in both `translated` and `untranslated`.
+- A `fields` key is not in `translated`.
+- A route row names a collection that is not in `translated`.
+- A name in `translated` or `untranslated` is not a content collection.
+- A **relation** pairing `id` is missing, a **translated** target has no sibling in the source locale, or a `localized()` map has a missing or extra locale key.
 
 ## Today
 

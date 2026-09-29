@@ -1,13 +1,63 @@
 import * as z from 'zod';
 import { normalizeSlug, patternSection } from './path.ts';
 
-export const collectionConfigSchema = z.strictObject({
-  idField: z.string().min(1).optional(),
-  localeField: z.string().min(1).optional(),
-  slugField: z.string().min(1).optional(),
+/** Field names on a translated collection. Each one defaults to the key. */
+export const collectionFieldsSchema = z.strictObject({
+  id: z.string().min(1).optional(),
+  locale: z.string().min(1).optional(),
+  slug: z.string().min(1).optional(),
 });
 
-export type CollectionConfig = z.infer<typeof collectionConfigSchema>;
+export type CollectionFields = z.infer<typeof collectionFieldsSchema>;
+
+const collectionsConfigSchema = z.strictObject({
+  translated: z.array(z.string().min(1)).optional(),
+  untranslated: z.array(z.string().min(1)).optional(),
+  fields: z.record(z.string().min(1), collectionFieldsSchema).optional(),
+});
+
+export type CollectionsConfig = z.infer<typeof collectionsConfigSchema>;
+
+export function translatedNames(collections: CollectionsConfig | undefined): readonly string[] {
+  return collections?.translated ?? [];
+}
+
+export function untranslatedNames(collections: CollectionsConfig | undefined): readonly string[] {
+  return collections?.untranslated ?? [];
+}
+
+/** Translated and untranslated names. A relation may point at either. */
+export function relationNames(collections: CollectionsConfig | undefined): readonly string[] {
+  return [...translatedNames(collections), ...untranslatedNames(collections)];
+}
+
+/** Field names a translated collection's entries use, defaults applied. */
+export type EntryFields = Required<CollectionFields>;
+
+export function fieldsFor(collections: CollectionsConfig | undefined, name: string): EntryFields {
+  const fields = collections?.fields?.[name];
+  return {
+    id: fields?.id ?? 'id',
+    locale: fields?.locale ?? 'locale',
+    slug: fields?.slug ?? 'slug',
+  };
+}
+
+/** Translated collections keyed by name. A key means the collection is paired. */
+export function translatedFields(
+  collections: CollectionsConfig | undefined,
+): Record<string, EntryFields> {
+  const map: Record<string, EntryFields> = {};
+  for (const name of translatedNames(collections)) map[name] = fieldsFor(collections, name);
+  return map;
+}
+
+export function missingContentCollection(
+  list: 'translated' | 'untranslated',
+  name: string,
+): string {
+  return `collections.${list}: "${name}" is not a content collection`;
+}
 
 const collectionRefSchema = z.union([
   z.string().min(1),
@@ -110,8 +160,47 @@ type RouteRulesConfig = {
   locales: readonly string[];
   fallbackView?: string | undefined;
   routes?: readonly RouteRule[];
-  collections?: Readonly<Record<string, { slugField?: string | undefined }>>;
+  collections?: CollectionsConfig | undefined;
 };
+
+function repeatedNameIssues(
+  label: 'translated' | 'untranslated',
+  names: readonly string[] | undefined,
+): string[] {
+  const issues: string[] = [];
+  const seen = new Set<string>();
+  const reported = new Set<string>();
+  for (const name of names ?? []) {
+    if (seen.has(name) && !reported.has(name)) {
+      reported.add(name);
+      issues.push(`collections.${label} lists "${name}" more than once`);
+    }
+    seen.add(name);
+  }
+  return issues;
+}
+
+function collectionListIssues(collections: CollectionsConfig | undefined): string[] {
+  const translated = collections?.translated ?? [];
+  const untranslated = collections?.untranslated ?? [];
+  const issues = [
+    ...repeatedNameIssues('translated', translated),
+    ...repeatedNameIssues('untranslated', untranslated),
+  ];
+  const translatedSet = new Set(translated);
+  const reported = new Set<string>();
+  for (const name of untranslated) {
+    if (!translatedSet.has(name) || reported.has(name)) continue;
+    reported.add(name);
+    issues.push(`"${name}" is in both collections.translated and collections.untranslated`);
+  }
+  for (const name of Object.keys(collections?.fields ?? {})) {
+    if (!translatedSet.has(name)) {
+      issues.push(`collections.fields key "${name}" is not in collections.translated`);
+    }
+  }
+  return issues;
+}
 
 function routeWhere(collection: string, entry?: string): string {
   return entry ? `collection "${collection}" entry "${entry}"` : `collection "${collection}"`;
@@ -197,15 +286,16 @@ function viewIssues(
 }
 
 /**
- * Structural route rules. Compiled-path collisions are checked while pairing.
+ * Structural route and collection-list rules.
+ * Compiled-path collisions are checked while pairing.
  * Repeated route patterns throw in `compileRoutes`.
  */
 export function routeConfigIssues(config: RouteRulesConfig): string[] {
-  const issues: string[] = [];
+  const issues: string[] = collectionListIssues(config.collections);
   const seenEntries = new Set<string>();
   const seenPatterns = new Set<string>();
   const seenSections = new Set<string>();
-  const listed = config.collections ?? {};
+  const translated = new Set(config.collections?.translated ?? []);
 
   if (config.fallbackView !== undefined) issues.push(...viewNameIssues(config.fallbackView));
 
@@ -248,8 +338,9 @@ export function routeConfigIssues(config: RouteRulesConfig): string[] {
     const wantsPattern = config.locales.some((locale) =>
       (route.slug[locale] ?? '').includes('{slug}'),
     );
-    const collection = listed[collectionName];
-    if (!collection) issues.push(`collection "${collectionName}" is not listed`);
+    if (!translated.has(collectionName)) {
+      issues.push(`collection "${collectionName}" is not in collections.translated`);
+    }
 
     if (route.entry) {
       const key = `${collectionName}/${route.entry}`;
@@ -273,9 +364,6 @@ export function routeConfigIssues(config: RouteRulesConfig): string[] {
       continue;
     }
 
-    if (collection && !collection.slugField) {
-      issues.push(`pattern row on collection "${collectionName}" which has no slugField`);
-    }
     let addedPattern = false;
     if (seenPatterns.has(collectionName)) {
       issues.push(`two pattern rows name collection "${collectionName}"`);
@@ -309,12 +397,6 @@ export function routeConfigIssues(config: RouteRulesConfig): string[] {
     if (!patternOk && addedPattern) seenPatterns.delete(collectionName);
   }
 
-  for (const [name, collection] of Object.entries(listed)) {
-    if (collection.slugField && !seenPatterns.has(name)) {
-      issues.push(`collections.${name} has no {slug} row`);
-    }
-  }
-
   return issues;
 }
 
@@ -344,13 +426,13 @@ export const intlConfigSchema = z
     viewRendering: z.enum(['build', 'request']).optional(),
     /** View for a locale that has no translation, on every `{slug}` row that names none. */
     fallbackView: z.string().min(1).optional(),
-    collections: z.record(z.string(), collectionConfigSchema).optional(),
     /**
-     * Collections a relation can point at.
-     * `{ target, id }` is a relation only when `target` is in this list.
+     * Translated collections are paired on id and locale.
+     * Untranslated collections are relation targets looked up by entry id.
+     * `fields` renames id, locale, or slug on a translated collection.
      * Omitted means none.
      */
-    relationTargets: z.array(z.string().min(1)).optional(),
+    collections: collectionsConfigSchema.optional(),
     reservedPaths: z.array(z.string().min(1)).optional(),
   })
   .refine((config) => config.locales.includes(config.defaultLocale), {

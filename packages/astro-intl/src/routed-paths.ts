@@ -4,7 +4,7 @@
  */
 
 import type { PaginateFunction } from 'astro';
-import type { IntlConfig } from './define-intl.ts';
+import { fieldsFor, type IntlConfig } from './define-intl.ts';
 import { listingSelection, localePathKey } from './pairing.ts';
 import {
   compilePath,
@@ -99,7 +99,7 @@ export function listingPathsFor<T>(
     throw new Error(`@repo/astro-intl: listing "${label}" in "${route.locale}" has no pagination.`);
   }
   const pathFor = (page: number) => listingPagePath(written, pageTail, page);
-  const localeField = config.collections?.[row.collection ?? '']?.localeField ?? 'locale';
+  const localeField = fieldsFor(config.collections, row.collection ?? '').locale;
   const selected = listingSelection(
     query.collections,
     row.collection ?? '',

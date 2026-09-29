@@ -303,7 +303,7 @@ export default { integrations: [sitemap({ i18n: { defaultLocale: 'en', locales: 
     { slug: { en: 'blog/{slug}', de: 'artikel/{slug}' }, collection: 'blog', view: 'post', fallbackView: 'missing' },
     { slug: { en: 'blog', de: 'artikel' }, collection: 'blog', view: 'blog', pagination: { pageSize: 10, slug: { en: 'blog/{page}', de: 'artikel/{page}' } } },
   ],
-  collections: { blog: { slugField: 'slug' } },
+  collections: { translated: ['blog'] },
 };
 `,
     );
@@ -353,7 +353,7 @@ export default { integrations: [sitemap({ i18n: { defaultLocale: 'en', locales: 
       collection: { name: 'pages', entry: 'about' },
     },
   ],
-  collections: { pages: {} },
+  collections: { translated: ['pages'] },
 };
 `,
     );
@@ -538,7 +538,7 @@ export default { integrations: [sitemap({ i18n: { defaultLocale: 'en', locales: 
   routes: [
     { slug: { en: 'blog', de: 'artikel' }, collection: 'blog', pageSize: 10, view: 'blog' },
   ],
-  collections: { blog: { slugField: 'slug' } },
+  collections: { translated: ['blog'] },
 };
 `,
     );
@@ -554,7 +554,7 @@ export default { integrations: [sitemap({ i18n: { defaultLocale: 'en', locales: 
   routes: [
     { slug: { en: 'blog/{page}', de: 'artikel/{page}' }, collection: 'blog', view: 'blog' },
   ],
-  collections: { blog: { slugField: 'slug' } },
+  collections: { translated: ['blog'] },
 };
 `,
     );
@@ -587,7 +587,7 @@ export default { integrations: [sitemap({ i18n: { defaultLocale: 'en', locales: 
       },
     },
   ],
-  collections: { blog: { slugField: 'slug' } },
+  collections: { translated: ['blog'] },
 };
 `,
     );
@@ -642,7 +642,7 @@ export default { integrations: [sitemap({ i18n: { defaultLocale: 'en', locales: 
       pagination: { pageSize: 10, slug: { en: 'blog/{page}', de: 'artikel/{page}' }, view: 'archive' },
     },
   ],
-  collections: { blog: {} },
+  collections: { translated: ['blog'] },
 };
 `,
     );
@@ -670,7 +670,7 @@ export default { integrations: [sitemap({ i18n: { defaultLocale: 'en', locales: 
       pagination: { pageSize: 10, slug: { en: 'blog/{page}', de: 'artikel/{page}' }, view: 'archive' },
     },
   ],
-  collections: { blog: {} },
+  collections: { translated: ['blog'] },
 };
 `,
     );
@@ -769,7 +769,7 @@ async function writeRenderingRoutes(
       pagination: { pageSize: 10, slug: { en: '${page.en}', de: '${page.de}' } },
     },
   ],
-  collections: { blog: { slugField: 'slug' } },
+  collections: { translated: ['blog'] },
 };
 `,
   );

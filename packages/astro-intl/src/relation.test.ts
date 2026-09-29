@@ -34,7 +34,7 @@ describe('relation schema', () => {
 });
 
 describe('collectRelations', () => {
-  it('finds relations from relationTargets when nothing was recorded', () => {
+  it('finds relations from collections.untranslated when nothing was recorded', () => {
     emptyRecordedRelations();
     assert.deepEqual(recordedRelationNames(), []);
     setIntlConfig(
@@ -42,7 +42,7 @@ describe('collectRelations', () => {
         locales: ['en'],
         defaultLocale: 'en',
         routing: { prefixDefaultLocale: true },
-        relationTargets: ['authors'],
+        collections: { untranslated: ['authors'] },
       }),
     );
     try {
@@ -54,13 +54,13 @@ describe('collectRelations', () => {
     }
   });
 
-  it('ignores a { target, id } whose target relationTargets omits', () => {
+  it('ignores a { target, id } whose target neither list names', () => {
     setIntlConfig(
       defineIntl({
         locales: ['en'],
         defaultLocale: 'en',
         routing: { prefixDefaultLocale: true },
-        relationTargets: ['authors'],
+        collections: { translated: ['authors'] },
       }),
     );
     try {

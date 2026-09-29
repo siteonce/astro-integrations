@@ -46,7 +46,7 @@ import { urlFormatMismatch } from './url-format.ts';
 
 export { createT } from './create-t.ts';
 export {
-  type CollectionConfig,
+  type CollectionFields,
   defineIntl,
   type IntlConfig,
   type LocaleOf,

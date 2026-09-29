@@ -56,7 +56,7 @@ const config: IntlConfig = {
       fallbackView: 'missing',
     },
   ],
-  collections: { blog: { slugField: 'slug' } },
+  collections: { translated: ['blog'] },
 };
 
 const blog = [pin, alphaEn, alphaDe, solo, mehr, clash];
@@ -161,6 +161,86 @@ async function astroPaginate(param: 'page' | '...page'): Promise<PaginateFunctio
   return generatePaginateFunction({ params: [param], segments: [] }, '/', 'always');
 }
 
+describe('renamed collection fields', () => {
+  it('reads id, locale, and slug from the named fields', () => {
+    const renamed: IntlConfig = {
+      locales: ['en', 'de'],
+      defaultLocale: 'en',
+      routing: { prefixDefaultLocale: true },
+      routes: [
+        {
+          slug: { en: 'blog', de: 'artikel' },
+          view: 'index',
+          collection: 'posts',
+          pagination: { pageSize: 1, slug: { en: 'blog/{page}', de: 'artikel/{page}' } },
+        },
+        { slug: { en: 'blog/{slug}', de: 'artikel/{slug}' }, view: 'post', collection: 'posts' },
+      ],
+      collections: {
+        translated: ['posts'],
+        fields: { posts: { id: 'uid', locale: 'lang', slug: 'path' } },
+      },
+    };
+    const enA = {
+      id: 'a-en',
+      collection: 'posts',
+      data: { uid: 'a', lang: 'en', path: 'alpha', locale: 'de' },
+    };
+    const enB = { id: 'b-en', collection: 'posts', data: { uid: 'b', lang: 'en', path: 'beta' } };
+    const deA = {
+      id: 'a-de',
+      collection: 'posts',
+      data: { uid: 'a', lang: 'de', path: 'alpha-de', locale: 'en' },
+    };
+    const query = createIntlQuery({
+      config: renamed,
+      collections: { posts: [enA, enB, deA] },
+      getAbsoluteLocaleUrl: () => '',
+    });
+    const compiled = compileRoutes(renamed);
+    const en = entryPathsFor(renamed, query, routeFor(compiled, '/en/blog/[slug]', 'entry'));
+    const de = entryPathsFor(renamed, query, routeFor(compiled, '/de/artikel/[slug]', 'entry'));
+    assert.deepEqual(
+      en.map((item) => item.params.slug),
+      ['alpha', 'beta'],
+    );
+    assert.deepEqual(
+      de.map((item) => item.params.slug),
+      ['alpha-de'],
+    );
+    assert.equal(query.getContentById('en', 'posts/a')?.id, 'a-en');
+    assert.equal(query.getContentById('de', 'posts/a')?.id, 'a-de');
+
+    const pageOne = listingPathsFor(
+      renamed,
+      query,
+      routeFor(compiled, '/en/blog/[...page]', 'listing'),
+      requestPaginate,
+      keepOrder,
+      markedRelativeUrl,
+    );
+    const pageTwo = listingPathsFor(
+      renamed,
+      query,
+      routeFor(compiled, '/en/blog/[page]', 'listing'),
+      requestPaginate,
+      keepOrder,
+      markedRelativeUrl,
+    );
+    const dePage = listingPathsFor(
+      renamed,
+      query,
+      routeFor(compiled, '/de/artikel/[...page]', 'listing'),
+      requestPaginate,
+      keepOrder,
+      markedRelativeUrl,
+    );
+    assert.equal(pageOne[0]?.props.page.data[0], enA);
+    assert.equal(pageTwo[0]?.props.page.data[0], enB);
+    assert.equal(dePage[0]?.props.page.data[0], deA);
+  });
+});
+
 describe('listingPathsFor', () => {
   it('emits page 1 from [...page] and later pages from [page]', async () => {
     const query = queryFor();
@@ -205,7 +285,7 @@ describe('listingPathsFor', () => {
           },
         },
       ],
-      collections: { blog: {} },
+      collections: { translated: ['blog'] },
     };
     const posts = [
       entry('a-en', { id: 'a', locale: 'en' }),
@@ -258,7 +338,7 @@ describe('listingPathsFor', () => {
           pagination: { pageSize: 1, slug: { en: '{page}', de: '{page}' } },
         },
       ],
-      collections: { posts: {} },
+      collections: { translated: ['posts'] },
     };
     const posts = [
       { id: 'a', collection: 'posts', data: { id: 'a', locale: 'en' } },
@@ -313,7 +393,7 @@ describe('listingPathsFor', () => {
         },
         { slug: { en: 'blog/2024' }, view: 'archive' },
       ],
-      collections: { blog: {} },
+      collections: { translated: ['blog'] },
     };
     const query = createIntlQuery({
       config: archive,
@@ -379,7 +459,7 @@ describe('listingPathsFor', () => {
           pagination: { pageSize: 1, slug: { en: 'blog/{page}', de: 'artikel/{page}' } },
         },
       ],
-      collections: { blog: {} },
+      collections: { translated: ['blog'] },
     };
     const query = createIntlQuery({
       config: section,

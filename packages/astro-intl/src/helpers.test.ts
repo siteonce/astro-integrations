@@ -16,7 +16,10 @@ import type { CollectionEntryLike } from './pairing.ts';
 import { localized, recordedRelationNames, relation } from './relation.ts';
 import { setIntlConfig } from './runtime.ts';
 
-const relationTargets = ['authors', 'sources', 'roles'];
+const intlCollections = {
+  translated: ['blog', 'authors'],
+  untranslated: ['sources', 'roles'],
+};
 
 const locales = ['en', 'de'] as const;
 const authorRel = relation('authors').parse('ada');
@@ -33,11 +36,7 @@ function withQuery(collections: Record<string, CollectionEntryLike[]>, loaded?: 
     defaultLocale: 'en',
     routing: { prefixDefaultLocale: true },
     routes: [{ slug: { en: 'blog/{slug}', de: 'artikel/{slug}' }, view: 'x', collection: 'blog' }],
-    collections: {
-      blog: { slugField: 'slug' },
-      authors: {},
-    },
-    relationTargets,
+    collections: intlCollections,
   });
   setIntlConfig(config);
   setIntlLoaders({
@@ -60,11 +59,7 @@ describe('getSitemapEntries / getAlternatePaths / Hreflang', () => {
       routes: [
         { slug: { en: 'blog/{slug}', de: 'artikel/{slug}' }, view: 'x', collection: 'blog' },
       ],
-      collections: {
-        blog: { slugField: 'slug' },
-        authors: {},
-      },
-      relationTargets,
+      collections: intlCollections,
     });
     const collections: Record<string, CollectionEntryLike[]> = {
       blog: [
@@ -136,7 +131,7 @@ describe('getRelated', () => {
   const sources = [{ id: 'astro', data: { name: 'Astro' } }];
   const roles = [{ id: 'editor', data: { name: roleName } }];
 
-  it('returns locale-resolved fields for listed, locale-free, and inline-map targets', async () => {
+  it('returns a translated target in the current locale and an untranslated target by entry id', async () => {
     withQuery({ blog, authors, sources, roles });
     try {
       const author = await getRelated('de', authorRel);
@@ -163,7 +158,7 @@ describe('getRelated', () => {
     }
   });
 
-  it('fails when a locale-free id is missing', async () => {
+  it('fails when an untranslated entry id is missing', async () => {
     withQuery({ blog, authors, sources: [], roles });
     try {
       await assert.rejects(getPairedSlugs, /relation sources\/astro is missing/);
@@ -174,7 +169,7 @@ describe('getRelated', () => {
     }
   });
 
-  it('matches unlisted entries by entry id, not data.id', async () => {
+  it('matches an untranslated collection by entry id, not data.id', async () => {
     withQuery({
       blog,
       authors,
@@ -230,7 +225,7 @@ describe('getRelated', () => {
       const count = loaded.length;
       await assert.rejects(
         () => getRelated('en', { target: 'ghost', id: 'x' }),
-        /collections.ghost is not a content collection/,
+        /collection "ghost" is not a content collection/,
       );
       assert.equal(loaded.length, count);
     } finally {
@@ -240,13 +235,13 @@ describe('getRelated', () => {
     }
   });
 
-  it('throws when relation() recorded a target relationTargets omits', async () => {
+  it('throws when relation() recorded a collection neither list names', async () => {
     relation('not-listed');
     withQuery({ blog, authors, sources, roles });
     try {
       await assert.rejects(
         getPairedSlugs,
-        /relation\("not-listed"\) points at a collection relationTargets does not list/,
+        /relation\("not-listed"\) points at a collection neither collections\.translated nor collections\.untranslated lists/,
       );
     } finally {
       const recorded = (globalThis as Record<symbol, Set<string> | undefined>)[

@@ -24,12 +24,11 @@ const intl = defineIntl({
     ...(fallbackView !== undefined ? { fallbackView } : {}),
   })),
   collections: {
-    posts: { idField: 'id', localeField: 'locale', slugField: 'slug' },
-    tags: { idField: 'id', localeField: 'locale', slugField: 'slug' },
-    authors: { idField: 'id', localeField: 'locale' },
+    // Paired on id + locale. A collection on a `{slug}` row is routed.
+    translated: ['posts', 'tags', 'authors'],
+    // Relation targets looked up by file id.
+    untranslated: ['sources', 'roles'],
   },
-  // Every collection a relation can point at.
-  relationTargets: ['authors', 'sources', 'roles', 'tags'],
 });
 
 export type Locale = LocaleOf<typeof intl>;

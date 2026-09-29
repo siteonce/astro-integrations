@@ -15,11 +15,7 @@ const config: IntlConfig = {
     { slug: { en: 'blog', de: 'artikel' }, view: 'x', collection: 'pages', entry: 'blog' },
     { slug: { en: 'blog/{slug}', de: 'artikel/{slug}' }, view: 'x', collection: 'blog' },
   ],
-  collections: {
-    pages: {},
-    blog: { slugField: 'slug' },
-    authors: {},
-  },
+  collections: { translated: ['pages', 'blog', 'authors'] },
 };
 
 function entry(
@@ -68,12 +64,12 @@ describe('intlConfigSchema collections', () => {
       defaultLocale: 'en',
       routing: { prefixDefaultLocale: true },
       routes: [{ slug: { en: 'blog/{slug}' }, view: 'x', collection: 'blog' }],
-      collections: { blog: { slugField: 'slug' } },
+      collections: { translated: ['blog'] },
     });
     assert.equal(parsed.success, false);
   });
 
-  it('accepts per-collection idField and localeField', () => {
+  it('accepts field name overrides on a translated collection', () => {
     const parsed = intlConfigSchema.safeParse({
       locales: ['en', 'de'],
       defaultLocale: 'en',
@@ -82,13 +78,40 @@ describe('intlConfigSchema collections', () => {
         { slug: { en: 'blog/{slug}', de: 'artikel/{slug}' }, view: 'x', collection: 'pages' },
       ],
       collections: {
-        pages: { idField: 'id', localeField: 'locale', slugField: 'slug' },
+        translated: ['pages'],
+        fields: { pages: { id: 'uid', locale: 'lang', slug: 'path' } },
       },
     });
     assert.equal(parsed.success, true);
+    if (!parsed.success) return;
+    assert.deepEqual(parsed.data.collections?.fields?.pages, {
+      id: 'uid',
+      locale: 'lang',
+      slug: 'path',
+    });
   });
 
-  it('rejects top-level entryId and collection entryId', () => {
+  it('rejects an empty field name', () => {
+    for (const key of ['id', 'locale', 'slug'] as const) {
+      const parsed = intlConfigSchema.safeParse({
+        locales: ['en'],
+        defaultLocale: 'en',
+        collections: { translated: ['pages'], fields: { pages: { [key]: '' } } },
+      });
+      assert.equal(parsed.success, false, key);
+    }
+  });
+
+  it('rejects a collection name used as a key of collections', () => {
+    const parsed = intlConfigSchema.safeParse({
+      locales: ['en'],
+      defaultLocale: 'en',
+      collections: { pages: { id: 'uid' } },
+    });
+    assert.equal(parsed.success, false);
+  });
+
+  it('rejects top-level entryId and a field named entryId', () => {
     const topLevel = intlConfigSchema.safeParse({
       locales: ['en', 'de'],
       defaultLocale: 'en',
@@ -101,7 +124,10 @@ describe('intlConfigSchema collections', () => {
       locales: ['en', 'de'],
       defaultLocale: 'en',
       routing: { prefixDefaultLocale: true },
-      collections: { pages: { entryId: 'frontmatter', slugField: 'slug' } },
+      collections: {
+        translated: ['pages'],
+        fields: { pages: { entryId: 'frontmatter' } },
+      },
     });
     assert.equal(perCollection.success, false);
   });
@@ -111,7 +137,7 @@ describe('intlConfigSchema collections', () => {
       locales: ['en', 'de'],
       defaultLocale: 'en',
       routing: { prefixDefaultLocale: true },
-      collections: { blog: {} },
+      collections: { translated: ['blog'] },
     };
     const row = { slug: { en: 'blog', de: 'artikel' }, view: 'x' };
     const asString = intlConfigSchema.safeParse({
@@ -166,18 +192,90 @@ describe('intlConfigSchema collections', () => {
 describe('routeConfigIssues', () => {
   const locales = ['en', 'de'] as const;
 
-  it('rejects a {slug} row on a collection without slugField', () => {
+  it('allows a {slug} row on a translated collection', () => {
     const issues = routeConfigIssues({
       locales,
       routes: [
         { slug: { en: 'blog/{slug}', de: 'artikel/{slug}' }, view: 'x', collection: 'pages' },
       ],
-      collections: { pages: {} },
+      collections: { translated: ['pages'] },
     });
-    assert.ok(issues.some((issue) => issue.includes('pattern row') && issue.includes('pages')));
+    assert.deepEqual(issues, []);
   });
 
-  it('allows an entry row beside a {slug} row on a slugField collection', () => {
+  it('rejects a route collection that is not translated', () => {
+    const missing = routeConfigIssues({
+      locales,
+      routes: [
+        { slug: { en: 'blog/{slug}', de: 'artikel/{slug}' }, view: 'x', collection: 'pages' },
+      ],
+      collections: { untranslated: ['pages'] },
+    });
+    assert.ok(
+      missing.some((issue) => issue === 'collection "pages" is not in collections.translated'),
+    );
+
+    const parsed = intlConfigSchema.safeParse({
+      locales: ['en', 'de'],
+      defaultLocale: 'en',
+      routes: [
+        { slug: { en: 'blog/{slug}', de: 'artikel/{slug}' }, view: 'x', collection: 'pages' },
+      ],
+      collections: { translated: ['posts', 'posts'] },
+    });
+    assert.equal(parsed.success, false);
+    if (parsed.success) return;
+    assert.ok(
+      parsed.error.issues.some(
+        (issue) => issue.message === 'collections.translated lists "posts" more than once',
+      ),
+    );
+  });
+
+  it('rejects a name listed twice or in both lists', () => {
+    const repeated = routeConfigIssues({
+      locales,
+      collections: { translated: ['posts', 'posts', 'posts'] },
+    });
+    assert.deepEqual(repeated, ['collections.translated lists "posts" more than once']);
+
+    const twice = routeConfigIssues({
+      locales,
+      collections: { untranslated: ['roles', 'roles'] },
+    });
+    assert.ok(
+      twice.some((issue) => issue === 'collections.untranslated lists "roles" more than once'),
+    );
+
+    const both = routeConfigIssues({
+      locales,
+      collections: { translated: ['authors'], untranslated: ['authors'] },
+    });
+    assert.ok(
+      both.some(
+        (issue) =>
+          issue === '"authors" is in both collections.translated and collections.untranslated',
+      ),
+    );
+  });
+
+  it('rejects a fields key that is not translated', () => {
+    const issues = routeConfigIssues({
+      locales,
+      collections: {
+        translated: ['posts'],
+        untranslated: ['sources'],
+        fields: { sources: { id: 'uid' } },
+      },
+    });
+    assert.ok(
+      issues.some(
+        (issue) => issue === 'collections.fields key "sources" is not in collections.translated',
+      ),
+    );
+  });
+
+  it('allows an entry row beside a {slug} row', () => {
     const issues = routeConfigIssues({
       locales,
       routes: [
@@ -189,7 +287,7 @@ describe('routeConfigIssues', () => {
         },
         { slug: { en: 'hello', de: 'hallo' }, view: 'x', collection: 'blog', entry: 'hello' },
       ],
-      collections: { blog: { slugField: 'slug' } },
+      collections: { translated: ['blog'] },
     });
     assert.deepEqual(issues, []);
   });
@@ -206,7 +304,7 @@ describe('routeConfigIssues', () => {
         },
         { slug: { en: 'blog/{slug}', de: 'artikel/{slug}' }, view: 'x', collection: 'blog' },
       ],
-      collections: { blog: { slugField: 'slug' } },
+      collections: { translated: ['blog'] },
     });
     assert.deepEqual(issues, []);
   });
@@ -223,7 +321,7 @@ describe('routeConfigIssues', () => {
             pagination: { pageSize: 10, slug: { en: slug, de: 'artikel/{page}' } },
           },
         ],
-        collections: { blog: { slugField: 'slug' } },
+        collections: { translated: ['blog'] },
       });
       assert.ok(
         issues.some((issue) => issue.includes('locale "en"') && issue.includes('{page}')),
@@ -246,7 +344,7 @@ describe('routeConfigIssues', () => {
           },
         },
       ],
-      collections: { blog: { slugField: 'slug' } },
+      collections: { translated: ['blog'] },
     });
     assert.ok(issues.some((issue) => issue.includes('cannot hold both {page} and {slug}')));
   });
@@ -262,7 +360,7 @@ describe('routeConfigIssues', () => {
           pagination: { pageSize: 10, slug: { en: 'blog/{page}', de: 'artikel/{page}' } },
         },
       ],
-      collections: { blog: { slugField: 'slug' } },
+      collections: { translated: ['blog'] },
     });
     assert.ok(issues.some((issue) => issue === '{page} belongs in pagination.slug in locale "en"'));
   });
@@ -291,7 +389,7 @@ describe('routeConfigIssues', () => {
           pagination: { pageSize: 10, slug: { en: 'blog/{page}', de: 'artikel/{page}' } },
         },
       ],
-      collections: { blog: { slugField: 'slug' } },
+      collections: { translated: ['blog'] },
     });
     assert.ok(named.some((issue) => issue === 'pagination cannot name an entry'));
 
@@ -305,7 +403,7 @@ describe('routeConfigIssues', () => {
           pagination: { pageSize: 10, slug: { en: 'blog/{page}', de: 'artikel/{page}' } },
         },
       ],
-      collections: { blog: { slugField: 'slug' } },
+      collections: { translated: ['blog'] },
     });
     assert.ok(pattern.some((issue) => issue === 'pagination cannot sit on a {slug} row'));
   });
@@ -324,7 +422,7 @@ describe('routeConfigIssues', () => {
           },
         },
       ],
-      collections: { blog: { slugField: 'slug' } },
+      collections: { translated: ['blog'] },
     });
     assert.ok(issues.some((issue) => issue.includes('name different locales')));
   });
@@ -346,7 +444,7 @@ describe('routeConfigIssues', () => {
           pagination: { pageSize: 5, slug: { en: 'news/{page}', de: 'neu/{page}' } },
         },
       ],
-      collections: { blog: {} },
+      collections: { translated: ['blog'] },
     });
     assert.deepEqual(issues, []);
   });
@@ -362,7 +460,7 @@ describe('routeConfigIssues', () => {
           pagination: { pageSize: 1, slug: { en: '{page}', de: '{page}' } },
         },
       ],
-      collections: { posts: {} },
+      collections: { translated: ['posts'] },
     });
     assert.deepEqual(root, []);
 
@@ -380,7 +478,7 @@ describe('routeConfigIssues', () => {
         },
         { slug: { en: 'blog/{slug}', de: 'artikel/{slug}' }, view: 'x', collection: 'blog' },
       ],
-      collections: { blog: { slugField: 'slug' } },
+      collections: { translated: ['blog'] },
     });
     assert.deepEqual(segment, []);
   });
@@ -396,7 +494,7 @@ describe('routeConfigIssues', () => {
           pagination: { pageSize: 0, slug: { en: 'blog/{page}', de: 'artikel/{page}' } },
         },
       ],
-      collections: { blog: { slugField: 'slug' } },
+      collections: { translated: ['blog'] },
     });
     assert.ok(sized.some((issue) => issue === 'pagination.pageSize must be a positive integer'));
 
@@ -410,7 +508,7 @@ describe('routeConfigIssues', () => {
           pagination: { pageSize: 1.5, slug: { en: 'blog/{page}', de: 'artikel/{page}' } },
         },
       ],
-      collections: { blog: { slugField: 'slug' } },
+      collections: { translated: ['blog'] },
     });
     assert.ok(
       fractional.some((issue) => issue === 'pagination.pageSize must be a positive integer'),
@@ -421,7 +519,7 @@ describe('routeConfigIssues', () => {
       defaultLocale: 'en',
       routing: { prefixDefaultLocale: true },
       routes: [{ slug: { en: 'blog', de: 'artikel' }, view: 'x', collection: 'blog', pageSize: 1 }],
-      collections: { blog: { slugField: 'slug' } },
+      collections: { translated: ['blog'] },
     });
     assert.equal(parsed.success, false);
     if (parsed.success) return;
@@ -443,7 +541,7 @@ describe('routeConfigIssues', () => {
           },
         },
       ],
-      collections: { blog: { slugField: 'slug' } },
+      collections: { translated: ['blog'] },
     });
     assert.ok(
       extension.some(
@@ -465,7 +563,7 @@ describe('routeConfigIssues', () => {
           },
         },
       ],
-      collections: { blog: { slugField: 'slug' } },
+      collections: { translated: ['blog'] },
     });
     assert.ok(keys.some((issue) => issue.startsWith('pagination.view keys must be')));
   });
@@ -477,7 +575,7 @@ describe('routeConfigIssues', () => {
         { slug: { en: 'blog/{slug}', de: 'artikel/{slug}' }, view: 'x', collection: 'blog' },
         { slug: { en: 'news/{slug}', de: 'neuigkeiten/{slug}' }, view: 'x', collection: 'blog' },
       ],
-      collections: { blog: { slugField: 'slug' } },
+      collections: { translated: ['blog'] },
     });
     assert.ok(issues.some((issue) => issue.includes('two pattern rows') && issue.includes('blog')));
   });
@@ -487,7 +585,7 @@ describe('routeConfigIssues', () => {
       const issues = routeConfigIssues({
         locales,
         routes: [{ slug: { en: slug, de: 'artikel/{slug}' }, view: 'x', collection: 'blog' }],
-        collections: { blog: { slugField: 'slug' } },
+        collections: { translated: ['blog'] },
       });
       assert.ok(
         issues.some((issue) => issue.includes('locale "en"') && issue.includes('{slug}')),
@@ -511,10 +609,7 @@ describe('routeConfigIssues', () => {
         { slug: { en: 'blog/{slug}', de: 'artikel/{slug}' }, view: 'x', collection: 'blog' },
         { slug: { en: 'blog/{slug}', de: 'schlagworte/{slug}' }, view: 'x', collection: 'tags' },
       ],
-      collections: {
-        blog: { slugField: 'slug' },
-        tags: { slugField: 'slug' },
-      },
+      collections: { translated: ['blog', 'tags'] },
     });
     assert.ok(
       issues.some((issue) => issue.includes('duplicate section "blog"') && issue.includes('"en"')),
@@ -542,7 +637,7 @@ describe('routeConfigIssues', () => {
           fallbackView: 'missing.astro',
         },
       ],
-      collections: { blog: { slugField: 'slug' } },
+      collections: { translated: ['blog'] },
     });
     assert.ok(named.some((issue) => issue === 'view "missing.astro" includes a file extension'));
   });
@@ -574,7 +669,7 @@ describe('routeConfigIssues', () => {
       locales: ['en', 'de'],
       defaultLocale: 'en',
       routing: { prefixDefaultLocale: true },
-      collections: { blog: { slugField: 'slug' } },
+      collections: { translated: ['blog'] },
     };
     const row = {
       slug: { en: 'blog/{slug}', de: 'artikel/{slug}' },
@@ -660,7 +755,7 @@ describe('pairCollections', () => {
           entry: 'clash',
         },
       ],
-      collections: { blog: { slugField: 'slug' }, pages: {} },
+      collections: { translated: ['blog', 'pages'] },
     };
     assert.throws(
       () =>
@@ -689,16 +784,37 @@ describe('pairCollections', () => {
     );
   });
 
-  it('aborts when slugField has no {slug} row', () => {
-    const bare: IntlConfig = {
+  it('keeps a translated collection with no {slug} row as records', () => {
+    const notes: IntlConfig = {
       locales: ['en', 'de'],
       defaultLocale: 'en',
       routing: { prefixDefaultLocale: true },
-      collections: { blog: { slugField: 'slug' } },
+      routes: [
+        { slug: { en: 'about', de: 'ueber' }, view: 'x', collection: 'notes', entry: 'about' },
+      ],
+      collections: {
+        translated: ['notes'],
+        fields: { notes: { slug: 'path' } },
+      },
     };
-    assert.throws(
-      () => pairCollections(bare, { blog: [] }),
-      /collections\.blog has no \{slug\} row/,
+    const paired = pairCollections(notes, {
+      notes: [
+        entry('notes', 'about-en', { id: 'about', locale: 'en', path: 'ignored' }),
+        entry('notes', 'about-de', { id: 'about', locale: 'de', path: 'ignored' }),
+        entry('notes', 'other-en', { id: 'other', locale: 'en', path: 'other' }),
+      ],
+    });
+    assert.ok(paired.records.some((item) => item.entryId === 'notes/other'));
+    assert.equal(
+      paired.routed.some((item) => item.entryId === 'notes/other'),
+      false,
+    );
+    assert.deepEqual(
+      paired.routed
+        .filter((item) => item.entryId === 'notes/about')
+        .map((item) => item.path)
+        .sort(),
+      ['about', 'ueber'],
     );
   });
 
@@ -807,10 +923,24 @@ describe('pairCollections', () => {
     assert.ok(paired.warnings.some((warning) => warning.includes('entryId "blog/nur-de"')));
   });
 
-  it('aborts when a listed collection is absent', () => {
+  it('aborts when a translated collection is absent', () => {
     assert.throws(
       () => pairCollections(config, { pages: [], blog: [] }),
-      /collections.authors is not a content collection/,
+      /collections\.translated: "authors" is not a content collection/,
+    );
+  });
+
+  it('aborts when an untranslated collection is absent', () => {
+    const withSources: IntlConfig = {
+      ...config,
+      collections: {
+        translated: ['pages', 'blog', 'authors'],
+        untranslated: ['sources'],
+      },
+    };
+    assert.throws(
+      () => pairCollections(withSources, { pages: [], blog: [], authors: [] }),
+      /collections\.untranslated: "sources" is not a content collection/,
     );
   });
 });
@@ -872,10 +1002,7 @@ describe('pairCollections field id', () => {
       { slug: { en: 'blog', de: 'artikel' }, view: 'x', collection: 'pages', entry: 'blog' },
       { slug: { en: 'blog/{slug}', de: 'artikel/{slug}' }, view: 'x', collection: 'blog' },
     ],
-    collections: {
-      pages: {},
-      blog: { slugField: 'slug' },
-    },
+    collections: { translated: ['pages', 'blog'] },
   };
 
   it('pairs siblings as collection/id and allows the same id in two collections', () => {
@@ -946,14 +1073,15 @@ describe('pairCollections field id', () => {
     );
   });
 
-  it('reads custom idField and localeField', () => {
+  it('reads renamed id and locale fields', () => {
     const custom: IntlConfig = {
       locales: ['en', 'de'],
       defaultLocale: 'en',
       routing: { prefixDefaultLocale: true },
       routes: [{ slug: { en: '/', de: '/' }, view: 'x', collection: 'pages', entry: 'home' }],
       collections: {
-        pages: { idField: 'docId', localeField: 'lang' },
+        translated: ['pages'],
+        fields: { pages: { id: 'docId', locale: 'lang' } },
       },
     };
     const paired = pairCollections(custom, {
@@ -963,6 +1091,53 @@ describe('pairCollections field id', () => {
     assert.equal(paired.routed[0]?.entryId, 'pages/home');
     assert.equal(paired.routed[0]?.locale, 'en');
     assert.equal(paired.routed[0]?.entry, paired.records[0]?.entry);
+  });
+
+  it('reads renamed id, locale, and slug fields', () => {
+    const custom: IntlConfig = {
+      locales: ['en', 'de'],
+      defaultLocale: 'en',
+      routing: { prefixDefaultLocale: true },
+      routes: [
+        {
+          slug: { en: 'blog', de: 'artikel' },
+          view: 'x',
+          collection: 'posts',
+          pagination: { pageSize: 1, slug: { en: 'blog/{page}', de: 'artikel/{page}' } },
+        },
+        { slug: { en: 'blog/{slug}', de: 'artikel/{slug}' }, view: 'x', collection: 'posts' },
+      ],
+      collections: {
+        translated: ['posts'],
+        fields: { posts: { id: 'uid', locale: 'lang', slug: 'path' } },
+      },
+    };
+    const enA = entry('posts', 'a-en', { uid: 'a', lang: 'en', path: 'alpha', locale: 'de' });
+    const enB = entry('posts', 'b-en', { uid: 'b', lang: 'en', path: 'beta' });
+    const deA = entry('posts', 'a-de', { uid: 'a', lang: 'de', path: 'alpha-de', locale: 'en' });
+    const paired = pairCollections(custom, { posts: [enA, enB, deA] });
+    assert.equal(
+      paired.routed.find((item) => item.locale === 'en' && item.entryId === 'posts/a')?.path,
+      'blog/alpha',
+    );
+    assert.equal(
+      paired.routed.find((item) => item.locale === 'de' && item.entryId === 'posts/a')?.path,
+      'artikel/alpha-de',
+    );
+    assert.deepEqual(
+      paired.tails
+        .filter((item) => item.locale === 'en')
+        .map((item) => item.path)
+        .sort(),
+      ['blog', 'blog/2'],
+    );
+    assert.deepEqual(
+      paired.tails
+        .filter((item) => item.locale === 'de')
+        .map((item) => item.path)
+        .sort(),
+      ['artikel'],
+    );
   });
 });
 
@@ -1053,10 +1228,7 @@ describe('query helpers collection/id', () => {
       { slug: { en: 'blog/{slug}', de: 'artikel/{slug}' }, view: 'x', collection: 'blog' },
       { slug: { en: 'tags/{slug}', de: 'schlagworte/{slug}' }, view: 'x', collection: 'tags' },
     ],
-    collections: {
-      blog: { slugField: 'slug' },
-      tags: { slugField: 'slug' },
-    },
+    collections: { translated: ['blog', 'tags'] },
   };
   const collections = {
     blog: [
@@ -1120,7 +1292,7 @@ describe('published tails with no entry', () => {
       { slug: { en: 'blog', de: 'artikel' }, view: 'x' },
       { slug: { en: 'blog/{slug}', de: 'artikel/{slug}' }, view: 'x', collection: 'blog' },
     ],
-    collections: { blog: { slugField: 'slug' } },
+    collections: { translated: ['blog'] },
   };
   const blog = [
     entry('blog', 'hello-en', { id: 'hello-world', locale: 'en', slug: 'hello-world' }),
@@ -1192,7 +1364,7 @@ describe('published tails with no entry', () => {
         },
         { slug: { en: 'pages/{slug}', de: 'seiten/{slug}' }, view: 'x', collection: 'pages' },
       ],
-      collections: { pages: { slugField: 'slug' } },
+      collections: { translated: ['pages'] },
     };
     const paired = pairCollections(imprint, {
       pages: [
@@ -1225,7 +1397,7 @@ describe('published tails with no entry', () => {
           entry: 'designer',
         },
       ],
-      collections: { pages: { slugField: 'slug' } },
+      collections: { translated: ['pages'] },
     };
     const paired = pairCollections(careers, {
       pages: [
@@ -1262,7 +1434,7 @@ describe('published tails with no entry', () => {
       locales: ['en', 'de'],
       defaultLocale: 'en',
       routing: { prefixDefaultLocale: true },
-      collections: { blog: { slugField: 'slug' } },
+      collections: { translated: ['blog'] },
     };
     const alone: IntlConfig = {
       ...base,
@@ -1322,7 +1494,7 @@ describe('published tails with no entry', () => {
         },
         { slug: { en: 'blog/{slug}', de: 'artikel/{slug}' }, view: 'x', collection: 'blog' },
       ],
-      collections: { blog: { slugField: 'slug' } },
+      collections: { translated: ['blog'] },
     };
     const query = createIntlQuery({
       config: paged,
@@ -1398,7 +1570,7 @@ describe('published tails with no entry', () => {
         },
         { slug: { en: 'blog/{slug}', de: 'artikel/{slug}' }, view: 'x', collection: 'blog' },
       ],
-      collections: { blog: { slugField: 'slug' } },
+      collections: { translated: ['blog'] },
     };
     const paired = pairCollections(paged, { blog: posts });
     const tails = paired.tails.map((item) => `${item.locale}:${item.path}`).sort();
@@ -1426,7 +1598,7 @@ describe('published tails with no entry', () => {
         },
         { slug: { en: 'blog/{slug}', de: 'artikel/{slug}' }, view: 'x', collection: 'blog' },
       ],
-      collections: { blog: { slugField: 'slug' } },
+      collections: { translated: ['blog'] },
     };
     assert.throws(
       () => pairCollections(paged, { blog: posts }),
@@ -1457,7 +1629,7 @@ describe('published tails with no entry', () => {
         },
         { slug: { en: 'blog/{slug}', de: 'artikel/{slug}' }, view: 'x', collection: 'blog' },
       ],
-      collections: { blog: { slugField: 'slug' } },
+      collections: { translated: ['blog'] },
     };
     const paired = pairCollections(paged, { blog: posts });
     assert.equal(paired.routed.find((item) => item.entryId === 'blog/page-number')?.path, 'blog/2');
@@ -1481,7 +1653,7 @@ describe('published tails with no entry', () => {
         },
         { slug: { en: 'blog/{slug}', de: 'artikel/{slug}' }, view: 'x', collection: 'blog' },
       ],
-      collections: { blog: { slugField: 'slug' } },
+      collections: { translated: ['blog'] },
     };
     const paired = pairCollections(paged, {
       blog: [entry('blog', 'two', { id: 'two', locale: 'en', slug: '2' })],
@@ -1508,7 +1680,7 @@ describe('published tails with no entry', () => {
         { slug: { en: 'blog', de: 'artikel' }, view: 'x', collection: 'blog' },
         { slug: { en: 'blog/{slug}', de: 'artikel/{slug}' }, view: 'x', collection: 'blog' },
       ],
-      collections: { blog: { slugField: 'slug' } },
+      collections: { translated: ['blog'] },
     };
     const paired = pairCollections(once, { blog: posts });
     assert.deepEqual(paired.tails.map((item) => item.path).sort(), ['artikel', 'blog']);
@@ -1523,7 +1695,7 @@ describe('published tails with no entry', () => {
         { slug: { en: 'blog/hello-world', de: 'other' }, view: 'x' },
         { slug: { en: 'blog/{slug}', de: 'artikel/{slug}' }, view: 'x', collection: 'blog' },
       ],
-      collections: { blog: { slugField: 'slug' } },
+      collections: { translated: ['blog'] },
     };
     assert.throws(
       () => pairCollections(clash, { blog }),

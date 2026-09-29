@@ -1,4 +1,10 @@
 import type { PaginateFunction } from 'astro';
+import {
+  missingContentCollection,
+  translatedFields,
+  translatedNames,
+  untranslatedNames,
+} from './define-intl.ts';
 import type { CollectionEntryLike } from './pairing.ts';
 import {
   createIntlQuery,
@@ -65,11 +71,12 @@ async function defaultLoaders(): Promise<IntlLoaders> {
 async function loadNamedCollection(
   loaders: IntlLoaders,
   name: string,
+  list: 'translated' | 'untranslated',
 ): Promise<CollectionEntryLike[]> {
   try {
     return await loaders.getCollection(name);
   } catch {
-    throw new Error(`@repo/astro-intl: collections.${name} is not a content collection.`);
+    throw new Error(`@repo/astro-intl: ${missingContentCollection(list, name)}.`);
   }
 }
 
@@ -85,19 +92,20 @@ async function loadQuery(): Promise<IntlQuery> {
   const generation = runtimeGeneration();
   if (cached && cachedGeneration === generation) return cached;
   const runtime = getIntlRuntime();
+  const spec = runtime.config.collections;
   const targets = new Set(relatedTargetNames());
   for (const name of recordedRelationNames()) {
     if (targets.has(name)) continue;
     throw new Error(
-      `@repo/astro-intl: relation("${name}") points at a collection relationTargets does not list.`,
+      `@repo/astro-intl: relation("${name}") points at a collection neither collections.translated nor collections.untranslated lists.`,
     );
   }
   const loaders = loadersOverride ?? (await defaultLoaders());
   const collections: Record<string, CollectionEntryLike[]> = {};
-  for (const name of Object.keys(runtime.config.collections ?? {})) {
-    collections[name] = await loadNamedCollection(loaders, name);
+  for (const name of translatedNames(spec)) {
+    collections[name] = await loadNamedCollection(loaders, name, 'translated');
   }
-  const needed = new Set(relatedTargetNames());
+  const needed = new Set(targets);
   for (const entries of Object.values(collections)) {
     for (const entry of entries) {
       for (const rel of collectRelations(entry.data)) {
@@ -105,9 +113,11 @@ async function loadQuery(): Promise<IntlQuery> {
       }
     }
   }
+  const untranslated = new Set(untranslatedNames(spec));
   for (const name of needed) {
     if (name in collections) continue;
-    collections[name] = await loadNamedCollection(loaders, name);
+    const list = untranslated.has(name) ? 'untranslated' : 'translated';
+    collections[name] = await loadNamedCollection(loaders, name, list);
   }
   const query = createIntlQuery({
     config: runtime.config,
@@ -118,7 +128,8 @@ async function loadQuery(): Promise<IntlQuery> {
   });
   assertRelations({
     locales: runtime.config.locales,
-    listed: runtime.config.collections ?? {},
+    translated: translatedFields(spec),
+    untranslated,
     collections,
     getContentById: query.getContentById,
   });
@@ -133,9 +144,11 @@ async function loadQuery(): Promise<IntlQuery> {
 export async function getRelated(locale: string, rel: Relation): Promise<CollectionEntryLike> {
   const query = await loadQuery();
   const runtime = getIntlRuntime();
+  const spec = runtime.config.collections;
   return resolveRelation(locale, rel, {
     locales: runtime.config.locales,
-    listed: runtime.config.collections ?? {},
+    translated: translatedFields(spec),
+    untranslated: new Set(untranslatedNames(spec)),
     collections: query.collections,
     getContentById: query.getContentById,
   });

@@ -1,11 +1,11 @@
 import * as z from 'zod';
-import type { CollectionConfig } from './define-intl.ts';
+import { type EntryFields, missingContentCollection, relationNames } from './define-intl.ts';
 import type { CollectionEntryLike } from './pairing.ts';
 import { getIntlRuntime } from './runtime.ts';
 
 // Names `relation()` has seen in this process. The build compares them with
-// `relationTargets`. The server bundle does not load `content.config.ts`, so
-// this set stays empty there.
+// the translated and untranslated lists. The server bundle does not load
+// `content.config.ts`, so this set stays empty there.
 const RELATED_TARGETS = Symbol.for('@repo/astro-intl/related-targets');
 
 // `target` rather than `collection`: Astro checks every stored `{ collection, id }` as a
@@ -17,7 +17,9 @@ export type Relation = {
 
 export type ResolveRelationOptions = {
   locales: readonly string[];
-  listed: Readonly<Record<string, CollectionConfig>>;
+  /** Translated collections. A key means the relation resolves by pairing id. */
+  translated: Readonly<Record<string, EntryFields>>;
+  untranslated: ReadonlySet<string>;
   collections: Readonly<Record<string, CollectionEntryLike[]>>;
   getContentById: (locale: string, entryId: string) => CollectionEntryLike | undefined;
   where?: string;
@@ -33,9 +35,9 @@ function relatedTargets(): Set<string> {
   return set;
 }
 
-/** Collections `relationTargets` lists. Omitted means none. */
+/** Translated and untranslated collection names. Omitted means none. */
 export function relatedTargetNames(): string[] {
-  return [...(getIntlRuntime().config.relationTargets ?? [])];
+  return [...relationNames(getIntlRuntime().config.collections)];
 }
 
 /** Names `relation()` recorded in this process. Empty in the server bundle. */
@@ -143,12 +145,17 @@ export function resolveRelation(
   rel: Relation,
   options: ResolveRelationOptions,
 ): CollectionEntryLike {
-  const { listed, collections, getContentById, locales, where } = options;
+  const { translated, untranslated, collections, getContentById, locales, where } = options;
   if (!(rel.target in collections)) {
-    fail(`@repo/astro-intl: collections.${rel.target} is not a content collection`, where);
+    let detail = `collection "${rel.target}" is not a content collection`;
+    if (rel.target in translated) detail = missingContentCollection('translated', rel.target);
+    else if (untranslated.has(rel.target)) {
+      detail = missingContentCollection('untranslated', rel.target);
+    }
+    fail(`@repo/astro-intl: ${detail}`, where);
   }
   let entry: CollectionEntryLike | undefined;
-  if (rel.target in listed) {
+  if (rel.target in translated) {
     entry = getContentById(locale, `${rel.target}/${rel.id}`);
     if (!entry) {
       fail(
@@ -157,7 +164,8 @@ export function resolveRelation(
       );
     }
   } else {
-    // Unlisted targets match the collection entry id. A glob loader derives it from the filename.
+    // A target that is not translated matches the collection entry id.
+    // A glob loader derives it from the filename.
     entry = collections[rel.target]?.find((item) => item.id === rel.id);
     if (!entry) {
       fail(`@repo/astro-intl: relation ${rel.target}/${rel.id} is missing`, where);
@@ -167,16 +175,17 @@ export function resolveRelation(
 }
 
 export function assertRelations(options: Omit<ResolveRelationOptions, 'where'>): void {
-  const { locales, listed, collections, getContentById } = options;
+  const { locales, translated, untranslated, collections, getContentById } = options;
   const resolve = {
     locales,
-    listed,
+    translated,
+    untranslated,
     collections,
     getContentById,
   };
 
   for (const [name, entries] of Object.entries(collections)) {
-    const localeField = listed[name]?.localeField ?? 'locale';
+    const localeField = translated[name]?.locale ?? 'locale';
     for (const entry of entries) {
       const sourceLocale =
         typeof entry.data[localeField] === 'string' && entry.data[localeField].length > 0
@@ -185,7 +194,7 @@ export function assertRelations(options: Omit<ResolveRelationOptions, 'where'>):
       const where = describeEntry(name, entry);
 
       for (const rel of collectRelations(entry.data)) {
-        if (rel.target in listed) {
+        if (rel.target in translated) {
           const localesToCheck = sourceLocale ? [sourceLocale] : locales;
           for (const code of localesToCheck) {
             resolveRelation(code, rel, { ...resolve, where });

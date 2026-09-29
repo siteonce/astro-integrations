@@ -394,7 +394,7 @@ describe('setIntlConfig entry row', () => {
     return {
       locales: ['en', 'de'],
       defaultLocale: 'en',
-      collections: { pages: {} },
+      collections: { translated: ['pages'] },
       routes: [
         {
           slug: { en: 'about', de: 'ueber' },
