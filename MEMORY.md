@@ -10,10 +10,10 @@ In design discussions, discuss only — never edit repo files. Once agreed, writ
 
 **Why:** Marc separates design from implementation and uses the designing agent (claude) as designer and reviewer (stated 2026-09-27).
 
-**How to apply:** No repo edits during these discussions, even small doc notes. Edit only when Marc explicitly asks for that specific change. Where the handover goes depends on when it gets implemented:
+**How to apply:** No repo edits during these discussions, even small doc notes. Edit only when Marc explicitly asks for that specific change. Where the handover goes:
 
-- **Implemented right away:** the OS temp dir (`$TMPDIR/<kebab-name>.md`). Give Marc the full resolved path, not `$TMPDIR`.
-- **Stored for later:** the gitignored `.scratch/plans/<kebab-name>.md`, until it's time to implement it.
+- **Default:** the OS temp dir (`$TMPDIR/<kebab-name>.md`). Most handovers are implemented right away. Give Marc the full resolved path, not `$TMPDIR`.
+- **Only when Marc says it's for later:** the gitignored `.scratch/plans/<kebab-name>.md`, until it's time to implement it.
 
 ## Spec skills run one per session
 
