@@ -1,5 +1,5 @@
 /**
- * Comparators for the function `listingPaths`'s `sort` returns.
+ * Building blocks for the comparator that `listingPaths`'s `sort` returns.
  * `sortBy` chains them. The first non-zero result wins.
  */
 

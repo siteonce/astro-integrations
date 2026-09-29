@@ -41,7 +41,9 @@ A collection named without `{slug}` supplies its entries to the written tail and
 
 `pagination.slug` is written in full, even when it repeats the row’s `slug`. It has no default. The obvious default, `<slug>/{page}`, has the shape that clashes with an on-demand `{slug}` route ([View rendering](#view-rendering)). A default would hand every site that clash without a line naming it. A tail relative to the row’s `slug` is refused as well. It would bend a literal page-1 tail (`blog/1` → `blog/1/2`) and tie later pages to page 1’s tail. The key stays `slug` because it holds the same kind of value as the row’s `slug`: a full tail per locale.
 
-Pairing counts that locale’s entries (`localeField`). The view orders them with a required `sort` or `order` passed to `listingPaths`. `@repo/astro-intl/sorting` supplies comparators for `sort` (`byDate`, `byNumber`, `byText`, `byFlag`) and `sortBy` to chain them. `byText` takes the listing’s locale from the `sort` context. Intl ships no helpers for `order`, because an `order` depends on entry metadata. Intl has no default order, because `getCollection()` order is non-deterministic. A CMS page size stays separate from `pageSize`.
+Pairing counts that locale’s entries (`localeField`). A CMS page size stays separate from `pageSize`.
+
+The view orders those entries with a required `sort` or `order` passed to `listingPaths`. Intl has no default order, because `getCollection()` order is non-deterministic. `@repo/astro-intl/sorting` supplies comparators for `sort` (`byDate`, `byNumber`, `byText`, `byFlag`) and `sortBy` to chain them. `byText` takes the listing’s locale from the `sort` context. Intl ships no helpers for `order`, because an `order` depends on entry metadata.
 
 The content source decides which drafts exist. Outside local and preview, drafts never enter the collection, so no page, listing, sitemap URL, or alternate sees them. A CMS does this with its published view of the content. The view orders the list. Intl filters by locale.
 
