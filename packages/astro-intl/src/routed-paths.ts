@@ -15,6 +15,7 @@ import {
 } from './path.ts';
 import type { IntlQuery } from './query.ts';
 import type { CompiledRoute } from './routing.ts';
+import type { Compare } from './sorting.ts';
 
 type RelativeUrl = (locale: string, path?: string) => string;
 
@@ -28,7 +29,7 @@ export type ListingContext = { locale: string };
  * One is required.
  */
 export type ListingOrder<T> =
-  | { sort: (context: ListingContext) => (a: T, b: T) => number; order?: never }
+  | { sort: (context: ListingContext) => Compare<T>; order?: never }
   | { order: (entries: readonly T[], context: ListingContext) => readonly T[]; sort?: never };
 
 /**
