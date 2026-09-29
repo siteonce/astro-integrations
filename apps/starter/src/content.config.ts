@@ -4,8 +4,8 @@ import { blog } from '@repo/astro-site/schemas/content/blog';
 import { seo } from '@repo/astro-site/schemas/content/seo';
 import { glob } from 'astro/loaders';
 import { z } from 'astro/zod';
-import { deployConfig } from './deploy.config.ts';
 import intlConfig from './intl.config.ts';
+import { deployClass } from './utils/deploy.ts';
 import { withoutDrafts } from './utils/drafts.ts';
 import { slugify } from './utils/slugify.ts';
 
@@ -15,7 +15,7 @@ function entryFileId({ entry }: { entry: string }) {
 }
 
 // Drafts exist in local and preview only. Everything that reads the collection sees the same set.
-const keepDrafts = deployConfig.class !== 'production';
+const keepDrafts = deployClass !== 'production';
 
 const posts = defineCollection({
   loader: withoutDrafts(

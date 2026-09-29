@@ -14,10 +14,10 @@ import ogImage from '@repo/astro-og-image';
 import { rehypeExternalLinks } from '@repo/astro-site/utils/rehype-external-links';
 import tailwindcss from '@tailwindcss/vite';
 import { defineConfig } from 'astro/config';
-import { deployConfig } from './src/deploy.config.ts';
 import intlConfig from './src/intl.config.ts';
 import { ogConfig } from './src/og.config.ts';
 import { siteConfig } from './src/site.config.ts';
+import { deployClass } from './src/utils/deploy.ts';
 import { catalogs } from './src/utils/t.ts';
 
 // Allow the editorial-media host when MEDIA_BASE_URL is a valid origin.
@@ -61,7 +61,7 @@ export default defineConfig({
     // ogImage({
     //   config: ogConfig,
     //   siteConfig,
-    //   deployConfig,
+    //   deployConfig: { class: deployClass },
     //   intlConfig,
     //   catalogs,
     // }),

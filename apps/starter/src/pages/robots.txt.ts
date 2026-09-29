@@ -1,6 +1,6 @@
 import type { APIRoute } from 'astro';
-import { deployConfig } from '../deploy.config.ts';
 import { siteConfig } from '../site.config.ts';
+import { deployClass } from '../utils/deploy.ts';
 
 // Prerendered so the body can branch on deploy class at build. Governs
 // crawling only; per-page indexing is Seo `noindex`, which does not feed this.
@@ -60,6 +60,6 @@ Sitemap: ${sitemap}
 `;
 
 export const GET: APIRoute = () =>
-  new Response(deployConfig.class === 'preview' ? preview : open, {
+  new Response(deployClass === 'preview' ? preview : open, {
     headers: { 'Content-Type': 'text/plain; charset=utf-8' },
   });
