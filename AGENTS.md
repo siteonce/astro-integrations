@@ -15,4 +15,4 @@
 - **Error policy.** `docs/agents/errors.md`.
 - **Tests.** `docs/agents/tests.md`.
 - **Source comments.** Describe current behavior. Do not cite plan phases, PR numbers, or plan/backlog files.
-- **Memory.** `MEMORY.md`. Anything you'd save to your tool's built-in memory goes here instead, so all agents work from one record instead of drifting, partial copies.
+- **Memory.** `MEMORY.md`. Anything workspace-related you'd save to your tool's built-in memory goes here instead, so all agents work from one record instead of drifting, partial copies.
