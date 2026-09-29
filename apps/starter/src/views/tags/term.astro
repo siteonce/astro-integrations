@@ -2,7 +2,7 @@
 // Term. One tags entry and the posts tagged with it.
 // `entryPaths` emits one path per translated term.
 import { type CollectionEntry, render } from 'astro:content';
-import { entryPaths, getAlternatePathsForPath, setIntlConfig, viewProps } from '@repo/astro-intl';
+import { entryPaths, setIntlConfig, viewProps } from '@repo/astro-intl';
 import { Hreflang } from '@repo/astro-intl/components';
 import { ogImageFor } from '@repo/astro-og-image/utils/og-image-for';
 import { Hero, PostList, Schema, Seo } from '@repo/astro-site/components';
@@ -11,8 +11,9 @@ import intlConfig from '../../intl.config.ts';
 import SiteLayout from '../../layouts/site-layout.astro';
 import { ogConfig } from '../../og.config.ts';
 import { siteConfig } from '../../site.config.ts';
-import { createPageKit } from '../../utils/page-kit.ts';
+import { createPosts } from '../../utils/posts.ts';
 import { postsNewestFirst } from '../../utils/sorting.ts';
+import { useTranslations } from '../../utils/t.ts';
 
 // Page bundles do not share the integration's in-memory runtime.
 setIntlConfig(intlConfig);
@@ -27,9 +28,8 @@ type Props = InferGetStaticPropsType<typeof getStaticPaths>;
 const props = await viewProps(Astro, getStaticPaths);
 if (!props) return new Response(null, { status: 404 });
 const { locale, path, entry } = props;
-const kit = createPageKit(locale);
-const switcher = kit.switcher(await getAlternatePathsForPath(locale, path));
-const t = kit.t;
+const t = useTranslations(locale);
+const posts = createPosts(locale);
 
 const title = entry.data.seoTitle ?? t(`taxonomy.blogTags.${entry.data.id}`);
 const description = entry.data.seoDesc ?? title;
@@ -38,13 +38,13 @@ const ogImage = ogImageFor(Astro.url.pathname, ogConfig);
 const hasBody = typeof entry.body === 'string' && entry.body.length > 0;
 const Content = hasBody ? (await render(entry)).Content : undefined;
 
-const posts = (await kit.posts())
+const tagged = (await posts.list())
   .filter((post) => post.data.tags.some((tag) => tag.id === entry.data.id))
   .toSorted(postsNewestFirst);
-const items = await Promise.all(posts.map((post) => kit.postItem(post)));
+const items = await Promise.all(tagged.map((post) => posts.item(post)));
 ---
 
-<SiteLayout locale={locale} switcher={switcher}>
+<SiteLayout locale={locale} path={path}>
   <Fragment slot="head">
     <Seo
       siteConfig={siteConfig}

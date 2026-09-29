@@ -7,20 +7,14 @@ import { NotFound, Seo } from '@repo/astro-site/components';
 import intlConfig from '../intl.config.ts';
 import SiteLayout from '../layouts/site-layout.astro';
 import { siteConfig } from '../site.config.ts';
-import { createPageKit } from '../utils/page-kit.ts';
+import { useTranslations } from '../utils/t.ts';
 
 const locale = Astro.currentLocale ?? intlConfig.defaultLocale;
-const kit = createPageKit(locale);
-const t = kit.t;
-const switcher = kit
-  .switcher({})
-  .map((item) =>
-    item.current || item.href ? item : { ...item, href: getRelativeLocaleUrl(item.locale) },
-  );
+const t = useTranslations(locale);
 const homeHref = getRelativeLocaleUrl(locale);
 ---
 
-<SiteLayout locale={locale} switcher={switcher}>
+<SiteLayout locale={locale}>
   <Fragment slot="head">
     <Seo
       siteConfig={siteConfig}

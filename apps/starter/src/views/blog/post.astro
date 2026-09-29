@@ -2,14 +2,7 @@
 // Post. One entry in the posts collection: the article, its byline, and related posts.
 // `entryPaths` emits one path per translated entry.
 import { type CollectionEntry, render } from 'astro:content';
-import {
-  entryPaths,
-  getAlternatePathsForPath,
-  getRelated,
-  type Relation,
-  setIntlConfig,
-  viewProps,
-} from '@repo/astro-intl';
+import { entryPaths, getRelated, type Relation, setIntlConfig, viewProps } from '@repo/astro-intl';
 import { Hreflang } from '@repo/astro-intl/components';
 import { ogImageFor } from '@repo/astro-og-image/utils/og-image-for';
 import { Article, RelatedPosts, Schema, Seo } from '@repo/astro-site/components';
@@ -19,10 +12,9 @@ import intlConfig from '../../intl.config.ts';
 import SiteLayout from '../../layouts/site-layout.astro';
 import { ogConfig } from '../../og.config.ts';
 import { siteConfig } from '../../site.config.ts';
-import { resolveFeatImage } from '../../utils/feat-image.ts';
-import { localeFolder } from '../../utils/locale-folder.ts';
-import { createPageKit } from '../../utils/page-kit.ts';
+import { createPosts } from '../../utils/posts.ts';
 import { postsNewestFirst } from '../../utils/sorting.ts';
+import { useTranslations } from '../../utils/t.ts';
 
 // Page bundles do not share the integration's in-memory runtime.
 setIntlConfig(intlConfig);
@@ -37,9 +29,8 @@ type Props = InferGetStaticPropsType<typeof getStaticPaths>;
 const props = await viewProps(Astro, getStaticPaths);
 if (!props) return new Response(null, { status: 404 });
 const { locale, path, entry } = props;
-const kit = createPageKit(locale);
-const switcher = kit.switcher(await getAlternatePathsForPath(locale, path));
-const t = kit.t;
+const t = useTranslations(locale);
+const posts = createPosts(locale);
 
 const title = entry.data.seoTitle;
 const description = entry.data.seoDesc;
@@ -50,25 +41,20 @@ const hasBody = typeof entry.body === 'string' && entry.body.length > 0;
 const Content = hasBody ? (await render(entry)).Content : undefined;
 
 // getRelatedContent keeps input order on ties, so give it a fixed order.
-const posts = (await kit.posts()).toSorted(postsNewestFirst);
-const dateFmt = new Intl.DateTimeFormat(locale, { dateStyle: 'long' });
-const terms = await kit.terms(entry.data.tags);
+const ordered = (await posts.list()).toSorted(postsNewestFirst);
+const terms = await posts.terms(entry.data.tags);
 // getRelatedContent compares tags as strings, so give it the tag ids.
 const withTagIds = <T extends { data: { tags: Relation[] } }>(post: T) => ({
   ...post,
   data: { ...post.data, tags: post.data.tags.map((tag) => tag.id) },
 });
 const related = await Promise.all(
-  getRelatedContent(withTagIds(entry), posts.map(withTagIds)).map(async (post) => ({
-    href: await kit.href('posts', post.data.id),
+  getRelatedContent(withTagIds(entry), ordered.map(withTagIds)).map(async (post) => ({
+    href: await posts.href(post),
     title: post.data.seoTitle,
   })),
 );
-const featSrc = entry.data.featImage
-  ? resolveFeatImage(localeFolder(entry), entry.data.featImage)
-  : undefined;
-const image =
-  featSrc && entry.data.featImageAlt ? { src: featSrc, alt: entry.data.featImageAlt } : undefined;
+const image = posts.image(entry);
 
 const authorEntry = entry.data.author ? await getRelated(locale, entry.data.author) : undefined;
 const sourceEntry = entry.data.source ? await getRelated(locale, entry.data.source) : undefined;
@@ -89,7 +75,7 @@ const source =
     : undefined;
 ---
 
-<SiteLayout locale={locale} switcher={switcher}>
+<SiteLayout locale={locale} path={path}>
   <Fragment slot="head">
     <Seo
       siteConfig={siteConfig}
@@ -118,7 +104,7 @@ const source =
     <Article
       title={title}
       datetime={publishedTime}
-      dateLabel={dateFmt.format(entry.data.pubDate)}
+      dateLabel={posts.dateLabel(entry)}
       image={image}
       terms={terms}
       source={source}
