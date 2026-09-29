@@ -50,7 +50,7 @@ The feed route must leave pairing data available for sitemap serialize during th
 
 ## Robots
 
-`robotsTxt` builds the body from site and deploy config. It is not a route the package owns. The app serves it.
+The starter owns `robots.txt` as a prerendered endpoint. The customer edits it directly.
 
 Preview emits `Disallow: /`. Production and local emit scraper rules, `Allow: /`, and the sitemap URL.
 

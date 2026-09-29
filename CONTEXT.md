@@ -124,8 +124,6 @@ A snapshot monorepo that is the foundation for every Astro **content site** buil
 
 **`Favicon`**: The app head component that emits the standard favicon tag block. App concern, not a package export; icon files live in the app’s `public/`.
 
-**`robotsTxt`**: Helper that builds the robots.txt body from site and deploy config. Not a route. Distinct from **Seo** `noindex`. _Avoid_: feeding noindex into robots rules
-
 ### Styling
 
 **Tailwind**: The utility styling engine for the starter theme and call-site classes. _Avoid_: Panda, Sass (for the wired stack)

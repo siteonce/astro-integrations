@@ -6,4 +6,6 @@ It lives next to the module that owns that behavior. It imports that function (o
 
 A table or map in source is already the contract. Do not restate it in a test.
 
+Tests cover packages and reusable helpers. One-off starter files (pages, endpoints, head components) belong to the customer; `astro build` verifies them.
+
 Starter verification is `astro build` / `astro check`. Page and block templates are verified by that build.
