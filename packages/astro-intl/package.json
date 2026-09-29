@@ -24,7 +24,7 @@
   },
   "devDependencies": {
     "@types/node": "22.20.4",
-    "astro": "7.3.4"
+    "astro": "7.3.5"
   },
   "scripts": {
     "test": "node --test src/*.test.ts",
