@@ -11,7 +11,6 @@ import {
   templates,
 } from 'virtual:astro-og-image/config';
 import { createT } from '@repo/astro-intl';
-import { isLocal, isPreview } from '@repo/astro-site/utils/deploy-env';
 import type { APIContext, APIRoute, GetStaticPaths } from 'astro';
 import { computeHash, readCached, writeCached } from './cache.ts';
 import { fontRegistryDigest, loadFonts } from './fonts.ts';
@@ -28,7 +27,7 @@ const PACKAGE_VERSION = '0.0.1';
 const translate = createT(catalogs);
 
 function draftsVisible(): boolean {
-  return isLocal(deployConfig) || isPreview(deployConfig);
+  return deployConfig.class !== 'production';
 }
 
 export const getStaticPaths: GetStaticPaths = async () =>

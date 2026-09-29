@@ -1,4 +1,3 @@
-import { isPreview } from '@repo/astro-site';
 import type { APIRoute } from 'astro';
 import { deployConfig } from '../deploy.config.ts';
 import { siteConfig } from '../site.config.ts';
@@ -61,6 +60,6 @@ Sitemap: ${sitemap}
 `;
 
 export const GET: APIRoute = () =>
-  new Response(isPreview(deployConfig) ? preview : open, {
+  new Response(deployConfig.class === 'preview' ? preview : open, {
     headers: { 'Content-Type': 'text/plain; charset=utf-8' },
   });

@@ -1,7 +1,8 @@
 import { deployConfigSchema } from '@repo/astro-site/schemas/config/deploy.config';
 
 // Host check the customer edits: map this host's environment onto one exclusive
-// deploy class. Lives here, not `astro:env`. Parsed on import.
+// deploy class. Lives here, not `astro:env`. Parsed on import. This is the only
+// file that reads host env; everything else branches on `deployConfig.class`.
 const hostContext = process.env.CONTEXT;
 const deployClass =
   hostContext === 'production'
