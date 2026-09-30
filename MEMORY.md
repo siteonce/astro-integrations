@@ -59,7 +59,7 @@ Listing pages stay at the same depth as entry slugs (`blog/2`, not `blog/page/2`
 
 ## Leave ogImage() commented out
 
-`ogImage()` is commented out in `apps/starter/astro.config.mjs`. Restoring it breaks `astro build` in `packages/astro-og-image/src/route-data.ts`: Open Graph generation requires a collection entry, and paired tails with no entry (home, listings) have none. The planned fix is `.scratch/plans/og-image-update.md`.
+`ogImage()` is commented out in `apps/starter/astro.config.mjs`. Restoring it breaks `astro build` in `packages/astro-og-image/src/route-data.ts`: Open Graph generation requires a collection entry, and paired tails with no entry (home, listings) have none. The planned fix is `.scratch/og-image-update.md`.
 
 **Why:** Marc disabled it until that fix lands.
 
