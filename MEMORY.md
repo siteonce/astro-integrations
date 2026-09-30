@@ -73,6 +73,16 @@ Intl and its sitemap options stay bundler-neutral. No virtual modules, Vite plug
 
 **How to apply:** Don't add a virtual module, Vite plugin, `define`, or alias to carry intl config or sitemap data. `astro:content` and `astro:i18n` stay allowed.
 
+## Apps are never boxed in
+
+Apps must be able to build whatever they want on top of our packages. A package supplies data and pieces the app can compose. The app can add to, wrap, or replace every piece the package hands it. It can also skip the package's convenience path and build the same result from the same data. Example: the app controls every sitemap URL, alternate, and filter, with or without `@astrojs/sitemap`.
+
+Hidden plumbing is fine. Injected hidden routes, files, or folders (such as `_intl/`) are welcome when they ease integration or carry data the app needs to build. Magic is harmful only when it takes a decision away from the app.
+
+**Why:** Marc is concerned about apps losing control. He is not concerned about hidden injected plumbing that eases cumbersome integration (stated 2026-09-30).
+
+**How to apply:** When designing a package API, check that the app can extend, wrap, or replace each piece. Check that the raw data stays reachable without the convenience path. Don't reject hidden plumbing on "no magic" grounds when it helps the app build and takes no choice away.
+
 ## Don't restore removed shapes
 
 These were removed or rejected on purpose; agents kept bringing them back:
