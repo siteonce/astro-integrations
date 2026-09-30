@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { afterEach, describe, it } from 'node:test';
@@ -7,6 +7,7 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 import type { AstroConfig, AstroIntegration } from 'astro';
 import type { IntlConfigInput } from './define-intl.ts';
 import astroIntl from './integration.ts';
+import { SITEMAP_DATA_PATH } from './sitemap.ts';
 
 type InjectedCall = {
   pattern: string;
@@ -66,6 +67,10 @@ function entrypointFor(injected: InjectedCall[], pattern: string): string {
   return call.entrypoint;
 }
 
+function viewRoutes(injected: InjectedCall[]): InjectedCall[] {
+  return injected.filter((call) => call.pattern !== SITEMAP_DATA_PATH);
+}
+
 /** A config `redirects` entry at `/`, as `astro:routes:resolved` reports it. */
 function siteRootRoute(): ResolvedRoute {
   return {
@@ -110,6 +115,7 @@ async function runSetup(options: {
   integrations?: AstroIntegration[];
   adapter?: AstroIntegration;
   command?: 'dev' | 'build' | 'preview' | 'sync';
+  base?: string;
 }): Promise<{
   config: Record<string, unknown>;
   injected: InjectedCall[];
@@ -118,6 +124,8 @@ async function runSetup(options: {
   const srcDir = options.srcDir ?? path.join(options.root, 'src');
   const updates: Record<string, unknown>[] = [];
   const injected: InjectedCall[] = [];
+  const codegenDir = path.join(options.root, '.astro', 'integrations', 'astro-intl');
+  await mkdir(codegenDir, { recursive: true });
   const integration = astroIntl(options.config);
   const setup = integration.hooks['astro:config:setup'];
   assert.ok(setup, 'astro:config:setup hook is registered');
@@ -126,6 +134,7 @@ async function runSetup(options: {
     config: {
       root: pathToFileURL(`${options.root}/`),
       srcDir: pathToFileURL(`${srcDir}/`),
+      base: options.base,
       i18n: options.i18n,
       integrations: options.integrations ?? [],
       adapter: options.adapter,
@@ -136,6 +145,9 @@ async function runSetup(options: {
     },
     injectRoute(route: InjectedCall) {
       injected.push(route);
+    },
+    createCodegenDir() {
+      return pathToFileURL(`${codegenDir}/`);
     },
     logger: silentLogger(),
   } as unknown as SetupParams);
@@ -320,7 +332,7 @@ export default { integrations: [sitemap({ i18n: { defaultLocale: 'en', locales: 
     });
 
     assert.deepEqual(
-      injected.map(({ pattern, entrypoint }) => ({ pattern, entrypoint })),
+      viewRoutes(injected).map(({ pattern, entrypoint }) => ({ pattern, entrypoint })),
       [
         { pattern: '/en/about/[...index]', entrypoint: view('about') },
         { pattern: '/de/ueber/[...index]', entrypoint: view('about') },
@@ -334,7 +346,7 @@ export default { integrations: [sitemap({ i18n: { defaultLocale: 'en', locales: 
       ],
     );
     assert.equal(
-      injected.some((call) => Object.hasOwn(call, 'prerender')),
+      viewRoutes(injected).some((call) => Object.hasOwn(call, 'prerender')),
       false,
     );
   });
@@ -359,7 +371,7 @@ export default { integrations: [sitemap({ i18n: { defaultLocale: 'en', locales: 
       }),
     });
     assert.deepEqual(
-      injected.map(({ pattern }) => pattern),
+      viewRoutes(injected).map(({ pattern }) => pattern),
       ['/en/about/[...index]', '/de/ueber/[...index]'],
     );
   });
@@ -402,7 +414,7 @@ export default { integrations: [sitemap({ i18n: { defaultLocale: 'en', locales: 
       return 'unknown';
     };
     const seen = new Set<string>();
-    for (const call of injected) {
+    for (const call of viewRoutes(injected)) {
       const kind = kindOf(call.entrypoint);
       seen.add(kind);
       if (kind === 'fallback') {
@@ -418,9 +430,10 @@ export default { integrations: [sitemap({ i18n: { defaultLocale: 'en', locales: 
     const root = await makeRoot();
     await writeRenderingViews(root);
     const { injected } = await runSetup({ root, config: renderingConfig('build') });
-    assert.ok(injected.length > 0);
+    const views = viewRoutes(injected);
+    assert.ok(views.length > 0);
     assert.equal(
-      injected.some((call) => Object.hasOwn(call, 'prerender')),
+      views.some((call) => Object.hasOwn(call, 'prerender')),
       false,
     );
   });
@@ -735,6 +748,80 @@ export default { integrations: [sitemap({ i18n: { defaultLocale: 'en', locales: 
       },
     });
     await resolveRoutes(integration, []);
+  });
+
+  it('injects the sitemap data route only for build', async () => {
+    for (const command of ['dev', 'preview', 'sync'] as const) {
+      const root = await makeRoot();
+      const { injected } = await runSetup({ root, config: prefixed(), command });
+      assert.equal(
+        injected.some((call) => call.pattern === SITEMAP_DATA_PATH),
+        false,
+        command,
+      );
+    }
+
+    const root = await makeRoot();
+    const config = prefixed({ fallbackView: 'missing' });
+    const { injected } = await runSetup({ root, config, command: 'build' });
+    const data = injected.find((call) => call.pattern === SITEMAP_DATA_PATH);
+    assert.ok(data);
+    assert.equal(data.prerender, true);
+    const source = await readFile(data.entrypoint, 'utf8');
+    const createIntlUrl = new URL('./create-intl.ts', import.meta.url).href;
+    assert.ok(source.includes(`from ${JSON.stringify(createIntlUrl)}`));
+    assert.ok(source.includes(`createIntl(${JSON.stringify(config)})`));
+    assert.match(source, /export const prerender = true/);
+    assert.match(source, /JSON\.stringify\(await intl\.getSitemapEntries\(\)\)/);
+  });
+
+  it('prerenders the data route when viewRendering is request', async () => {
+    const root = await makeRoot();
+    await writeRenderingViews(root);
+    const { injected } = await runSetup({
+      root,
+      config: renderingConfig('request'),
+      adapter: { name: '@astrojs/node', hooks: {} } as AstroIntegration,
+    });
+    const data = injected.find((call) => call.pattern === SITEMAP_DATA_PATH);
+    assert.equal(data?.prerender, true);
+  });
+
+  it('aborts startup when the intl config does not survive a JSON round trip', async () => {
+    const root = await makeRoot();
+    await assert.rejects(
+      () =>
+        runSetup({
+          root,
+          config: {
+            locales: ['en'],
+            defaultLocale: 'en',
+            routing: { prefixDefaultLocale: () => true },
+          } as unknown as IntlConfigInput,
+        }),
+      /does not survive a JSON round trip at "routing\.prefixDefaultLocale"/,
+    );
+  });
+
+  it('does not abort startup when an intl config key is undefined', async () => {
+    const root = await makeRoot();
+    const { config } = await runSetup({
+      root,
+      config: {
+        locales: ['en'],
+        defaultLocale: 'en',
+        routing: { prefixDefaultLocale: undefined },
+      },
+    });
+    assert.deepEqual(config.i18n, {
+      defaultLocale: 'en',
+      locales: ['en'],
+      routing: {
+        prefixDefaultLocale: false,
+        redirectToDefaultLocale: false,
+        fallbackType: 'redirect',
+      },
+    });
   });
 });
 

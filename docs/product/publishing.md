@@ -28,9 +28,19 @@ A URL typed in the other form is the host’s to redirect. Customers’ hosts ar
 
 ## Sitemap
 
-The app installs and registers `@astrojs/sitemap`. Intl hands the app `customPages` and `serialize` as `astroIntl(intlConfig).sitemap`. The app registers the printer after intl and adds its own filter. The starter’s filter drops `rss.xml`, `robots.txt`, and `/_og`.
+The app installs and registers `@astrojs/sitemap`. Intl hands the app `customPages`, `serialize`, and `filter` as `astroIntl(intlConfig).sitemap`. The app registers the printer after intl. Each piece stands alone. The app can pass it through, wrap it, or replace it.
+
+- `customPages` lists every URL pairing publishes, including on-demand ones. The app can add its own URLs to it. Intl keeps them.
+- `serialize` adds each URL's alternates and `x-default`. It leaves URLs pairing does not know unchanged.
+- `filter` drops intl's build-only data route and nothing else. The app combines it with its own filter. An app that replaces it lists that route.
+
+The starter combines intl's filter with its own. Its own filter drops `rss.xml`, `robots.txt`, and `/_og`.
+
+Intl builds one hidden data route under `/_intl/` during `astro build`. It carries pairing from the content collections to the sitemap options. Intl removes its output before the build ends, so the deployed site does not serve it. No app route has to feed the sitemap.
 
 Intl does not call `sitemap()`, does not enable the sitemap `i18n` option, and does not emit extra URLs.
+
+An app may build its sitemap without `@astrojs/sitemap`. The sitemap entries intl hands page code carry each URL, its alternates, and `x-default`: the same data `serialize` prints. The starter uses `@astrojs/sitemap`.
 
 A published tail with no entry is still a URL. The sitemap lists it. Its alternates are the locales that publish that tail.
 
@@ -45,8 +55,6 @@ Drafts stay out of the production sitemap because those routes are not built.
 RSS stays in the app. Each locale’s feed is `rss.xml` under that locale’s home. With `prefixDefaultLocale: false`, the default locale’s feed is `/rss.xml`. Other locales’ feeds are `/<locale>/rss.xml`. It is not a mixed-language root feed.
 
 Channel copy comes from catalogs. Item links come from pairing. Items are excerpts.
-
-The feed route must leave pairing data available for sitemap serialize during the build.
 
 ## Robots
 

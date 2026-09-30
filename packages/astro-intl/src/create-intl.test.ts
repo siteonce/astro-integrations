@@ -85,6 +85,9 @@ describe('getSitemapEntries / getAlternatePaths', () => {
     });
     const sitemap = await intl.getSitemapEntries();
     assert.equal(sitemap.length, 2);
+    assert.equal(sitemap[0]?.xDefault, 'https://example.com/en/blog/hello-world');
+    assert.equal(sitemap[1]?.xDefault, 'https://example.com/en/blog/hello-world');
+    assert.equal('x-default' in (sitemap[0]?.alternates ?? {}), false);
   });
 });
 
@@ -255,6 +258,11 @@ describe('hreflangLinks', () => {
     assert.deepEqual(await intl.hreflangLinks('de', 'artikel/nur-deutsch'), [
       { hreflang: 'de', href: 'https://example.com/de/artikel/nur-deutsch' },
     ]);
+    const nur = (await intl.getSitemapEntries()).find((item) => item.entryId === 'blog/nur');
+    assert.equal(nur?.xDefault, undefined);
+    assert.deepEqual(nur?.alternates, {
+      de: 'https://example.com/de/artikel/nur-deutsch',
+    });
   });
 });
 

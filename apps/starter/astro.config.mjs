@@ -83,7 +83,7 @@ export default defineConfig({
     }),
     sitemap({
       ...intl.sitemap,
-      filter: sitemapFilter,
+      filter: (page) => intl.sitemap.filter(page) && sitemapFilter(page),
     }),
   ],
 });

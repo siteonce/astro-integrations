@@ -21,7 +21,7 @@ Stop and start `astro dev` after editing `intl.config.ts` or `routes.config.ts`.
 ## Two jobs
 
 - **intl** (`@repo/astro-intl`) — locales written through to Astro `i18n`, catalogs, pairing, route injection, lookup by id and by locale and public tail. It does not own folders or views. Who emits which URLs: [`publishing.md`](publishing.md).
-- **starter** — an example **content site** using intl. Its **content source** is Astro content collections. It writes the route rows, the views, and RSS. The app registers `@astrojs/sitemap` with `intl.sitemap` and its own filter. The app’s fallback view decides what a missing translation does.
+- **starter** — an example **content site** using intl. Its **content source** is Astro content collections. It writes the route rows, the views, and RSS. The app registers `@astrojs/sitemap` with `intl.sitemap` and combines intl’s `filter` with its own. The app’s fallback view decides what a missing translation does.
 
 The test: if deleting a piece would make the site look more like ordinary Astro and pairing still works, it was cost.
 

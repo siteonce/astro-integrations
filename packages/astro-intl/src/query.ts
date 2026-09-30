@@ -15,7 +15,10 @@ export type SitemapEntry = {
   locale: string;
   path: string;
   loc: string;
+  /** Locale code to absolute URL. Does not include `x-default`. */
   alternates: Record<string, string>;
+  /** Default locale's alternate loc, when that locale publishes this document or tail. */
+  xDefault?: string;
   entryId?: string;
 };
 
@@ -124,24 +127,32 @@ export function createIntlQuery(options: CreateIntlQueryOptions): IntlQuery {
     }));
   }
 
+  function withXDefault(entry: Omit<SitemapEntry, 'xDefault'>): SitemapEntry {
+    const xDefault = entry.alternates[config.defaultLocale];
+    if (xDefault === undefined) return entry;
+    return { ...entry, xDefault };
+  }
+
   function getSitemapEntries(): SitemapEntry[] {
     const entries: SitemapEntry[] = pairing.routed.map((document) => {
       const siblings = documentsForEntryId(pairing, document.entryId);
-      return {
+      return withXDefault({
         locale: document.locale,
         path: document.path,
         loc: locFor(absolute, document.locale, document.path),
         alternates: alternateLocs(siblings, absolute),
         entryId: document.entryId,
-      };
+      });
     });
     for (const tail of pairing.tails) {
-      entries.push({
-        locale: tail.locale,
-        path: tail.path,
-        loc: locFor(absolute, tail.locale, tail.path),
-        alternates: tailLocs(tail.tails),
-      });
+      entries.push(
+        withXDefault({
+          locale: tail.locale,
+          path: tail.path,
+          loc: locFor(absolute, tail.locale, tail.path),
+          alternates: tailLocs(tail.tails),
+        }),
+      );
     }
     return entries.sort(compareLocalePath);
   }

@@ -1,13 +1,16 @@
 /**
  * Sitemap options for one `astroIntl()` call.
- * That call owns `customPages` and the entry cache. Nothing here is shared
- * across calls. `astro:build:done` replaces `customPages` from the cache file
- * a prerendered route wrote. `serialize` adds `x-default` from this call's
- * default locale.
+ * That call owns `customPages` and the entries loaded from this build.
+ * Nothing here is shared across calls. `astro:build:done` reads
+ * `<dir>/_intl/sitemap-entries.json`, adds those URLs to `customPages`, and
+ * deletes the file. A second build in the same process replaces only the URLs
+ * this call added. `serialize` adds alternates and `x-default` from each entry.
+ * `filter` drops the data route.
  */
 
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
-import { dirname, resolve } from 'node:path';
+import { existsSync, readdirSync, readFileSync, rmdirSync, statSync, unlinkSync } from 'node:fs';
+import { join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import type { SitemapEntry } from './query.ts';
 
 /** The part of a sitemap item this module reads and returns. */
@@ -19,23 +22,15 @@ export type SitemapItemLike = {
 export type IntlSitemapOptions = {
   customPages: string[];
   serialize: <T extends SitemapItemLike>(item: T) => Promise<T>;
+  filter: (page: string) => boolean;
 };
 
-const cachePath = resolve(process.cwd(), 'node_modules/.astro/intl-sitemap-entries.json');
+/** Pathname of the build-only route that carries sitemap entries. */
+export const SITEMAP_DATA_PATH = '/_intl/sitemap-entries.json';
 
-const MISSING_ENTRIES =
-  '@repo/astro-intl: no sitemap entries were persisted. A prerendered route must call persistIntlSitemapEntries().';
+const MISSING_DATA_ROUTE = '@repo/astro-intl: the sitemap data route was not built.';
 
-/** Writes the sitemap entries a prerendered route collected. Later reads use this file. */
-export function persistIntlSitemapEntries(entries: SitemapEntry[]): void {
-  mkdirSync(dirname(cachePath), { recursive: true });
-  writeFileSync(cachePath, `${JSON.stringify(entries)}\n`);
-}
-
-function readPersisted(): SitemapEntry[] {
-  if (!existsSync(cachePath)) return [];
-  return JSON.parse(readFileSync(cachePath, 'utf8')) as SitemapEntry[];
-}
+const DATA_ROUTE_NOT_A_LIST = '@repo/astro-intl: the sitemap data route did not return a list.';
 
 function normalizeLoc(url: string): string {
   try {
@@ -48,41 +43,116 @@ function normalizeLoc(url: string): string {
   }
 }
 
-/** `customPages` and `serialize` bound to one parsed intl config. */
-export function createSitemapOptions(config: { defaultLocale: string }): {
+function normalizeBase(base: string | undefined): string {
+  if (!base || base === '/') return '/';
+  const withLead = base.startsWith('/') ? base : `/${base}`;
+  const trimmed = withLead.replace(/\/+$/u, '');
+  return trimmed === '' ? '/' : trimmed;
+}
+
+/** Pathname with `base` removed. Undefined when `pathname` is outside `base`. */
+function pathAfterBase(pathname: string, base: string): string | undefined {
+  if (base === '/') return pathname;
+  if (pathname === base) return '/';
+  if (!pathname.startsWith(`${base}/`)) return undefined;
+  return pathname.slice(base.length);
+}
+
+function isDataRoute(pathname: string): boolean {
+  const bare = pathname.length > 1 ? pathname.replace(/\/+$/u, '') : pathname;
+  return bare === SITEMAP_DATA_PATH;
+}
+
+function intlDir(dir: URL): string {
+  return join(fileURLToPath(dir), '_intl');
+}
+
+/** The sitemap data file this build wrote. */
+function dataFile(dir: URL): string | undefined {
+  const file = join(intlDir(dir), 'sitemap-entries.json');
+  if (existsSync(file) && statSync(file).isFile()) return file;
+  return undefined;
+}
+
+function removeIfEmpty(directory: string): void {
+  if (existsSync(directory) && readdirSync(directory).length === 0) rmdirSync(directory);
+}
+
+function removeDataFile(target: string, folder: string): void {
+  unlinkSync(target);
+  removeIfEmpty(folder);
+}
+
+function readDataRoute(dir: URL): SitemapEntry[] {
+  const target = dataFile(dir);
+  if (target === undefined) throw new Error(MISSING_DATA_ROUTE);
+  const text = readFileSync(target, 'utf8');
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(text);
+  } catch {
+    throw new Error(DATA_ROUTE_NOT_A_LIST);
+  }
+  if (!Array.isArray(parsed)) throw new Error(DATA_ROUTE_NOT_A_LIST);
+  removeDataFile(target, intlDir(dir));
+  return parsed as SitemapEntry[];
+}
+
+/** Drop the URLs added last time, as one slice, so URLs the app added stay. */
+function removeAdded(pages: string[], previous: readonly string[]): void {
+  if (previous.length === 0 || previous.length > pages.length) return;
+  let start = -1;
+  for (let index = 0; index <= pages.length - previous.length; index += 1) {
+    if (previous.every((loc, offset) => pages[index + offset] === loc)) start = index;
+  }
+  if (start !== -1) pages.splice(start, previous.length);
+}
+
+/** `customPages`, `serialize`, and `filter` bound to one `astroIntl()` call. */
+export function createSitemapOptions(): {
   sitemap: IntlSitemapOptions;
-  fillCustomPages: () => void;
+  fillCustomPages: (dir: URL) => void;
+  setBase: (base: string | undefined) => void;
 } {
   const customPages: string[] = [];
-  let cached: SitemapEntry[] | undefined;
+  let loaded: SitemapEntry[] | undefined;
+  let added: string[] = [];
+  let base = '/';
 
-  function entries(): SitemapEntry[] {
-    if (cached) return cached;
-    const persisted = readPersisted();
-    if (persisted.length === 0) throw new Error(MISSING_ENTRIES);
-    cached = persisted;
-    return cached;
+  function setBase(next: string | undefined): void {
+    base = normalizeBase(next);
   }
 
   async function serialize<T extends SitemapItemLike>(item: T): Promise<T> {
-    const entry = entries().find(
+    const entry = (loaded ?? []).find(
       (candidate) => normalizeLoc(candidate.loc) === normalizeLoc(item.url),
     );
     if (!entry) return item;
     const links = Object.entries(entry.alternates).map(([lang, url]) => ({ lang, url }));
-    const xDefault = entry.alternates[config.defaultLocale];
-    if (xDefault) links.push({ lang: 'x-default', url: xDefault });
+    if (entry.xDefault) links.push({ lang: 'x-default', url: entry.xDefault });
     return { ...item, links };
   }
 
-  function fillCustomPages(): void {
-    // Re-read the file so a second build in this process picks up a new write.
-    cached = undefined;
-    const locs = [...new Set(entries().map((entry) => entry.loc))];
-    // Mutates the array the app passed to the printer. Replacing it would
-    // leave the printer holding the empty one from config load.
-    customPages.splice(0, customPages.length, ...locs);
+  function filter(page: string): boolean {
+    let pathname: string;
+    try {
+      pathname = new URL(page).pathname;
+    } catch {
+      return true;
+    }
+    const rest = pathAfterBase(pathname, base);
+    if (rest === undefined) return true;
+    return !isDataRoute(rest);
   }
 
-  return { sitemap: { customPages, serialize }, fillCustomPages };
+  function fillCustomPages(dir: URL): void {
+    const entries = readDataRoute(dir);
+    loaded = entries;
+    const locs = [...new Set(entries.map((entry) => entry.loc))];
+    removeAdded(customPages, added);
+    for (const loc of locs) customPages.push(loc);
+    added = locs;
+  }
+
+  return { sitemap: { customPages, serialize, filter }, fillCustomPages, setBase };
 }

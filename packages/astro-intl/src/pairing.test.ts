@@ -1172,6 +1172,7 @@ describe('query helpers', () => {
       en: 'https://example.com/en/blog/hello-world',
       de: 'https://example.com/de/artikel/hallo-welt',
     });
+    assert.equal(helloEn?.xDefault, 'https://example.com/en/blog/hello-world');
     const home = sitemap.find((item) => item.locale === 'en' && item.path === '/');
     assert.equal(home?.entryId, 'pages/home');
     const listing = sitemap.find((item) => item.locale === 'en' && item.path === 'blog');
@@ -1180,6 +1181,7 @@ describe('query helpers', () => {
     assert.deepEqual(solo?.alternates, {
       en: 'https://example.com/en/blog/solo',
     });
+    assert.equal(solo?.xDefault, 'https://example.com/en/blog/solo');
     assert.ok(sitemap.every((item) => item.entryId !== 'ada'));
   });
 
@@ -1256,6 +1258,7 @@ describe('query helpers collection/id', () => {
       en: 'https://example.com/en/blog/hello-world',
       de: 'https://example.com/de/artikel/hallo-welt',
     });
+    assert.equal(helloEn?.xDefault, 'https://example.com/en/blog/hello-world');
   });
 });
 
@@ -1313,12 +1316,14 @@ describe('published tails with no entry', () => {
       en: 'https://example.com/en/blog',
       de: 'https://example.com/de/artikel',
     });
+    assert.equal(listing?.xDefault, 'https://example.com/en/blog');
     const home = sitemap.find((item) => item.locale === 'en' && item.path === '/');
     assert.equal(home?.entryId, undefined);
     assert.deepEqual(home?.alternates, {
       en: 'https://example.com/en',
       de: 'https://example.com/de',
     });
+    assert.equal(home?.xDefault, 'https://example.com/en');
     assert.ok(query.getPairedSlugs().some((item) => item.locale === 'en' && item.slug === '/'));
     assert.ok(
       query.getPairedSlugs().some((item) => item.locale === 'de' && item.slug === 'artikel'),

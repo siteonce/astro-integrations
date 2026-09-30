@@ -15,13 +15,19 @@
  * defaults to false. When it is true, startup fails unless some other route
  * serves `/`. Warns when `trailingSlash` and `build.format` disagree. Fails
  * startup when `@astrojs/sitemap` is registered before this integration, or
- * when its `i18n` option is set. The return value includes `sitemap`:
- * `{ customPages, serialize }` bound to this config. `astro:build:done`
- * replaces `customPages` from the sitemap entries a prerendered route
- * persisted. Does not load catalog JSON and does not create a virtual module.
+ * when its `i18n` option is set. The authored config must survive a JSON round
+ * trip. A key set to `undefined` survives. Otherwise startup fails and names
+ * the key. The return value includes
+ * `sitemap`: `{ customPages, serialize, filter }` bound to this config. During
+ * `astro build`, a prerendered data route at `/_intl/sitemap-entries.json`
+ * carries pairing to those options. `viewRendering` does not change it.
+ * `astro:build:done` reads that route's output, adds its URLs to `customPages`,
+ * and deletes the output. Does not load catalog JSON and does not create a
+ * virtual module.
  */
 
 import { existsSync } from 'node:fs';
+import { mkdir, writeFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import type { AstroIntegration } from 'astro';
@@ -34,7 +40,7 @@ import {
   pageSlugClashMessage,
   viewEntrypoint,
 } from './routing.ts';
-import { createSitemapOptions, type IntlSitemapOptions } from './sitemap.ts';
+import { createSitemapOptions, type IntlSitemapOptions, SITEMAP_DATA_PATH } from './sitemap.ts';
 import { sitemapI18nIsSet } from './sitemap-i18n.ts';
 import { urlFormatMismatch } from './url-format.ts';
 
@@ -49,7 +55,6 @@ export type { PairedSlug, SitemapEntry } from './query.ts';
 export type { Relation } from './relation.ts';
 export { localized, localizedValue, relation } from './relation.ts';
 export type { ListingContext, ListingOrder } from './routed-paths.ts';
-export { persistIntlSitemapEntries } from './sitemap.ts';
 export { viewProps } from './view-props.ts';
 
 function overlappingI18nKeys(i18n: AstroIntegrationConfigI18n | undefined): string[] {
@@ -98,15 +103,104 @@ function refusedFallbackView(): string {
   );
 }
 
+/** A JSON object. `Date`, `Map`, `Set`, and class instances are not. */
+function isPlainRecord(value: unknown): value is Record<string, unknown> {
+  if (typeof value !== 'object' || value === null || Array.isArray(value)) return false;
+  const proto = Object.getPrototypeOf(value) as object | null;
+  return proto === Object.prototype || proto === null;
+}
+
+/**
+ * First path where `value` differs from its JSON round trip.
+ * A key set to `undefined` survives. Returns undefined when the value survives.
+ */
+function jsonRoundTripKey(value: unknown): string | undefined {
+  try {
+    const encoded = JSON.stringify(value);
+    if (encoded === undefined) return '(root)';
+    return jsonDrift(value, JSON.parse(encoded) as unknown, '');
+  } catch {
+    return '(root)';
+  }
+}
+
+function jsonDrift(value: unknown, parsed: unknown, path: string): string | undefined {
+  if (Object.is(value, parsed)) return undefined;
+  if (Array.isArray(value) || Array.isArray(parsed)) {
+    if (!Array.isArray(value) || !Array.isArray(parsed) || value.length !== parsed.length) {
+      return path || '(root)';
+    }
+    for (let index = 0; index < value.length; index += 1) {
+      const found = jsonDrift(
+        value[index],
+        parsed[index],
+        path ? `${path}.${index}` : String(index),
+      );
+      if (found) return found;
+    }
+    return undefined;
+  }
+  if (isPlainRecord(value) && isPlainRecord(parsed)) {
+    for (const key of Object.keys(value)) {
+      const next = path ? `${path}.${key}` : key;
+      // JSON drops a key whose value is undefined. The parser treats that as absent.
+      if (value[key] === undefined) {
+        if (Object.hasOwn(parsed, key)) return next;
+        continue;
+      }
+      if (!Object.hasOwn(parsed, key)) return next;
+      const found = jsonDrift(value[key], parsed[key], next);
+      if (found) return found;
+    }
+    for (const key of Object.keys(parsed)) {
+      if (!Object.hasOwn(value, key)) return path ? `${path}.${key}` : key;
+    }
+    return undefined;
+  }
+  return path || '(root)';
+}
+
+function createIntlModuleUrl(): string {
+  return new URL('./create-intl.ts', import.meta.url).href;
+}
+
+function dataRouteSource(config: IntlConfigInput): string {
+  return `import { createIntl } from ${JSON.stringify(createIntlModuleUrl())};
+
+const intl = createIntl(${JSON.stringify(config)});
+
+export const prerender = true;
+
+export async function GET() {
+  return new Response(JSON.stringify(await intl.getSitemapEntries()));
+}
+`;
+}
+
+async function writeSitemapDataRoute(dir: URL, config: IntlConfigInput): Promise<string> {
+  const directory = dir.href.endsWith('/') ? dir : new URL(`${dir.href}/`);
+  await mkdir(fileURLToPath(directory), { recursive: true });
+  const entrypointUrl = new URL('sitemap-entries.ts', directory);
+  await writeFile(entrypointUrl, dataRouteSource(config));
+  return fileURLToPath(entrypointUrl);
+}
+
 export function astroIntl(
   input: IntlConfigInput,
 ): AstroIntegration & { sitemap: IntlSitemapOptions } {
+  const drift = jsonRoundTripKey(input);
+  if (drift !== undefined) {
+    throw new Error(
+      `@repo/astro-intl: intl config does not survive a JSON round trip at "${drift}".`,
+    );
+  }
   const intlConfig = parseIntlConfig(input);
-  const sitemapOptions = createSitemapOptions(intlConfig);
+  const sitemapOptions = createSitemapOptions();
 
   let projectRoot = '';
   let injected: CompiledRoute[] = [];
   let ownEntrypoints = new Set<string>();
+  let dataRoutePatterns = new Set<string>();
   let fallbackEntrypoints = new Set<string>();
   let viewRendering: IntlConfig['viewRendering'];
 
@@ -114,16 +208,25 @@ export function astroIntl(
     name: '@repo/astro-intl',
     sitemap: sitemapOptions.sitemap,
     hooks: {
-      'astro:build:done': async ({ logger }) => {
+      'astro:build:done': async ({ dir, logger }) => {
         try {
-          sitemapOptions.fillCustomPages();
+          sitemapOptions.fillCustomPages(dir);
         } catch (error) {
           const message = error instanceof Error ? error.message : String(error);
           logger.error(message);
           throw error;
         }
       },
-      'astro:config:setup': async ({ config, command, updateConfig, injectRoute, logger }) => {
+      'astro:config:setup': async ({
+        config,
+        command,
+        updateConfig,
+        injectRoute,
+        createCodegenDir,
+        logger,
+      }) => {
+        sitemapOptions.setBase(config.base);
+        dataRoutePatterns = new Set();
         const mismatch = urlFormatMismatch(config.trailingSlash, config.build?.format);
         if (mismatch) logger.warn(mismatch);
 
@@ -184,6 +287,17 @@ export function astroIntl(
             entrypoints.add(entrypoint);
             if (route.kind === 'fallback') fallback.add(entrypoint);
           }
+          // Always prerendered. viewRendering does not apply. The build deletes the output.
+          if (command === 'build') {
+            const entrypoint = await writeSitemapDataRoute(createCodegenDir(), input);
+            injectRoute({
+              pattern: SITEMAP_DATA_PATH,
+              entrypoint,
+              prerender: true,
+            });
+            entrypoints.add(entrypoint);
+            dataRoutePatterns.add(SITEMAP_DATA_PATH);
+          }
         } catch (error) {
           const message = error instanceof Error ? error.message : String(error);
           logger.error(message);
@@ -215,7 +329,10 @@ export function astroIntl(
         throw new Error(message);
       },
       'astro:routes:resolved': ({ routes, logger }) => {
-        const injectedPatterns = new Set(injected.map((route) => route.pattern));
+        const injectedPatterns = new Set([
+          ...injected.map((route) => route.pattern),
+          ...dataRoutePatterns,
+        ]);
         if (viewRendering === 'request') {
           for (const route of routes) {
             if (route.isPrerendered !== false) continue;

@@ -14,9 +14,13 @@ The **visitor** reads that site. Locale, the document they land on, and the sear
 
 A **snapshot** for Astro **content sites**. No promised upgrades. Workspace packages stay in-tree. The visitor gets documents in their language, a locale switch that lands on the same document, and head tags driven by that document.
 
-## No magic
+## No boxing in
 
-Tooling does what the customer wrote. A URL, route, or render mode exists because a config line names it, not because another field implies it. Where Astro needs something the customer did not write, such as a spread segment, the owning file names it next to the line that causes it. Tooling empowers the customer with literal building blocks. It does not act on their behalf out of sight.
+Tooling hands the customer building blocks and the data behind them. The customer can add to, wrap, or replace every piece a package hands them. They can also skip a package's convenience path and build the same result from the same data.
+
+A public URL, route, or render mode exists because a config line names it, not because another field implies it. Where Astro needs something the customer did not write, such as a spread segment, the owning file names it next to the line that causes it.
+
+Hidden plumbing is fine when it eases integration or carries data the customer builds from, and takes no decision away from them. Examples are a build-only route, a generated file, or a hidden folder. The owning file names each one.
 
 ## Reading order
 

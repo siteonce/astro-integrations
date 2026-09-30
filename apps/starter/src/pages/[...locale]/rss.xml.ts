@@ -1,7 +1,6 @@
 import { getCollection } from 'astro:content';
 import { getAbsoluteLocaleUrl, getRelativeLocaleUrl } from 'astro:i18n';
 import rss from '@astrojs/rss';
-import { persistIntlSitemapEntries } from '@repo/astro-intl';
 import type { APIRoute } from 'astro';
 import intlConfig from '../../intl.config.ts';
 import { siteConfig } from '../../site.config.ts';
@@ -25,7 +24,6 @@ export function getStaticPaths() {
 export const GET: APIRoute<{ locale: string }> = async (context) => {
   const locale = context.props.locale;
   const entries = await getSitemapEntries();
-  persistIntlSitemapEntries(entries);
 
   const byPath = new Map(
     entries.filter((entry) => entry.locale === locale).map((entry) => [entry.path, entry]),
