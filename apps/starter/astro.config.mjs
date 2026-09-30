@@ -66,7 +66,7 @@ export default defineConfig({
     // ogImage({
     //   config: ogConfig,
     //   siteConfig,
-    //   deployConfig: { class: deployClass },
+    //   deployClass,
     //   intlConfig,
     //   catalogs,
     // }),

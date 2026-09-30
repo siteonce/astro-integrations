@@ -2,7 +2,7 @@
 import { resolve } from 'node:path';
 import {
   catalogs,
-  deployConfig,
+  deployClass,
   generationConfig,
   projectRoot,
   publicDir,
@@ -27,7 +27,7 @@ const PACKAGE_VERSION = '0.0.1';
 const translate = createT(catalogs);
 
 function draftsVisible(): boolean {
-  return deployConfig.class !== 'production';
+  return deployClass !== 'production';
 }
 
 export const getStaticPaths: GetStaticPaths = async () =>

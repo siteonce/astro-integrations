@@ -3,7 +3,6 @@ import { existsSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import type { IntlConfig } from '@repo/astro-intl';
-import type { DeployConfig } from '@repo/astro-site/schemas/config/deploy.config';
 import type { SiteConfig } from '@repo/astro-site/schemas/config/site.config';
 import type { AstroIntegration } from 'astro';
 import * as z from 'zod';
@@ -11,20 +10,25 @@ import { type OgImageConfig, ogImageConfigSchema } from './config.ts';
 import { assertFontFiles, resolveFontPath } from './fonts.ts';
 import { isIncludedRoute, normalizePath } from './routing.ts';
 
+// Exclusive deploy class the app maps from its host. Anything but `production`
+// shows drafts.
+const DEPLOY_CLASSES = ['production', 'preview', 'local'] as const;
+export type DeployClass = (typeof DEPLOY_CLASSES)[number];
+
 const VIRTUAL_MODULE_ID = 'virtual:astro-og-image/config';
 const RESOLVED_VIRTUAL_MODULE_ID = `\0${VIRTUAL_MODULE_ID}`;
 
 export type OgImageOptions = {
   config: unknown;
   siteConfig: SiteConfig;
-  deployConfig: DeployConfig;
+  deployClass: DeployClass;
   intlConfig: IntlConfig;
   catalogs: Record<string, unknown>;
 };
 
 type AppConfig = {
   siteConfig: SiteConfig;
-  deployConfig: DeployConfig;
+  deployClass: DeployClass;
   intlConfig: IntlConfig;
   catalogs: Record<string, unknown>;
 };
@@ -35,7 +39,9 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 
 function readAppConfig(options: OgImageOptions): AppConfig {
   if (!isRecord(options?.siteConfig)) throw new Error('siteConfig is missing.');
-  if (!isRecord(options.deployConfig)) throw new Error('deployConfig is missing.');
+  if (!DEPLOY_CLASSES.includes(options.deployClass)) {
+    throw new Error(`deployClass must be one of ${DEPLOY_CLASSES.join(', ')}.`);
+  }
   if (!isRecord(options.intlConfig)) throw new Error('intlConfig is missing.');
   if (!isRecord(options.catalogs)) throw new Error('catalogs is missing.');
 
@@ -58,7 +64,7 @@ function readAppConfig(options: OgImageOptions): AppConfig {
 
   return {
     siteConfig: options.siteConfig,
-    deployConfig: options.deployConfig,
+    deployClass: options.deployClass,
     intlConfig: options.intlConfig,
     catalogs: options.catalogs,
   };
@@ -117,7 +123,7 @@ function virtualConfigPlugin(options: {
       return `${imports}
 export const generationConfig = ${JSON.stringify(options.config)};
 export const siteConfig = ${JSON.stringify(options.app.siteConfig)};
-export const deployConfig = ${JSON.stringify(options.app.deployConfig)};
+export const deployClass = ${JSON.stringify(options.app.deployClass)};
 export const intlConfig = ${JSON.stringify(options.app.intlConfig)};
 export const catalogs = ${JSON.stringify(options.app.catalogs)};
 export const templates = { ${templates} };
@@ -277,7 +283,7 @@ export default function ogImage(options: OgImageOptions): AstroIntegration {
           content: `declare module 'virtual:astro-og-image/config' {
   export const generationConfig: import('@repo/astro-og-image/config').OgImageConfig;
   export const siteConfig: import('@repo/astro-site/schemas/config/site.config').SiteConfig;
-  export const deployConfig: import('@repo/astro-site/schemas/config/deploy.config').DeployConfig;
+  export const deployClass: import('@repo/astro-og-image').DeployClass;
   export const intlConfig: import('@repo/astro-intl').IntlConfig;
   export const catalogs: Record<string, unknown>;
   export const templates: Record<string, import('@repo/astro-og-image/context').Template>;

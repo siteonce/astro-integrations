@@ -14,7 +14,7 @@ declare module 'astro:i18n' {
 declare module 'virtual:astro-og-image/config' {
   export const generationConfig: import('./config.ts').OgImageConfig;
   export const siteConfig: import('@repo/astro-site/schemas/config/site.config').SiteConfig;
-  export const deployConfig: import('@repo/astro-site/schemas/config/deploy.config').DeployConfig;
+  export const deployClass: import('./integration.ts').DeployClass;
   export const intlConfig: import('@repo/astro-intl').IntlConfig;
   export const catalogs: Record<string, unknown>;
   export const templates: Record<string, import('./context.ts').Template>;
