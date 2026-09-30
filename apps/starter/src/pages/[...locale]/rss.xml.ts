@@ -1,16 +1,13 @@
 import { getCollection } from 'astro:content';
 import { getAbsoluteLocaleUrl, getRelativeLocaleUrl } from 'astro:i18n';
 import rss from '@astrojs/rss';
-import { getAlternatePaths, getSitemapEntries, setIntlConfig } from '@repo/astro-intl';
-import { persistIntlSitemapEntries } from '@repo/astro-intl-sitemap';
+import { persistIntlSitemapEntries } from '@repo/astro-intl';
 import type { APIRoute } from 'astro';
 import intlConfig from '../../intl.config.ts';
 import { siteConfig } from '../../site.config.ts';
+import { getAlternatePaths, getSitemapEntries } from '../../utils/intl.ts';
 import { postsNewestFirst } from '../../utils/sorting.ts';
 import { t } from '../../utils/t.ts';
-
-// Page bundles do not share the integration's in-memory runtime.
-setIntlConfig(intlConfig);
 
 // The feed follows each locale's home. Channel copy from catalogs; item links from intl pairing.
 export const prerender = true;

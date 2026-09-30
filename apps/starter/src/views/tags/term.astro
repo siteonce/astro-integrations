@@ -2,24 +2,20 @@
 // Term. One tags entry and the posts tagged with it.
 // `entryPaths` emits one path per translated term.
 import { type CollectionEntry, render } from 'astro:content';
-import { entryPaths, setIntlConfig, viewProps } from '@repo/astro-intl';
+import { viewProps } from '@repo/astro-intl';
 import { Hreflang } from '@repo/astro-intl/components';
 import { ogImageFor } from '@repo/astro-og-image/utils/og-image-for';
 import { Hero, PostList, Schema, Seo } from '@repo/astro-site/components';
 import type { GetStaticPathsOptions, InferGetStaticPropsType } from 'astro';
-import intlConfig from '../../intl.config.ts';
 import SiteLayout from '../../layouts/site-layout.astro';
 import { ogConfig } from '../../og.config.ts';
 import { siteConfig } from '../../site.config.ts';
+import { entryPaths, hreflangLinks } from '../../utils/intl.ts';
 import { createPosts } from '../../utils/posts.ts';
 import { postsNewestFirst } from '../../utils/sorting.ts';
 import { useTranslations } from '../../utils/t.ts';
 
-// Page bundles do not share the integration's in-memory runtime.
-setIntlConfig(intlConfig);
-
 export async function getStaticPaths({ routePattern }: GetStaticPathsOptions) {
-  setIntlConfig(intlConfig);
   return entryPaths<CollectionEntry<'tags'>>(routePattern);
 }
 
@@ -54,7 +50,7 @@ const items = await Promise.all(tagged.map((post) => posts.item(post)));
       {...ogImage}
       imageAlt={title}
     />
-    <Hreflang locale={locale} path={path} />
+    <Hreflang links={await hreflangLinks(locale, path)} />
     <Schema siteConfig={siteConfig} lang={locale} description={description} />
   </Fragment>
 

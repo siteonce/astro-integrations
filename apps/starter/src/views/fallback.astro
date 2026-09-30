@@ -5,14 +5,10 @@
 // English post exists. Props carry the default-locale `entry` and its URL in
 // `target`. This one redirects to `target`; a view could instead render the
 // entry with a "not translated yet" notice. Without a fallback view those URLs 404.
-import { fallbackPaths, setIntlConfig } from '@repo/astro-intl';
 import type { GetStaticPathsOptions, InferGetStaticPropsType } from 'astro';
-import intlConfig from '../intl.config.ts';
-
-setIntlConfig(intlConfig);
+import { fallbackPaths } from '../utils/intl.ts';
 
 export async function getStaticPaths({ routePattern }: GetStaticPathsOptions) {
-  setIntlConfig(intlConfig);
   return fallbackPaths(routePattern);
 }
 

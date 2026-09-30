@@ -2,10 +2,9 @@ import { resolve } from 'node:path';
 import type { CompiledRoute } from './routing.ts';
 
 /**
- * File-route tails that must not be claimed by a compiled document `path`.
- * A file route with a dynamic segment after `[locale]` or `[...locale]` reserves nothing.
- * The caller drops intl's own injected routes before collecting tails.
- * Optional `reservedPaths` from config are merged by the caller.
+ * Startup checks against resolved routes: a project file route shaped like an
+ * injected route, a route that serves `/`, and whether a resolved route is one
+ * this integration injected.
  */
 
 export type RouteLike = {
@@ -15,34 +14,6 @@ export type RouteLike = {
 
 function stripSlashes(value: string): string {
   return value.replace(/^\/+|\/+$/g, '');
-}
-
-/**
- * URL tail after an optional `[locale]` or `[...locale]` segment. `undefined`
- * when a dynamic segment follows that locale segment.
- */
-export function tailFromRoute(route: RouteLike): string | undefined {
-  const raw = route.pathname ?? route.pattern;
-  const parts = stripSlashes(raw).split('/').filter(Boolean);
-  // Unprefixed root (`pages/index.astro` → `/`) is not a locale-prefixed
-  // document tail. Homepage documents compile to path `'/'` under `[locale]/`.
-  if (parts.length === 0) return undefined;
-  const withoutLocale =
-    parts[0] === '[locale]' || parts[0] === '[...locale]' ? parts.slice(1) : parts;
-  if (withoutLocale.length === 0) return '/';
-  if (withoutLocale.some((part) => part.startsWith('[') && part.endsWith(']'))) {
-    return undefined;
-  }
-  return withoutLocale.join('/');
-}
-
-export function reservedTailsFromRoutes(routes: RouteLike[]): string[] {
-  const tails = new Set<string>();
-  for (const route of routes) {
-    const tail = tailFromRoute(route);
-    if (tail !== undefined) tails.add(tail);
-  }
-  return [...tails];
 }
 
 /** Leading slash, no trailing slash. `/` stays `/`. */
@@ -93,10 +64,9 @@ export function isIntlRoute(
 }
 
 /**
- * A project file route that serves a URL an injected route emits and wins
- * priority. Less specific file routes, such as `[locale]/[...path]`, are not hits.
- * A literal leaf under an entry section is not a hit here: pairing aborts
- * when a published entry lands on it.
+ * A project file route shaped like an injected route. Less specific file
+ * routes, such as `[locale]/[...path]`, are not hits. A literal file route on
+ * an entry URL is not a hit: Astro serves that file.
  * A static route hits the file pattern `<tail>` or `<tail>/[...rest]`.
  * A `[param]` or another literal under that tail does not.
  * `file` is that file route's pattern.
@@ -105,10 +75,10 @@ export function fileRouteCollision(
   fileRoutes: RouteLike[],
   injected: CompiledRoute[],
 ): { file: string; injected: CompiledRoute } | undefined {
-  for (const fileRoute of fileRoutes) {
+  for (const projectRoute of fileRoutes) {
     for (const route of injected) {
-      if (patternsCollide(fileRoute.pattern, route)) {
-        return { file: fileRoute.pattern, injected: route };
+      if (patternsCollide(projectRoute.pattern, route)) {
+        return { file: projectRoute.pattern, injected: route };
       }
     }
   }

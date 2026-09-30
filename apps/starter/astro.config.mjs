@@ -4,18 +4,11 @@ import partytown from '@astrojs/partytown';
 import sitemap from '@astrojs/sitemap';
 import svelte from '@astrojs/svelte';
 import astroIntl from '@repo/astro-intl';
-import {
-  collectIntlSitemapPages,
-  intlSitemapPages,
-  serializeSitemap,
-  sitemapFilter,
-} from '@repo/astro-intl-sitemap';
 // biome-ignore lint/correctness/noUnusedImports: used by the commented-out ogImage integration
 import ogImage from '@repo/astro-og-image';
 import { rehypeExternalLinks } from '@repo/astro-site/utils/rehype-external-links';
 import tailwindcss from '@tailwindcss/vite';
 import { defineConfig } from 'astro/config';
-// biome-ignore lint/correctness/noUnusedImports: used by the commented-out ogImage integration
 import intlConfig from './src/intl.config.ts';
 // biome-ignore lint/correctness/noUnusedImports: used by the commented-out ogImage integration
 import { ogConfig } from './src/og.config.ts';
@@ -24,6 +17,15 @@ import { siteConfig } from './src/site.config.ts';
 import { deployClass } from './src/utils/deploy.ts';
 // biome-ignore lint/correctness/noUnusedImports: used by the commented-out ogImage integration
 import { catalogs } from './src/utils/t.ts';
+
+// Pages the sitemap leaves out: feeds, robots.txt, and OG image routes.
+function sitemapFilter(page) {
+  const path = new URL(page).pathname;
+  if (/(?:^|\/)rss\.xml\/?$/u.test(path)) return false;
+  if (/(?:^|\/)robots\.txt\/?$/u.test(path)) return false;
+  if (path.includes('/_og')) return false;
+  return true;
+}
 
 // Allow the editorial-media host when MEDIA_BASE_URL is a valid origin.
 function mediaRemotePatterns() {
@@ -37,6 +39,8 @@ function mediaRemotePatterns() {
     return [];
   }
 }
+
+const intl = astroIntl(intlConfig);
 
 export default defineConfig({
   site: siteConfig.siteUrl,
@@ -61,7 +65,7 @@ export default defineConfig({
     }),
   },
   integrations: [
-    astroIntl(),
+    intl,
     // TODO: Add ogImage back in once fixed
     // ogImage({
     //   config: ogConfig,
@@ -77,11 +81,9 @@ export default defineConfig({
         forward: ['dataLayer.push'],
       },
     }),
-    collectIntlSitemapPages,
     sitemap({
-      customPages: intlSitemapPages,
+      ...intl.sitemap,
       filter: sitemapFilter,
-      serialize: serializeSitemap,
     }),
   ],
 });

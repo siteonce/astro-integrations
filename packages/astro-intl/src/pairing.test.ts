@@ -2,7 +2,6 @@ import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 import { defineIntl, type IntlConfig, intlConfigSchema, routeConfigIssues } from './define-intl.ts';
 import { id, locale, slug } from './fragments.ts';
-import { hreflangLinks } from './hreflang.ts';
 import { type CollectionEntryLike, pairCollections } from './pairing.ts';
 import { createIntlQuery } from './query.ts';
 
@@ -895,21 +894,6 @@ describe('pairCollections', () => {
     );
   });
 
-  it('aborts when a file route shadows a compiled path', () => {
-    assert.throws(
-      () => pairCollections(config, fixtures, ['blog/solo']),
-      /path "blog\/solo" is shadowed by a file route/,
-    );
-  });
-
-  it('aborts when a file route under a literal locale shadows that locale only', () => {
-    assert.throws(
-      () => pairCollections(config, fixtures, ['en/blog/solo']),
-      /path "blog\/solo" is shadowed by a file route/,
-    );
-    assert.doesNotThrow(() => pairCollections(config, fixtures, ['de/blog/solo']));
-  });
-
   it('warns when the default-locale sibling is missing', () => {
     const paired = pairCollections(config, {
       ...fixtures,
@@ -1199,23 +1183,16 @@ describe('query helpers', () => {
     assert.ok(sitemap.every((item) => item.entryId !== 'ada'));
   });
 
-  it('builds Hreflang data with per-locale URLs and x-default', () => {
-    const head = query.getDocumentHead({ locale: 'de', path: 'artikel/hallo-welt' });
-    assert.equal(head.lang, 'de');
-    assert.equal(head.canonical, 'https://example.com/de/artikel/hallo-welt');
-    assert.deepEqual(head.alternates, [
+  it('builds hreflang links with per-locale URLs and x-default', () => {
+    assert.deepEqual(query.hreflangLinks('de', 'artikel/hallo-welt'), [
       { hreflang: 'de', href: 'https://example.com/de/artikel/hallo-welt' },
       { hreflang: 'en', href: 'https://example.com/en/blog/hello-world' },
+      { hreflang: 'x-default', href: 'https://example.com/en/blog/hello-world' },
     ]);
-    assert.equal(head.xDefault, 'https://example.com/en/blog/hello-world');
-    const links = hreflangLinks(head);
-    assert.ok(links.some((link) => link.hreflang === 'x-default'));
-    assert.ok(links.some((link) => link.hreflang === 'de'));
-    assert.ok(links.some((link) => link.hreflang === 'en'));
-
-    const missing = query.getDocumentHead({ locale: 'en', path: 'blog/solo' });
-    assert.equal(missing.xDefault, 'https://example.com/en/blog/solo');
-    assert.equal(missing.alternates.length, 1);
+    assert.deepEqual(query.hreflangLinks('en', 'blog/solo'), [
+      { hreflang: 'en', href: 'https://example.com/en/blog/solo' },
+      { hreflang: 'x-default', href: 'https://example.com/en/blog/solo' },
+    ]);
   });
 });
 
@@ -1322,14 +1299,12 @@ describe('published tails with no entry', () => {
     assert.equal(query.getContentByPath('de', 'blog/solo'), undefined);
   });
 
-  it('lists the tail in the document head and the sitemap', () => {
-    const head = query.getDocumentHead({ locale: 'de', path: 'artikel' });
-    assert.deepEqual(head.alternates, [
+  it('lists the tail in hreflang links and the sitemap', () => {
+    assert.deepEqual(query.hreflangLinks('de', 'artikel'), [
       { hreflang: 'de', href: 'https://example.com/de/artikel' },
       { hreflang: 'en', href: 'https://example.com/en/blog' },
+      { hreflang: 'x-default', href: 'https://example.com/en/blog' },
     ]);
-    assert.equal(head.canonical, 'https://example.com/de/artikel');
-    assert.equal(head.xDefault, 'https://example.com/en/blog');
 
     const sitemap = query.getSitemapEntries();
     const listing = sitemap.find((item) => item.locale === 'en' && item.path === 'blog');

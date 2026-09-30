@@ -1,16 +1,12 @@
 ---
-// Emits rel="alternate" hreflang for existing siblings (including self) plus
-// x-default when the default-locale sibling exists. Sit in slot="head" next
-// to Seo. Does not import Seo and does not inject tags itself.
-import { getDocumentHead, hreflangLinks } from './helpers.ts';
-
+// Prints the rel="alternate" links it is given, including x-default when that
+// link is in the list. Sit in slot="head" next to Seo. Does not import Seo
+// and does not inject tags itself.
 interface Props {
-  locale: string;
-  path: string;
+  links: { hreflang: string; href: string }[];
 }
 
-const { locale, path } = Astro.props;
-const links = hreflangLinks(await getDocumentHead({ locale, path }));
+const { links } = Astro.props;
 ---
 
 {links.map((link) => (

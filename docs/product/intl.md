@@ -12,12 +12,16 @@ The enhancement is what Astro does not own: **catalogs** (`t()`) and **pairing**
 
 Automatic routing with `prefixDefaultLocale` is enough. It defaults to `false`.
 
-`astroIntl()` takes no options. It loads `src/intl.config.ts` by convention.
+`astro.config.mjs` passes the intl config to `astroIntl(intlConfig)`. Page code binds the same config with `createIntl(intlConfig)` in an app file. The starter binds it in `src/utils/intl.ts`. Views, the layout, the feed, and utils import those helpers from that file.
+
+Intl does not depend on the bundler. It uses no virtual module, Vite plugin, `define`, or alias. Astro’s own virtual modules (`astro:content`, `astro:i18n`) stay allowed.
+
+Stop and start `astro dev` after editing `intl.config.ts` or `routes.config.ts`. A restart keeps the old config.
 
 ## Two jobs
 
 - **intl** (`@repo/astro-intl`) — locales written through to Astro `i18n`, catalogs, pairing, route injection, lookup by id and by locale and public tail. It does not own folders or views. Who emits which URLs: [`publishing.md`](publishing.md).
-- **starter** — an example **content site** using intl. Its **content source** is Astro content collections. It writes the route rows, the views, and RSS. Sitemap printer glue lives in `@repo/astro-intl-sitemap`. The app’s fallback view decides what a missing translation does.
+- **starter** — an example **content site** using intl. Its **content source** is Astro content collections. It writes the route rows, the views, and RSS. The app registers `@astrojs/sitemap` with `intl.sitemap` and its own filter. The app’s fallback view decides what a missing translation does.
 
 The test: if deleting a piece would make the site look more like ordinary Astro and pairing still works, it was cost.
 
@@ -127,9 +131,9 @@ A view that reads more data, such as relations or related posts, folds that data
 
 A **relation** is `{ target, id }` after parse, where `target` is the collection name. Both content sources use this pointer. Targets are the **translated** and **untranslated** collections.
 
-Intl reads relations through those lists, so an on-demand view needs nothing beyond `setIntlConfig`. A `relation()` pointing at a collection in neither list fails the build.
+Intl reads relations through those lists, so an on-demand view needs nothing beyond its `createIntl` binding. A `relation()` pointing at a collection in neither list fails the build.
 
-A **translated** target stores the pairing `id`. Resolve uses the current locale (`getContentById`). Those entries carry `id` and `locale`.
+A **translated** target stores the pairing `id`. Resolve uses the current locale (`getRelated` from the `createIntl` binding). Those entries carry `id` and `locale`.
 
 An **untranslated** target stores the collection entry id. Locale-free tables and inline locale maps are **untranslated**. A file collection sets that id from the filename. A CMS sets it from its document id.
 
@@ -143,9 +147,9 @@ Documents are paired entries (`id` + `locale` on each sibling). Inline locale ma
 
 Fail at startup when:
 
-- `src/intl.config.ts` is missing.
 - Overlapping `i18n` keys are already set on `defineConfig`, or `@astrojs/sitemap`'s `i18n` option is set.
-- A `(locale, path)` is duplicated, or a file route shadows an entry.
+- `@astrojs/sitemap` is registered before intl.
+- A `(locale, path)` is duplicated.
 - A row names a view that has no file under `src/views/`, or that has both `<view>.astro` and `<view>/index.astro`.
 - A row sets `fallbackView` (a view or `false`) without `{slug}`.
 - `{page}` is in the row’s `slug`. It belongs in `pagination.slug`.
@@ -159,7 +163,7 @@ Fail at startup when:
 - `viewRendering` is `'request'` and a fallback view exports `prerender = false`, outside `astro dev`.
 - `viewRendering` is `'request'` and an on-demand `pagination.slug` route has the same shape as a `{slug}` route, outside `astro dev`.
 - Two rows compile to the same route pattern.
-- An app file route would serve a URL an injected route emits and win over it.
+- A file route shaped like an injected route would serve a URL that route emits and win over it.
 - `prefixDefaultLocale` is true and nothing serves `/`.
 - A collection name repeats, or sits in both `translated` and `untranslated`.
 - A `fields` key is not in `translated`.

@@ -65,6 +65,14 @@ Listing pages stay at the same depth as entry slugs (`blog/2`, not `blog/page/2`
 
 **How to apply:** Don't restore it, fix it, or clean its now-unused imports inside unrelated work. Skipping the throw in `route-data.ts` is not a fix.
 
+## Intl stays bundler-neutral
+
+Intl and its sitemap options stay bundler-neutral. No virtual modules, Vite plugins, `define`, or aliases. Astro's public integration APIs and Astro's own virtual modules are fine.
+
+**Why:** Marc removed the virtual module on purpose. Astro may swap Vite, and end users' processors are unknown.
+
+**How to apply:** Don't add a virtual module, Vite plugin, `define`, or alias to carry intl config or sitemap data. `astro:content` and `astro:i18n` stay allowed.
+
 ## Don't restore removed shapes
 
 These were removed or rejected on purpose; agents kept bringing them back:
@@ -77,6 +85,7 @@ These were removed or rejected on purpose; agents kept bringing them back:
 - Pairing keyed by `filePath` or Astro `entry.id` (the key is `<collection>/<data.id>`)
 - A redirect to the locale home for a missing translation (disable the switcher link; use `fallbackView`)
 - Starter tests for pageName, the slugify German map, or localeFolder
+- `setIntlConfig`, a global intl runtime, `reservedPaths`, and a separate `@repo/astro-intl-sitemap` package
 
 **How to apply:** Before reintroducing any of these, ask Marc.
 
@@ -88,8 +97,9 @@ The public astro-intl.dev package is an unrelated message library (`[lang]` segm
 
 ## Gotchas
 
-- **Stopping `astro dev`:** `pnpm exec astro dev` runs as `node …/astro.mjs dev`, so `pkill -f "astro dev"` misses it. Use `kill $(lsof -ti :<port> -sTCP:LISTEN)`.
-- **`astro check` hides type errors in `intl.config.ts`:** it runs `astroIntl()` first, so an invalid config fails Zod validation in `loadIntlConfig`. Use `tsc -p apps/starter` to see the type error.
+- **Stopping `astro dev`:** Astro 7's `astro dev` detaches. Stop it with `astro dev stop`, and read its output with `astro dev logs`.
+- **Editing `intl.config.ts` or `routes.config.ts`:** Stop and start `astro dev` after editing `intl.config.ts` or `routes.config.ts`. A restart keeps the old config.
+- **`astro check` hides type errors in `intl.config.ts`:** `astroIntl(intlConfig)` in `astro.config.mjs` parses the config while Astro loads it, so an invalid config stops with `Unable to load your Astro config`. `tsc --noEmit -p apps/starter` shows the type error, next to the existing `getCollection(name)` errors in intl's source.
 - **Zod 4 nested defaults:** `.default({})` doesn't apply inner defaults; use `.prefault({})`.
 - **Prerendered 404s still emit a file** (Astro 7.3.4): returning `new Response(null, { status: 404 })` from a prerendered route doesn't drop it.
 - **Temporary adapter experiments:** revert the Node adapter, `viewRendering: 'request'`, and any test content before staging; `@astrojs/node` isn't a standing dependency.

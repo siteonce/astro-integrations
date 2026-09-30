@@ -1,38 +1,8 @@
 import assert from 'node:assert/strict';
 import { resolve } from 'node:path';
 import { describe, it } from 'node:test';
-import {
-  fileRouteCollision,
-  isIntlRoute,
-  reservedTailsFromRoutes,
-  servesSiteRoot,
-  tailFromRoute,
-} from './reserved-paths.ts';
+import { fileRouteCollision, isIntlRoute, servesSiteRoot } from './reserved-paths.ts';
 import type { CompiledRoute } from './routing.ts';
-
-describe('reservedTailsFromRoutes', () => {
-  it('ignores dynamic routes and the unprefixed root', () => {
-    assert.equal(tailFromRoute({ pattern: '[locale]/[...path]' }), undefined);
-    assert.equal(tailFromRoute({ pattern: '/' }), undefined);
-    assert.equal(tailFromRoute({ pattern: '[locale]' }), '/');
-  });
-
-  it('takes the tail after [locale] for file routes', () => {
-    assert.equal(tailFromRoute({ pattern: '[locale]/about' }), 'about');
-    assert.equal(tailFromRoute({ pattern: '[locale]/rss.xml' }), 'rss.xml');
-    assert.equal(tailFromRoute({ pattern: '[...locale]/rss.xml' }), 'rss.xml');
-    assert.equal(tailFromRoute({ pattern: '/[...locale]/rss.xml' }), 'rss.xml');
-    assert.deepEqual(
-      reservedTailsFromRoutes([
-        { pattern: '[locale]/[...path]' },
-        { pattern: '/' },
-        { pattern: '[locale]/about' },
-        { pattern: 'robots.txt' },
-      ]),
-      ['about', 'robots.txt'],
-    );
-  });
-});
 
 function compiled(pattern: string, kind: CompiledRoute['kind'], view: string): CompiledRoute {
   return { pattern, view, locale: 'en', rowIndex: 0, kind };

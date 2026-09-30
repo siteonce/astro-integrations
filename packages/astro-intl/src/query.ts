@@ -17,15 +17,11 @@ export type SitemapEntry = {
   loc: string;
   alternates: Record<string, string>;
   entryId?: string;
-  /** Set for a file route the printer already discovers. Omitted for a published tail. */
-  fileRoute?: boolean;
 };
 
-export type DocumentHead = {
-  lang: string;
-  canonical: string;
-  alternates: { hreflang: string; href: string }[];
-  xDefault: string | undefined;
+export type HreflangLink = {
+  hreflang: string;
+  href: string;
 };
 
 export type PairedSlug = {
@@ -42,14 +38,12 @@ export type IntlQuery = {
   getAlternatePathsForPath: (locale: string, path: string) => Record<string, string>;
   getPairedSlugs: () => PairedSlug[];
   getSitemapEntries: () => SitemapEntry[];
-  getDocumentHead: (args: { locale: string; path: string }) => DocumentHead;
+  hreflangLinks: (locale: string, path: string) => HreflangLink[];
 };
 
 export type CreateIntlQueryOptions = {
   config: IntlConfig;
   collections: Record<string, CollectionEntryLike[]>;
-  reservedTails?: string[];
-  fileRouteTails?: string[];
   getAbsoluteLocaleUrl: AbsoluteLocaleUrl;
 };
 
@@ -72,18 +66,6 @@ function alternateLocs(
   return alternates;
 }
 
-function fileRouteAlternates(
-  locales: string[],
-  path: string,
-  absolute: AbsoluteLocaleUrl,
-): Record<string, string> {
-  const alternates: Record<string, string> = {};
-  for (const locale of locales) {
-    alternates[locale] = locFor(absolute, locale, path);
-  }
-  return alternates;
-}
-
 function compareLocalePath(
   a: { locale: string; path: string },
   b: { locale: string; path: string },
@@ -93,10 +75,9 @@ function compareLocalePath(
 
 /** Query helpers over a paired snapshot of collection entries. */
 export function createIntlQuery(options: CreateIntlQueryOptions): IntlQuery {
-  const pairing = pairCollections(options.config, options.collections, options.reservedTails ?? []);
+  const pairing = pairCollections(options.config, options.collections);
   const absolute = options.getAbsoluteLocaleUrl;
   const { config } = options;
-  const fileRouteTails = options.fileRouteTails ?? [];
 
   function getContentByPath(locale: string, path: string): CollectionEntryLike | undefined {
     const normalized = normalizeSlug(path);
@@ -162,76 +143,32 @@ export function createIntlQuery(options: CreateIntlQueryOptions): IntlQuery {
         alternates: tailLocs(tail.tails),
       });
     }
-    const claimed = new Set<string>([
-      ...pairing.routed.map((document) => document.path),
-      ...pairing.tails.map((tail) => tail.path),
-    ]);
-    for (const tail of fileRouteTails) {
-      if (claimed.has(tail)) continue;
-      const alternates = fileRouteAlternates(config.locales, tail, absolute);
-      for (const locale of config.locales) {
-        entries.push({
-          locale,
-          path: tail,
-          loc: locFor(absolute, locale, tail),
-          alternates,
-          fileRoute: true,
-        });
-      }
-    }
     return entries.sort(compareLocalePath);
   }
 
-  function getDocumentHead({ locale, path }: { locale: string; path: string }): DocumentHead {
+  /** Alternate links for one public path, plus `x-default` when the default locale has a tail. */
+  function hreflangLinks(locale: string, path: string): HreflangLink[] {
     const normalized = normalizeSlug(path);
     const key = localePathKey(locale, normalized);
     const document = pairing.byLocalePath.get(key);
-    if (document) {
-      const siblings = documentsForEntryId(pairing, document.entryId);
-      const defaultSibling = siblings.find((item) => item.locale === config.defaultLocale);
-      return {
-        lang: locale,
-        canonical: locFor(absolute, locale, document.path),
-        alternates: siblings
-          .slice()
-          .sort((a, b) => a.locale.localeCompare(b.locale))
-          .map((item) => ({
-            hreflang: item.locale,
-            href: locFor(absolute, item.locale, item.path),
-          })),
-        xDefault: defaultSibling
-          ? locFor(absolute, defaultSibling.locale, defaultSibling.path)
-          : undefined,
-      };
-    }
-    const tail = pairing.byLocaleTail.get(key);
-    if (tail) {
-      const defaultTail = tail.tails[config.defaultLocale];
-      return {
-        lang: locale,
-        canonical: locFor(absolute, locale, tail.path),
-        alternates: Object.entries(tail.tails)
-          .sort(([a], [b]) => a.localeCompare(b))
-          .map(([code, sibling]) => ({
-            hreflang: code,
-            href: locFor(absolute, code, sibling),
-          })),
-        xDefault: defaultTail ? locFor(absolute, config.defaultLocale, defaultTail) : undefined,
-      };
-    }
-    const alternates = config.locales
-      .slice()
-      .sort()
-      .map((code) => ({
+    const tails: Record<string, string> = document
+      ? getAlternatePaths(document.entryId)
+      : (pairing.byLocaleTail.get(key)?.tails ??
+        Object.fromEntries(config.locales.map((code) => [code, normalized])));
+    const links = Object.entries(tails)
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([code, tail]) => ({
         hreflang: code,
-        href: locFor(absolute, code, normalized),
+        href: locFor(absolute, code, tail),
       }));
-    return {
-      lang: locale,
-      canonical: locFor(absolute, locale, normalized),
-      alternates,
-      xDefault: locFor(absolute, config.defaultLocale, normalized),
-    };
+    const defaultTail = tails[config.defaultLocale];
+    if (defaultTail !== undefined) {
+      links.push({
+        hreflang: 'x-default',
+        href: locFor(absolute, config.defaultLocale, defaultTail),
+      });
+    }
+    return links;
   }
 
   return {
@@ -243,6 +180,6 @@ export function createIntlQuery(options: CreateIntlQueryOptions): IntlQuery {
     getAlternatePathsForPath,
     getPairedSlugs,
     getSitemapEntries,
-    getDocumentHead,
+    hreflangLinks,
   };
 }

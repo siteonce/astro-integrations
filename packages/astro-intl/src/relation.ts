@@ -1,7 +1,11 @@
 import * as z from 'zod';
-import { type EntryFields, missingContentCollection, relationNames } from './define-intl.ts';
+import {
+  type CollectionsConfig,
+  type EntryFields,
+  missingContentCollection,
+  relationNames,
+} from './define-intl.ts';
 import type { CollectionEntryLike } from './pairing.ts';
-import { getIntlRuntime } from './runtime.ts';
 
 // Names `relation()` has seen in this process. The build compares them with
 // the translated and untranslated lists. The server bundle does not load
@@ -36,8 +40,8 @@ function relatedTargets(): Set<string> {
 }
 
 /** Translated and untranslated collection names. Omitted means none. */
-export function relatedTargetNames(): string[] {
-  return [...relationNames(getIntlRuntime().config.collections)];
+export function relatedTargetNames(collections: CollectionsConfig | undefined): readonly string[] {
+  return relationNames(collections);
 }
 
 /** Names `relation()` recorded in this process. Empty in the server bundle. */
@@ -80,8 +84,8 @@ function fail(message: string, where?: string): never {
   throw new Error(where ? `${message} (${where}).` : `${message}.`);
 }
 
-export function collectRelations(value: unknown): Relation[] {
-  return collectRelationsIn(value, new Set(relatedTargetNames()));
+export function collectRelations(value: unknown, names: readonly string[]): Relation[] {
+  return collectRelationsIn(value, new Set(names));
 }
 
 function collectRelationsIn(value: unknown, targets: ReadonlySet<string>): Relation[] {
@@ -176,6 +180,7 @@ export function resolveRelation(
 
 export function assertRelations(options: Omit<ResolveRelationOptions, 'where'>): void {
   const { locales, translated, untranslated, collections, getContentById } = options;
+  const names = [...Object.keys(translated), ...untranslated];
   const resolve = {
     locales,
     translated,
@@ -193,7 +198,7 @@ export function assertRelations(options: Omit<ResolveRelationOptions, 'where'>):
           : undefined;
       const where = describeEntry(name, entry);
 
-      for (const rel of collectRelations(entry.data)) {
+      for (const rel of collectRelations(entry.data, names)) {
         if (rel.target in translated) {
           const localesToCheck = sourceLocale ? [sourceLocale] : locales;
           for (const code of localesToCheck) {

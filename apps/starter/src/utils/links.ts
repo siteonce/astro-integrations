@@ -1,5 +1,5 @@
 import { getRelativeLocaleUrl } from 'astro:i18n';
-import { getAlternatePaths } from '@repo/astro-intl';
+import { getAlternatePaths } from './intl.ts';
 
 // Compiled public hrefs for one locale. Any collection, keyed by pairing id.
 export function createLinks(locale: string) {

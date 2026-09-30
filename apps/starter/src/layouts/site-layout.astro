@@ -4,13 +4,14 @@
 // head slot and own their landmarks. This file does not compose blocks.
 
 import { getRelativeLocaleUrl } from 'astro:i18n';
-import { getAlternatePathsForPath, localeSwitcherLinks } from '@repo/astro-intl';
+import { localeSwitcherLinks } from '@repo/astro-intl';
 import { BaseLayout } from '@repo/astro-site/components';
 import { cn } from '@repo/astro-site/utils/cn';
 import type { HTMLAttributes } from 'astro/types';
 import Analytics from '../components/analytics.astro';
 import Favicon from '../components/favicon.astro';
 import intlConfig from '../intl.config.ts';
+import { getAlternatePathsForPath } from '../utils/intl.ts';
 import { useTranslations } from '../utils/t.ts';
 import '../styles';
 

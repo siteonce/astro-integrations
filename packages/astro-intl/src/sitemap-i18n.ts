@@ -10,11 +10,6 @@ const ASTRO_CONFIG_FILES = [
   'astro.config.mts',
 ] as const;
 
-type SitemapIntegration = AstroIntegration & {
-  i18n?: unknown;
-  options?: { i18n?: unknown };
-};
-
 function stripComments(source: string): string {
   return source.replace(/\/\*[\s\S]*?\*\//g, '').replace(/(^|[^:])\/\/.*$/gm, '$1');
 }
@@ -59,12 +54,6 @@ export function sourceSetsSitemapI18n(source: string): boolean {
   return false;
 }
 
-function integrationSetsSitemapI18n(integration: AstroIntegration): boolean {
-  if (integration.name !== SITEMAP_NAME) return false;
-  const candidate = integration as SitemapIntegration;
-  return candidate.i18n != null || candidate.options?.i18n != null;
-}
-
 function astroConfigSetsSitemapI18n(root: URL): boolean {
   for (const name of ASTRO_CONFIG_FILES) {
     const filePath = fileURLToPath(new URL(name, root));
@@ -74,9 +63,14 @@ function astroConfigSetsSitemapI18n(root: URL): boolean {
   return false;
 }
 
-/** True when `@astrojs/sitemap` is registered and its `i18n` option is set. */
+/**
+ * True when `@astrojs/sitemap` is registered and `astro.config.*` sets its
+ * `i18n` option. The integration object is not inspected: `@astrojs/sitemap`
+ * keeps its options in a closure, and Astro passes each integration only as
+ * `{ name, hooks }`.
+ */
 export function sitemapI18nIsSet(root: URL, integrations: AstroIntegration[]): boolean {
   const hasSitemap = integrations.some((integration) => integration.name === SITEMAP_NAME);
   if (!hasSitemap) return false;
-  return integrations.some(integrationSetsSitemapI18n) || astroConfigSetsSitemapI18n(root);
+  return astroConfigSetsSitemapI18n(root);
 }

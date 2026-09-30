@@ -2,25 +2,21 @@
 // Post. One entry in the posts collection: the article, its byline, and related posts.
 // `entryPaths` emits one path per translated entry.
 import { type CollectionEntry, render } from 'astro:content';
-import { entryPaths, getRelated, type Relation, setIntlConfig, viewProps } from '@repo/astro-intl';
+import { type Relation, viewProps } from '@repo/astro-intl';
 import { Hreflang } from '@repo/astro-intl/components';
 import { ogImageFor } from '@repo/astro-og-image/utils/og-image-for';
 import { Article, RelatedPosts, Schema, Seo } from '@repo/astro-site/components';
 import { getRelatedContent } from '@repo/astro-site/utils/related-content';
 import type { GetStaticPathsOptions, InferGetStaticPropsType } from 'astro';
-import intlConfig from '../../intl.config.ts';
 import SiteLayout from '../../layouts/site-layout.astro';
 import { ogConfig } from '../../og.config.ts';
 import { siteConfig } from '../../site.config.ts';
+import { entryPaths, getRelated, hreflangLinks } from '../../utils/intl.ts';
 import { createPosts } from '../../utils/posts.ts';
 import { postsNewestFirst } from '../../utils/sorting.ts';
 import { useTranslations } from '../../utils/t.ts';
 
-// Page bundles do not share the integration's in-memory runtime.
-setIntlConfig(intlConfig);
-
 export async function getStaticPaths({ routePattern }: GetStaticPathsOptions) {
-  setIntlConfig(intlConfig);
   return entryPaths<CollectionEntry<'posts'>>(routePattern);
 }
 
@@ -87,7 +83,7 @@ const source =
       {...ogImage}
       imageAlt={entry.data.og?.alt ?? title}
     />
-    <Hreflang locale={locale} path={path} />
+    <Hreflang links={await hreflangLinks(locale, path)} />
     <Schema
       siteConfig={siteConfig}
       lang={locale}

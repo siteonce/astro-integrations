@@ -8,8 +8,6 @@ export const collectionFieldsSchema = z.strictObject({
   slug: z.string().min(1).optional(),
 });
 
-export type CollectionFields = z.infer<typeof collectionFieldsSchema>;
-
 const collectionsConfigSchema = z.strictObject({
   translated: z.array(z.string().min(1)).optional(),
   untranslated: z.array(z.string().min(1)).optional(),
@@ -32,7 +30,11 @@ export function relationNames(collections: CollectionsConfig | undefined): reado
 }
 
 /** Field names a translated collection's entries use, defaults applied. */
-export type EntryFields = Required<CollectionFields>;
+export type EntryFields = {
+  id: string;
+  locale: string;
+  slug: string;
+};
 
 export function fieldsFor(collections: CollectionsConfig | undefined, name: string): EntryFields {
   const fields = collections?.fields?.[name];
@@ -433,7 +435,6 @@ export const intlConfigSchema = z
      * Omitted means none.
      */
     collections: collectionsConfigSchema.optional(),
-    reservedPaths: z.array(z.string().min(1)).optional(),
   })
   .refine((config) => config.locales.includes(config.defaultLocale), {
     error: 'defaultLocale must be one of locales',
@@ -451,28 +452,29 @@ export type IntlConfig = z.infer<typeof intlConfigSchema>;
 
 export type IntlConfigInput = z.input<typeof intlConfigSchema>;
 
-/** Objects returned by `safeParseIntlConfig`. */
-const parsedIntlConfigs = new WeakSet<object>();
-
-/** Whether `config` was returned by `safeParseIntlConfig`. */
-export function isParsedIntlConfig(config: object): config is IntlConfig {
-  return parsedIntlConfigs.has(config);
-}
-
 /**
- * Parses an authored intl config and records the returned object.
+ * Parses an authored intl config.
  * Returns the Zod issues instead of throwing.
  */
 export function safeParseIntlConfig(input: unknown): ReturnType<typeof intlConfigSchema.safeParse> {
-  const parsed = intlConfigSchema.safeParse(input);
-  if (parsed.success) parsedIntlConfigs.add(parsed.data);
-  return parsed;
+  return intlConfigSchema.safeParse(input);
+}
+
+/** Parses an authored intl config. Throws the prettified Zod error when validation fails. */
+export function parseIntlConfig(input: IntlConfigInput): IntlConfig {
+  const parsed = safeParseIntlConfig(input);
+  if (!parsed.success) {
+    throw new Error(
+      `@repo/astro-intl: intl config failed validation.\n${z.prettifyError(parsed.error)}`,
+    );
+  }
+  return parsed.data;
 }
 
 /** Locale union of a config that lists `locales`. */
 export type LocaleOf<C extends { locales: readonly string[] }> = C['locales'][number];
 
-/** Typed helper for `src/intl.config.ts`. Validation runs when `astroIntl()` loads the file. */
+/** Typed helper for `src/intl.config.ts`. `astroIntl()` validates the object when it is called. */
 export function defineIntl<const L extends string>(
   config: Omit<IntlConfigInput, 'locales' | 'defaultLocale'> & {
     locales: L[];

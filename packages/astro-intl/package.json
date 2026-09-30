@@ -7,7 +7,6 @@
   "exports": {
     ".": "./src/integration.ts",
     "./components": "./src/components.ts",
-    "./hreflang": "./src/hreflang.astro",
     "./sorting": "./src/sorting.ts",
     "./package.json": "./package.json"
   },
@@ -16,7 +15,6 @@
   ],
   "dependencies": {
     "intl-messageformat": "12.1.2",
-    "jiti": "2.7.0",
     "zod": "4.6.5"
   },
   "peerDependencies": {

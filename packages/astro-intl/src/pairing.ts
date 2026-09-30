@@ -154,12 +154,11 @@ function fixedEntryKeys(config: IntlConfig): Set<string> {
  * a fixed entry row names. A row with `pagination` publishes page 1 at its
  * `slug`. Later pages replace `{page}` in `pagination.slug`. A row with no
  * collection publishes those tails with no entry and no pairing id.
- * Aborts on route-rule, uniqueness, and reserved-path failures.
+ * Aborts on route-rule and uniqueness failures.
  */
 export function pairCollections(
   config: IntlConfig,
   collections: Record<string, CollectionEntryLike[]>,
-  reservedTails: string[] = [],
 ): PairingIndex {
   const issues = routeConfigIssues(config);
   const firstIssue = issues[0];
@@ -167,10 +166,6 @@ export function pairCollections(
     throw new Error(`@repo/astro-intl: ${firstIssue}`);
   }
 
-  const reserved = new Set(reservedTails);
-  // A file route under a literal locale segment reserves its tail for that locale only.
-  const isReserved = (locale: string, path: string): boolean =>
-    reserved.has(path) || reserved.has(path === '/' ? locale : `${locale}/${path}`);
   const locales = new Set(config.locales);
   const byLocalePath = new Map<string, PairedDocument>();
   const byLocaleTail = new Map<string, RouteTail>();
@@ -196,12 +191,7 @@ export function pairCollections(
     }
   }
 
-  function claim(document: PairedDocument, label: string): void {
-    if (isReserved(document.locale, document.path)) {
-      throw new Error(
-        `@repo/astro-intl: path "${document.path}" is shadowed by a file route (${label}).`,
-      );
-    }
+  function claim(document: PairedDocument): void {
     const pathKey = localePathKey(document.locale, document.path);
     const existing = byLocalePath.get(pathKey);
     if (existing) {
@@ -214,9 +204,6 @@ export function pairCollections(
   }
 
   function claimTail(locale: string, path: string, siblings: Record<string, string>): void {
-    if (isReserved(locale, path)) {
-      throw new Error(`@repo/astro-intl: path "${path}" is shadowed by a file route (route tail).`);
-    }
     const pathKey = localePathKey(locale, path);
     const existing = byLocalePath.get(pathKey);
     if (existing || byLocaleTail.has(pathKey)) {
@@ -302,7 +289,7 @@ export function pairCollections(
         path,
         entry: found.entry,
       };
-      claim(document, describeEntry(route.collection, found.entry));
+      claim(document);
       byLocaleEntryId.set(localeEntryKey(locale, found.entryId), document);
     }
     if (!published) missingEntryRows.push(`${route.collection}/${route.entry}`);
@@ -349,7 +336,7 @@ export function pairCollections(
       path,
       entry: leaf.entry,
     };
-    claim(document, describeEntry(leaf.name, leaf.entry));
+    claim(document);
     byLocaleEntryId.set(localeEntryKey(leaf.locale, leaf.entryId), document);
   }
 

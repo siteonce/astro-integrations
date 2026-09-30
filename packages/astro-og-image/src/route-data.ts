@@ -1,7 +1,7 @@
 // Builds one OG image route for each paired document slug.
 import { getRelativeLocaleUrl } from 'astro:i18n';
 import { generationConfig, intlConfig } from 'virtual:astro-og-image/config';
-import { getContentByPath, getPairedSlugs, setIntlConfig } from '@repo/astro-intl';
+import { createIntl } from '@repo/astro-intl';
 import type { OgEntry } from './context.ts';
 import { endpointParam, matchRoute, normalizePath, templateForMatch } from './routing.ts';
 
@@ -14,14 +14,8 @@ export type RouteProps = {
   entry: OgEntry;
 };
 
-let intlBound = false;
-
 // Injected routes do not share the integration process, so pairing reads the serialized intl config.
-function bindIntl(): void {
-  if (intlBound) return;
-  setIntlConfig(intlConfig);
-  intlBound = true;
-}
+const { getContentByPath, getPairedSlugs } = createIntl(intlConfig);
 
 function pagePathFor(locale: string, slug: string): string {
   return normalizePath(getRelativeLocaleUrl(locale, slug === '/' ? undefined : slug));
@@ -70,7 +64,6 @@ async function propsForSlug(
 }
 
 export async function enumerateImageRoutes(showDrafts: boolean): Promise<RouteProps[]> {
-  bindIntl();
   const routes = new Map<string, RouteProps>();
   for (const { locale, slug } of await getPairedSlugs()) {
     const props = await propsForSlug(locale, slug, showDrafts);
@@ -85,7 +78,6 @@ export async function resolveImageRoute(
   pagePath: string,
   showDrafts: boolean,
 ): Promise<RouteProps | undefined> {
-  bindIntl();
   const requested = normalizePath(pagePath);
   for (const { locale, slug } of await getPairedSlugs()) {
     if (pagePathFor(locale, slug) !== requested) continue;

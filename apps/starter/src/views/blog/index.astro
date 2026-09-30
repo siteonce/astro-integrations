@@ -3,24 +3,20 @@
 // sets that order. The HTML title comes from the catalog. `listingPaths` emits
 // each page and its path.
 import type { CollectionEntry } from 'astro:content';
-import { listingPaths, setIntlConfig, viewProps } from '@repo/astro-intl';
+import { viewProps } from '@repo/astro-intl';
 import { Hreflang } from '@repo/astro-intl/components';
 import { ogImageFor } from '@repo/astro-og-image/utils/og-image-for';
 import { Hero, PostList, Schema, Seo } from '@repo/astro-site/components';
 import type { GetStaticPathsOptions, InferGetStaticPropsType } from 'astro';
-import intlConfig from '../../intl.config.ts';
 import SiteLayout from '../../layouts/site-layout.astro';
 import { ogConfig } from '../../og.config.ts';
 import { siteConfig } from '../../site.config.ts';
+import { hreflangLinks, listingPaths } from '../../utils/intl.ts';
 import { createPosts } from '../../utils/posts.ts';
 import { postsNewestFirst } from '../../utils/sorting.ts';
 import { useTranslations } from '../../utils/t.ts';
 
-// Page bundles do not share the integration's in-memory runtime.
-setIntlConfig(intlConfig);
-
 export async function getStaticPaths({ paginate, routePattern }: GetStaticPathsOptions) {
-  setIntlConfig(intlConfig);
   return listingPaths<CollectionEntry<'posts'>>(routePattern, paginate, {
     sort: () => postsNewestFirst,
   });
@@ -51,7 +47,7 @@ const items = await Promise.all(page.data.map((post) => posts.item(post)));
       {...ogImage}
       imageAlt={title}
     />
-    <Hreflang locale={locale} path={path} />
+    <Hreflang links={await hreflangLinks(locale, path)} />
     <Schema siteConfig={siteConfig} lang={locale} description={description} />
   </Fragment>
 

@@ -22,9 +22,7 @@ A snapshot monorepo that is the foundation for every Astro **content site** buil
 
 ### Packages
 
-**astro-intl**: Workspace package `@repo/astro-intl` — **catalogs**, collection pairing, route injection, locale list written through to Astro `i18n`. Factory `astroIntl()`.
-
-**astro-intl-sitemap**: Workspace package `@repo/astro-intl-sitemap` — printer glue the app passes into `@astrojs/sitemap`.
+**astro-intl**: Workspace package `@repo/astro-intl` — **catalogs**, collection pairing, route injection, locale list written through to Astro `i18n`, and sitemap options. Factory `astroIntl()` takes the intl config. _Avoid_: `@repo/astro-intl-sitemap`, sitemap glue package
 
 **astro-og-image**: Workspace package `@repo/astro-og-image` — optional OG image generator. Factory `ogImage()`.
 
@@ -36,7 +34,9 @@ A snapshot monorepo that is the foundation for every Astro **content site** buil
 
 **`@repo/*`**: Workspace package scope inside the snapshot. Not a registry; the customer owns these folders. _Avoid_: `@siteonce/*` (for workspace names)
 
-**`astroIntl()`**: Default export of `@repo/astro-intl`. _Avoid_: siteonce(), astroLib(), astro() (the framework already owns that name in `astro.config`)
+**`astroIntl()`**: Default export of `@repo/astro-intl`. Takes the intl config. _Avoid_: siteonce(), astroLib(), astro() (the framework already owns that name in `astro.config`)
+
+**`createIntl`**: The app-owned binding of intl’s page helpers to the intl config. _Avoid_: `setIntlConfig`, a global intl runtime, a virtual module
 
 **`ogImage()`**: Default export of `@repo/astro-og-image`. _Avoid_: astroOgImage()
 

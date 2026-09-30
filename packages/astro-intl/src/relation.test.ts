@@ -1,7 +1,6 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 import { z } from 'zod';
-import { defineIntl } from './define-intl.ts';
 import {
   collectRelations,
   localized,
@@ -9,7 +8,6 @@ import {
   recordedRelationNames,
   relation,
 } from './relation.ts';
-import { setIntlConfig } from './runtime.ts';
 
 function emptyRecordedRelations(): void {
   const recorded = (globalThis as Record<symbol, Set<string> | undefined>)[
@@ -34,46 +32,25 @@ describe('relation schema', () => {
 });
 
 describe('collectRelations', () => {
-  it('finds relations from collections.untranslated when nothing was recorded', () => {
+  it('finds a relation from the passed names when nothing was recorded', () => {
     emptyRecordedRelations();
     assert.deepEqual(recordedRelationNames(), []);
-    setIntlConfig(
-      defineIntl({
-        locales: ['en'],
-        defaultLocale: 'en',
-        routing: { prefixDefaultLocale: true },
-        collections: { untranslated: ['authors'] },
-      }),
-    );
-    try {
-      assert.deepEqual(collectRelations({ author: { target: 'authors', id: 'ada' } }), [
-        { target: 'authors', id: 'ada' },
-      ]);
-    } finally {
-      setIntlConfig(undefined);
-    }
+    assert.deepEqual(collectRelations({ author: { target: 'authors', id: 'ada' } }, ['authors']), [
+      { target: 'authors', id: 'ada' },
+    ]);
   });
 
-  it('ignores a { target, id } whose target neither list names', () => {
-    setIntlConfig(
-      defineIntl({
-        locales: ['en'],
-        defaultLocale: 'en',
-        routing: { prefixDefaultLocale: true },
-        collections: { translated: ['authors'] },
-      }),
-    );
-    try {
-      assert.deepEqual(
-        collectRelations({
+  it('ignores a { target, id } whose target is not in the names', () => {
+    assert.deepEqual(
+      collectRelations(
+        {
           author: { target: 'authors', id: 'ada' },
           lookalike: { target: 'ghost', id: 'nope' },
-        }),
-        [{ target: 'authors', id: 'ada' }],
-      );
-    } finally {
-      setIntlConfig(undefined);
-    }
+        },
+        ['authors'],
+      ),
+      [{ target: 'authors', id: 'ada' }],
+    );
   });
 });
 

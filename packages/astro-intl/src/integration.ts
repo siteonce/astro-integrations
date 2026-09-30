@@ -1,38 +1,32 @@
 /**
- * Astro integration entry — named (and default) export `astroIntl()`.
- * Loads `src/intl.config.ts`, writes locale list and prefix policy through to
- * Astro `i18n`. Injects one route per compiled route and locale. A row with
- * `pagination` compiles to two. `viewRendering: 'request'`
- * injects static, entry, and listing routes on demand and refuses to boot without
- * an adapter. Under `astro dev`,
- * `viewRendering` is treated as `'build'`. Fallback routes stay prerendered.
- * A fallback view that exports `prerender = false` fails startup outside
- * `astro dev`. An on-demand `pagination.slug` route that shares its shape with a
- * `{slug}` route fails startup outside `astro dev`. A view's `prerender`
- * export wins for the other kinds.
- * Entrypoints are the views under `src/views/`. A row's fallback view is
- * injected for locales without a translation, and nothing is injected when the
- * row names none. Records reserved
- * file-route tails for pairing collisions, excluding those injected routes.
- * `prefixDefaultLocale` defaults to false. When it is true, startup fails unless
- * some other route serves `/`.
- * Warns when `trailingSlash` and `build.format` disagree. Does not load catalog JSON and
- * does not create a virtual module.
+ * Astro integration entry — named (and default) export `astroIntl(config)`.
+ * Parses the intl config when called. Writes the locale list and prefix policy
+ * through to Astro `i18n`. Injects one route per compiled route and locale. A
+ * row with `pagination` compiles to two. `viewRendering: 'request'` injects
+ * static, entry, and listing routes on demand and refuses to boot without an
+ * adapter. Under `astro dev`, `viewRendering` is treated as `'build'`. Fallback
+ * routes stay prerendered. A fallback view that exports `prerender = false`
+ * fails startup outside `astro dev`. An on-demand `pagination.slug` route that
+ * shares its shape with a `{slug}` route fails startup outside `astro dev`. A
+ * view's `prerender` export wins for the other kinds. Entrypoints are the views
+ * under `src/views/`. A row's fallback view is injected for locales without a
+ * translation, and nothing is injected when the row names none. A project file
+ * route shaped like an injected route fails startup. `prefixDefaultLocale`
+ * defaults to false. When it is true, startup fails unless some other route
+ * serves `/`. Warns when `trailingSlash` and `build.format` disagree. Fails
+ * startup when `@astrojs/sitemap` is registered before this integration, or
+ * when its `i18n` option is set. The return value includes `sitemap`:
+ * `{ customPages, serialize }` bound to this config. `astro:build:done`
+ * replaces `customPages` from the sitemap entries a prerendered route
+ * persisted. Does not load catalog JSON and does not create a virtual module.
  */
 
 import { existsSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import type { AstroIntegration } from 'astro';
-import { createJiti } from 'jiti';
-import * as z from 'zod';
-import { type IntlConfig, safeParseIntlConfig } from './define-intl.ts';
-import {
-  fileRouteCollision,
-  isIntlRoute,
-  reservedTailsFromRoutes,
-  servesSiteRoot,
-} from './reserved-paths.ts';
+import { type IntlConfig, type IntlConfigInput, parseIntlConfig } from './define-intl.ts';
+import { fileRouteCollision, isIntlRoute, servesSiteRoot } from './reserved-paths.ts';
 import {
   type CompiledRoute,
   compileRoutes,
@@ -40,47 +34,23 @@ import {
   pageSlugClashMessage,
   viewEntrypoint,
 } from './routing.ts';
-import { setIntlConfig, setRouteTails } from './runtime.ts';
+import { createSitemapOptions, type IntlSitemapOptions } from './sitemap.ts';
 import { sitemapI18nIsSet } from './sitemap-i18n.ts';
 import { urlFormatMismatch } from './url-format.ts';
 
+export { createIntl } from './create-intl.ts';
 export { createT } from './create-t.ts';
-export {
-  type CollectionFields,
-  defineIntl,
-  type IntlConfig,
-  type LocaleOf,
-  type RouteConfig,
-} from './define-intl.ts';
+export { defineIntl, type IntlConfig, type LocaleOf, type RouteConfig } from './define-intl.ts';
 export { id, locale, slug } from './fragments.ts';
-export type { DocumentHead, PairedSlug, SitemapEntry } from './helpers.ts';
-export {
-  entryPaths,
-  fallbackPaths,
-  getAlternatePaths,
-  getAlternatePathsForPath,
-  getContentById,
-  getContentByPath,
-  getDocumentHead,
-  getPairedSlugs,
-  getRelated,
-  getSitemapEntries,
-  hreflangLinks,
-  type ListingContext,
-  type ListingOrder,
-  listingPaths,
-  staticPaths,
-} from './helpers.ts';
 export { leafSlug } from './locale-section.ts';
 export type { LocaleSwitcherLink } from './locale-switcher.ts';
 export { localeSwitcherLinks } from './locale-switcher.ts';
-export { listingPageCount } from './path.ts';
+export type { PairedSlug, SitemapEntry } from './query.ts';
 export type { Relation } from './relation.ts';
 export { localized, localizedValue, relation } from './relation.ts';
-export { getIntlRuntime, setIntlConfig } from './runtime.ts';
+export type { ListingContext, ListingOrder } from './routed-paths.ts';
+export { persistIntlSitemapEntries } from './sitemap.ts';
 export { viewProps } from './view-props.ts';
-
-const CONFIG_FILENAME = 'intl.config.ts';
 
 function overlappingI18nKeys(i18n: AstroIntegrationConfigI18n | undefined): string[] {
   if (!i18n) return [];
@@ -111,16 +81,14 @@ type AstroIntegrationConfigI18n = {
       };
 };
 
-async function loadIntlConfig(configPath: string): Promise<IntlConfig> {
-  const jiti = createJiti(import.meta.url);
-  const loaded = await jiti.import(configPath, { default: true });
-  const parsed = safeParseIntlConfig(loaded);
-  if (!parsed.success) {
-    throw new Error(
-      `@repo/astro-intl: intl.config.ts failed validation.\n${z.prettifyError(parsed.error)}`,
-    );
-  }
-  return parsed.data;
+/** `@astrojs/sitemap` appears before `@repo/astro-intl` in the integration list. */
+function sitemapRegisteredBeforeIntl(integrations: readonly { name: string }[]): boolean {
+  const sitemapAt = integrations.findIndex(
+    (integration) => integration.name === '@astrojs/sitemap',
+  );
+  if (sitemapAt === -1) return false;
+  const intlAt = integrations.findIndex((integration) => integration.name === '@repo/astro-intl');
+  return intlAt !== -1 && sitemapAt < intlAt;
 }
 
 function refusedFallbackView(): string {
@@ -130,34 +98,34 @@ function refusedFallbackView(): string {
   );
 }
 
-export function astroIntl(): AstroIntegration {
+export function astroIntl(
+  input: IntlConfigInput,
+): AstroIntegration & { sitemap: IntlSitemapOptions } {
+  const intlConfig = parseIntlConfig(input);
+  const sitemapOptions = createSitemapOptions(intlConfig);
+
   let projectRoot = '';
   let injected: CompiledRoute[] = [];
   let ownEntrypoints = new Set<string>();
   let fallbackEntrypoints = new Set<string>();
   let viewRendering: IntlConfig['viewRendering'];
-  let intlConfig: IntlConfig;
 
   return {
     name: '@repo/astro-intl',
+    sitemap: sitemapOptions.sitemap,
     hooks: {
-      'astro:config:setup': async ({
-        config,
-        command,
-        updateConfig,
-        addWatchFile,
-        injectRoute,
-        logger,
-      }) => {
+      'astro:build:done': async ({ logger }) => {
+        try {
+          sitemapOptions.fillCustomPages();
+        } catch (error) {
+          const message = error instanceof Error ? error.message : String(error);
+          logger.error(message);
+          throw error;
+        }
+      },
+      'astro:config:setup': async ({ config, command, updateConfig, injectRoute, logger }) => {
         const mismatch = urlFormatMismatch(config.trailingSlash, config.build?.format);
         if (mismatch) logger.warn(mismatch);
-
-        const configPath = fileURLToPath(new URL(CONFIG_FILENAME, config.srcDir));
-        if (!existsSync(configPath)) {
-          logger.error(`Missing ${CONFIG_FILENAME}. Expected: ${configPath}`);
-          throw new Error(`@repo/astro-intl: ${CONFIG_FILENAME} not found.`);
-        }
-        addWatchFile(configPath);
 
         const overlapping = overlappingI18nKeys(config.i18n);
         if (overlapping.length > 0) {
@@ -177,16 +145,11 @@ export function astroIntl(): AstroIntegration {
           throw new Error(`@repo/astro-intl: @astrojs/sitemap i18n option is set.`);
         }
 
-        try {
-          intlConfig = await loadIntlConfig(configPath);
-        } catch (error) {
-          const message = error instanceof Error ? error.message : String(error);
-          if (!message.startsWith('@repo/astro-intl:')) {
-            logger.error(`Failed to load ${CONFIG_FILENAME}: ${message}`);
-            throw new Error(`@repo/astro-intl: failed to load ${CONFIG_FILENAME}.`);
-          }
+        if (sitemapRegisteredBeforeIntl(config.integrations)) {
+          const message =
+            '@repo/astro-intl: @astrojs/sitemap is registered before @repo/astro-intl. List intl first.';
           logger.error(message);
-          throw error;
+          throw new Error(message);
         }
 
         // Dev treats the setting as 'build': no on-demand routes and no adapter check.
@@ -198,8 +161,6 @@ export function astroIntl(): AstroIntegration {
           logger.error(message);
           throw new Error(message);
         }
-
-        setIntlConfig(intlConfig);
 
         const srcDir = fileURLToPath(config.srcDir);
         const entrypointForView = new Map<string, string>();
@@ -289,13 +250,6 @@ export function astroIntl(): AstroIntegration {
             throw new Error(message);
           }
         }
-        setRouteTails(
-          reservedTailsFromRoutes(
-            routes.filter(
-              (route) => !isIntlRoute(route, ownEntrypoints, projectRoot, injectedPatterns),
-            ),
-          ),
-        );
       },
     },
   };
