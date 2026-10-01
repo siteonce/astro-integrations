@@ -17,6 +17,8 @@ type InjectedCall = {
 
 type Setup = NonNullable<AstroIntegration['hooks']['astro:config:setup']>;
 type SetupParams = Parameters<Setup>[0];
+type Done = NonNullable<AstroIntegration['hooks']['astro:config:done']>;
+type DoneParams = Parameters<Done>[0];
 
 const tempRoots: string[] = [];
 
@@ -174,6 +176,50 @@ describe('astroIntl()', () => {
     );
   });
 
+  it('injects the locale union on astro:config:done', () => {
+    const integration = astroIntl({ locales: ['en', 'de'], defaultLocale: 'en' });
+    const hook = integration.hooks['astro:config:done'];
+    assert.ok(hook);
+    const injected: { filename: string; content: string }[] = [];
+    hook({
+      injectTypes(entry: { filename: string; content: string }) {
+        injected.push(entry);
+        return new URL('file:///tmp/intl-locales.d.ts');
+      },
+      logger: silentLogger(),
+    } as unknown as DoneParams);
+    assert.deepEqual(injected, [
+      {
+        filename: 'intl-locales.d.ts',
+        content: [
+          "declare module '@repo/astro-intl' {",
+          '  interface IntlRegister {',
+          '    locale: "en" | "de";',
+          '  }',
+          '}',
+          'export {};',
+          '',
+        ].join('\n'),
+      },
+    ]);
+  });
+
+  it('json-escapes locale literals in the injected augmentation', () => {
+    const integration = astroIntl({ locales: ['en', 'a"b'], defaultLocale: 'en' });
+    const hook = integration.hooks['astro:config:done'];
+    assert.ok(hook);
+    const injected: { filename: string; content: string }[] = [];
+    hook({
+      injectTypes(entry: { filename: string; content: string }) {
+        injected.push(entry);
+        return new URL('file:///tmp/intl-locales.d.ts');
+      },
+      logger: silentLogger(),
+    } as unknown as DoneParams);
+    assert.equal(injected[0]?.filename, 'intl-locales.d.ts');
+    assert.match(injected[0]?.content ?? '', /locale: "en" \| "a\\"b";/);
+  });
+
   it('writes an omitted prefix as false in Astro i18n', async () => {
     const root = await makeRoot();
     const { config } = await runSetup({
@@ -293,6 +339,41 @@ export default { integrations: [sitemap({ i18n: { defaultLocale: 'en', locales: 
       () => runSetup({ root, config: prefixed(), integrations: [sitemap] }),
       /sitemap i18n option is set/,
     );
+  });
+
+  it('fails startup when the content config imports @repo/astro-intl/runtime', async () => {
+    const root = await makeRoot();
+    const srcDir = path.join(root, 'src');
+    await mkdir(srcDir, { recursive: true });
+    await writeFile(
+      path.join(srcDir, 'content.config.ts'),
+      "import { locales } from '@repo/astro-intl/runtime';\n",
+    );
+    await assert.rejects(
+      () => runSetup({ root, config: prefixed() }),
+      (error: unknown) => {
+        assert.ok(error instanceof Error);
+        assert.equal(
+          error.message,
+          '@repo/astro-intl: src/content.config.ts imports @repo/astro-intl/runtime. ' +
+            'Astro loads the content config before page modules exist, so astro:config/server is unavailable there. ' +
+            'Read locales from your intl config instead.',
+        );
+        return true;
+      },
+    );
+  });
+
+  it('allows a content config that imports @repo/astro-intl', async () => {
+    const root = await makeRoot();
+    const srcDir = path.join(root, 'src');
+    await mkdir(srcDir, { recursive: true });
+    await writeFile(
+      path.join(srcDir, 'content.config.ts'),
+      "import { id, locale } from '@repo/astro-intl';\nexport { id, locale };\n",
+    );
+    const { config } = await runSetup({ root, config: prefixed() });
+    assert.equal((config.i18n as { defaultLocale: string }).defaultLocale, 'en');
   });
 
   it('injects one route per compiled row and locale', async () => {

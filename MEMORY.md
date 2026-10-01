@@ -108,6 +108,7 @@ The public astro-intl.dev package is an unrelated message library (`[lang]` segm
 ## Gotchas
 
 - **Stopping `astro dev`:** Astro 7's `astro dev` detaches. Stop it with `astro dev stop`, and read its output with `astro dev logs`.
+- **`@repo/astro-intl/runtime` in the content config:** `@repo/astro-intl/runtime` can't be imported from `src/content.config.ts`. The `astro` Vite environment lacks `virtual:astro:pages`. Intl fails startup on a direct import. A transitive import still shows Astro's raw error.
 - **Editing `intl.config.ts` or `routes.config.ts`:** Stop and start `astro dev` after editing `intl.config.ts` or `routes.config.ts`. A restart keeps the old config.
 - **`astro check` hides type errors in `intl.config.ts`:** `astroIntl(intlConfig)` in `astro.config.mjs` parses the config while Astro loads it, so an invalid config stops with `Unable to load your Astro config`. `tsc --noEmit -p apps/starter` shows the type error, next to the existing `getCollection(name)` errors in intl's source.
 - **Zod 4 nested defaults:** `.default({})` doesn't apply inner defaults; use `.prefault({})`.

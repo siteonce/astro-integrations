@@ -1,8 +1,8 @@
 import { getCollection } from 'astro:content';
 import { getAbsoluteLocaleUrl, getRelativeLocaleUrl } from 'astro:i18n';
 import rss from '@astrojs/rss';
+import { locales } from '@repo/astro-intl/runtime';
 import type { APIRoute } from 'astro';
-import intlConfig from '../../intl.config.ts';
 import { siteConfig } from '../../site.config.ts';
 import { getAlternatePaths, getSitemapEntries } from '../../utils/intl.ts';
 import { postsNewestFirst } from '../../utils/sorting.ts';
@@ -12,7 +12,7 @@ import { t } from '../../utils/t.ts';
 export const prerender = true;
 
 export function getStaticPaths() {
-  return intlConfig.locales.map((locale) => {
+  return locales.map((locale) => {
     const segment = getRelativeLocaleUrl(locale).replace(/^\/+|\/+$/g, '');
     return {
       params: { locale: segment === '' ? undefined : segment },

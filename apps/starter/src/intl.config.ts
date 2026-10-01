@@ -1,4 +1,4 @@
-import { defineIntl, type LocaleOf } from '@repo/astro-intl';
+import { defineIntl } from '@repo/astro-intl';
 import { routes } from './routes.config.ts';
 
 const intl = defineIntl({
@@ -30,7 +30,5 @@ const intl = defineIntl({
     untranslated: ['sources', 'roles'],
   },
 });
-
-export type Locale = LocaleOf<typeof intl>;
 
 export default intl;

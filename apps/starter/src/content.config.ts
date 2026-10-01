@@ -4,6 +4,7 @@ import { blog } from '@repo/astro-site/schemas/content/blog';
 import { seo } from '@repo/astro-site/schemas/content/seo';
 import { glob } from 'astro/loaders';
 import { z } from 'astro/zod';
+// `astro:config/server` does not resolve while Astro loads this file.
 import intlConfig from './intl.config.ts';
 import { deployClass } from './utils/deploy.ts';
 import { withoutDrafts } from './utils/drafts.ts';

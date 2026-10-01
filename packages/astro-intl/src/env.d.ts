@@ -10,3 +10,12 @@ declare module 'astro:i18n' {
   export function getAbsoluteLocaleUrl(locale: string, path?: string): string;
   export function getRelativeLocaleUrl(locale: string, path?: string): string;
 }
+
+declare module 'astro:config/server' {
+  export const i18n:
+    | {
+        defaultLocale: string;
+        locales: readonly (string | { path: string; codes: readonly string[] })[];
+      }
+    | undefined;
+}

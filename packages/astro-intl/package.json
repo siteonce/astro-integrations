@@ -6,6 +6,7 @@
   "type": "module",
   "exports": {
     ".": "./src/integration.ts",
+    "./runtime": "./src/runtime.ts",
     "./components": "./src/components.ts",
     "./sorting": "./src/sorting.ts",
     "./package.json": "./package.json"

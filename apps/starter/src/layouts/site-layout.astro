@@ -5,12 +5,12 @@
 
 import { getRelativeLocaleUrl } from 'astro:i18n';
 import { localeSwitcherLinks } from '@repo/astro-intl';
+import { locales } from '@repo/astro-intl/runtime';
 import { BaseLayout } from '@repo/astro-site/components';
 import { cn } from '@repo/astro-site/utils/cn';
 import type { HTMLAttributes } from 'astro/types';
 import Analytics from '../components/analytics.astro';
 import Favicon from '../components/favicon.astro';
-import intlConfig from '../intl.config.ts';
 import { getAlternatePathsForPath } from '../utils/intl.ts';
 import { useTranslations } from '../utils/t.ts';
 import '../styles';
@@ -37,9 +37,9 @@ const hrefFor = (code: string, tail?: string) =>
 // With no path, every locale's root stands in as its sibling.
 const alternates =
   path === undefined
-    ? Object.fromEntries(intlConfig.locales.map((code) => [code, '/']))
+    ? Object.fromEntries(locales.map((code) => [code, '/']))
     : await getAlternatePathsForPath(locale, path);
-const switcher = localeSwitcherLinks(intlConfig.locales, locale, alternates, hrefFor);
+const switcher = localeSwitcherLinks(locales, locale, alternates, hrefFor);
 const { class: htmlClass, 'class:list': htmlClassList, ...htmlRest } = html ?? {};
 const { class: bodyClass, 'class:list': bodyClassList, ...bodyRest } = body ?? {};
 ---

@@ -1,4 +1,5 @@
 import { IntlMessageFormat } from 'intl-messageformat';
+import type { Locale } from './intl-register.ts';
 
 export type CatalogValues = Record<string, string | number | boolean | Date | null | undefined>;
 
@@ -23,13 +24,16 @@ function formatMessage(locale: string, message: string, values?: CatalogValues):
 
 /**
  * Pure translator factory. The caller passes one message tree per locale.
- * With an explicit locale type, a missing locale is a type error.
- * This module never reads catalog files.
+ * The locale type defaults to `Locale`: the app's injected union, or `string`
+ * when that augmentation is not in the program. A missing catalog for the
+ * union is a type error. This module never reads catalog files.
  *
  * Missing keys stay visible as the dotted path (`HomePage.title`). Values are
  * not merged from another locale.
  */
-export function createT<L extends string = string>(catalogs: Record<L, unknown>) {
+// NoInfer so the default `Locale` is used. Inferring keys from the catalog
+// object would accept a set that omits a configured locale.
+export function createT<L extends string = Locale>(catalogs: NoInfer<Record<L, unknown>>) {
   const byLocale = catalogs as Record<string, unknown>;
 
   function t(locale: string, key: string, values?: CatalogValues): string {

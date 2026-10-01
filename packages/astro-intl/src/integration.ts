@@ -22,16 +22,22 @@
  * `astro build`, a prerendered data route at `/_intl/sitemap-entries.json`
  * carries pairing to those options. `viewRendering` does not change it.
  * `astro:build:done` reads that route's output, adds its URLs to `customPages`,
- * and deletes the output. Does not load catalog JSON and does not create a
- * virtual module.
+ * and deletes the output. `astro:config:done` injects a module augmentation so
+ * `Locale` is this config's locale union. `astro:config:setup` fails startup
+ * when the content config directly imports `@repo/astro-intl/runtime`. Astro
+ * loads that file before page modules exist, so `astro:config/server` is
+ * unavailable there. Does not load catalog JSON and does not create a virtual
+ * module.
  */
 
-import { existsSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { mkdir, writeFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import type { AstroIntegration } from 'astro';
+import { contentConfigRuntimeError } from './content-config-runtime.ts';
 import { type IntlConfig, type IntlConfigInput, parseIntlConfig } from './define-intl.ts';
+import { LOCALE_TYPES_FILENAME, localeTypeDeclaration } from './locale-types.ts';
 import { fileRouteCollision, isIntlRoute, servesSiteRoot } from './reserved-paths.ts';
 import {
   type CompiledRoute,
@@ -48,6 +54,7 @@ export { createIntl } from './create-intl.ts';
 export { createT } from './create-t.ts';
 export { defineIntl, type IntlConfig, type LocaleOf, type RouteConfig } from './define-intl.ts';
 export { id, locale, slug } from './fragments.ts';
+export type { IntlRegister, Locale } from './intl-register.ts';
 export { leafSlug } from './locale-section.ts';
 export type { LocaleSwitcherLink } from './locale-switcher.ts';
 export { localeSwitcherLinks } from './locale-switcher.ts';
@@ -266,6 +273,17 @@ export function astroIntl(
         }
 
         const srcDir = fileURLToPath(config.srcDir);
+        const runtimeImport = contentConfigRuntimeError(
+          srcDir,
+          fileURLToPath(config.root),
+          existsSync,
+          (file) => readFileSync(file, 'utf8'),
+        );
+        if (runtimeImport !== undefined) {
+          logger.error(runtimeImport);
+          throw new Error(runtimeImport);
+        }
+
         const entrypointForView = new Map<string, string>();
         const entrypoints = new Set<string>();
         const fallback = new Set<string>();
@@ -318,6 +336,12 @@ export function astroIntl(
               fallbackType: 'redirect',
             },
           },
+        });
+      },
+      'astro:config:done': ({ injectTypes }) => {
+        injectTypes({
+          filename: LOCALE_TYPES_FILENAME,
+          content: localeTypeDeclaration(intlConfig.locales),
         });
       },
       'astro:route:setup': ({ route, logger }) => {
