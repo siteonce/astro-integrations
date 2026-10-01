@@ -1,3 +1,5 @@
+import { localeUrlPath } from './path.ts';
+
 export type LocaleSwitcherLink = {
   locale: string;
   current: boolean;
@@ -7,7 +9,7 @@ export type LocaleSwitcherLink = {
 
 /**
  * Switcher facts for chrome. A missing sibling has no href — the app decides
- * whether to disable, hide, or fall back.
+ * whether to disable, hide, or fall back. `href` goes through `localeUrlPath`.
  */
 export function localeSwitcherLinks(
   locales: readonly string[],
@@ -20,8 +22,8 @@ export function localeSwitcherLinks(
     const sibling = Object.hasOwn(alternates, locale);
     const path = sibling ? alternates[locale] : undefined;
     const item: LocaleSwitcherLink = { locale, current, sibling };
-    if (sibling && !current) {
-      item.href = hrefFor(locale, path === '/' ? undefined : path);
+    if (sibling && !current && path !== undefined) {
+      item.href = hrefFor(locale, localeUrlPath(path));
     }
     return item;
   });

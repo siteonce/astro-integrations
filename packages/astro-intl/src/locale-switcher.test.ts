@@ -34,4 +34,17 @@ describe('localeSwitcherLinks', () => {
       { locale: 'de', current: false, sibling: false },
     ]);
   });
+
+  it('passes a home tail to hrefFor as an empty path', () => {
+    const calls: { locale: string; path: string | undefined }[] = [];
+    const home = localeSwitcherLinks(['en', 'de'], 'en', { en: '/', de: '/' }, (locale, path) => {
+      calls.push({ locale, path });
+      return path ? `/${locale}/${path}/` : `/${locale}/`;
+    });
+    assert.deepEqual(calls, [{ locale: 'de', path: '' }]);
+    assert.deepEqual(home, [
+      { locale: 'en', current: true, sibling: true },
+      { locale: 'de', current: false, sibling: true, href: '/de/' },
+    ]);
+  });
 });

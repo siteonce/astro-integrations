@@ -12,7 +12,7 @@ The enhancement is what Astro does not own: **catalogs** (`t()`) and **pairing**
 
 Automatic routing with `prefixDefaultLocale` is enough. It defaults to `false`.
 
-`astro.config.mjs` passes the intl config to `astroIntl(intlConfig)`. The layout, the 404, and the feed take locale facts from `@repo/astro-intl/runtime`. `src/utils/intl.ts` binds `createIntl(intlConfig)`. Views and utils import those helpers from that file.
+`astro.config.mjs` passes the intl config to `astroIntl(intlConfig)`. Views and utils import intl through `src/utils/intl.ts`, which binds `createIntl(intlConfig)` and re-exports `viewProps` and `Relation`. The layout takes the switcher and the alternates from that file. The 404 and the feed take locale facts from `@repo/astro-intl/runtime`.
 
 Intl does not depend on the bundler. It uses no virtual module, Vite plugin, `define`, or alias. Astro’s own virtual modules (`astro:content`, `astro:i18n`, `astro:config/server`) stay allowed. `Locale` comes from `injectTypes`, an Astro integration API.
 
@@ -96,7 +96,11 @@ A view is a full Astro page. The view owns its `getStaticPaths`, typed props, an
 
 **Missing translation.** The config may name a **fallback view** (`fallbackView`) for every `{slug}` row. A `{slug}` row may name its own, or `false` for none. In each locale that is not the default, intl injects it for default-locale entries that have no translation. Its props carry that entry and its default-locale URL (`target`). The view chooses what to do: redirect, or show a notice. With none, those URLs 404. Intl never falls back to the same tail in the default locale.
 
-**URL form.** Intl builds every URL through `astro:i18n`: hreflang, sitemap locs, fallback-view targets, and listing pager links. So links follow `trailingSlash` and `build.format`. Intl warns at startup when the two disagree: `"never"` with the `directory` format, or `"always"` with the `file` format.
+**URL form.** Intl builds every URL through `astro:i18n`: hreflang, sitemap locs, fallback-view targets, listing pager links, entry URLs, and switcher links. So links follow `trailingSlash` and `build.format`. Intl warns at startup when the two disagree: `"never"` with the `directory` format, or `"always"` with the `file` format.
+
+`getRelativeEntryUrl` and `getAbsoluteEntryUrl` are on the `createIntl` binding. The ref is a relation or an entry. They return `undefined` when that locale publishes no URL for the entry. They throw when the collection is not translated, and when an entry has no `collection`.
+
+`localeSwitcherLinks(locale, path)` is on the binding. A missing sibling has no `href`. The app decides what to do with that.
 
 ## View rendering
 

@@ -1,15 +1,13 @@
 ---
 // Home. The site name and the catalog intro. No collection entry.
 // `staticPaths` emits the locale root, and nothing for a locale that doesn't publish it.
-import { viewProps } from '@repo/astro-intl';
-import { Hreflang } from '@repo/astro-intl/components';
 import { ogImageFor } from '@repo/astro-og-image/utils/og-image-for';
 import { Hero, Schema, Seo } from '@repo/astro-site/components';
 import type { GetStaticPathsOptions, InferGetStaticPropsType } from 'astro';
 import SiteLayout from '../layouts/site-layout.astro';
 import { ogConfig } from '../og.config.ts';
 import { siteConfig } from '../site.config.ts';
-import { hreflangLinks, staticPaths } from '../utils/intl.ts';
+import { staticPaths, viewProps } from '../utils/intl.ts';
 import { useTranslations } from '../utils/t.ts';
 
 export async function getStaticPaths({ routePattern }: GetStaticPathsOptions) {
@@ -36,7 +34,6 @@ const ogImage = ogImageFor(Astro.url.pathname, ogConfig);
       {...ogImage}
       imageAlt={siteConfig.siteName}
     />
-    <Hreflang links={await hreflangLinks(locale, path)} />
     <Schema siteConfig={siteConfig} lang={locale} description={description} />
   </Fragment>
 

@@ -23,6 +23,8 @@ const roleName = localized(z.string().min(1), locales).parse({
 const absoluteLocaleUrl = (locale: string, path = '') =>
   `https://example.com/${locale}${path ? `/${path}` : ''}`;
 
+const relativeLocaleUrl = (locale: string, path = '') => `/${locale}${path ? `/${path}` : ''}/`;
+
 function createFixture(collections: Record<string, CollectionEntryLike[]>, loaded?: string[]) {
   return createIntl(
     defineIntl({
@@ -42,6 +44,7 @@ function createFixture(collections: Record<string, CollectionEntryLike[]>, loade
           return collections[name] ?? [];
         },
         getAbsoluteLocaleUrl: absoluteLocaleUrl,
+        getRelativeLocaleUrl: relativeLocaleUrl,
       },
     },
   );
@@ -76,6 +79,7 @@ describe('getSitemapEntries / getAlternatePaths', () => {
         loaders: {
           getCollection: async (name) => collections[name] ?? [],
           getAbsoluteLocaleUrl: absoluteLocaleUrl,
+          getRelativeLocaleUrl: relativeLocaleUrl,
         },
       },
     );
@@ -100,6 +104,7 @@ describe('two factories', () => {
     const loaders = {
       getCollection: async (name: string) => (name === 'blog' ? blog : []),
       getAbsoluteLocaleUrl: absoluteLocaleUrl,
+      getRelativeLocaleUrl: relativeLocaleUrl,
     };
     const posts = createIntl(
       defineIntl({
@@ -171,6 +176,7 @@ describe('first load', () => {
             return name === 'blog' ? blog : [];
           },
           getAbsoluteLocaleUrl: absoluteLocaleUrl,
+          getRelativeLocaleUrl: relativeLocaleUrl,
         },
       },
     );
@@ -226,6 +232,7 @@ describe('hreflangLinks', () => {
           ];
         },
         getAbsoluteLocaleUrl: absoluteLocaleUrl,
+        getRelativeLocaleUrl: relativeLocaleUrl,
       },
     },
   );
@@ -381,5 +388,203 @@ describe('getRelated', () => {
       recorded?.delete('not-listed');
     }
     assert.equal(recordedRelationNames().includes('not-listed'), false);
+  });
+});
+
+type UrlCall = { locale: string; path: string | undefined };
+
+const entryCollections: Record<string, CollectionEntryLike[]> = {
+  blog: [
+    { id: 'hello-en', collection: 'blog', data: { id: 'hello', locale: 'en', slug: 'hello' } },
+    { id: 'hello-de', collection: 'blog', data: { id: 'hello', locale: 'de', slug: 'hallo' } },
+    { id: 'only-en', collection: 'blog', data: { id: 'only', locale: 'en', slug: 'only' } },
+  ],
+  notes: [
+    { id: 'one-en', collection: 'notes', data: { key: 'one', locale: 'en', slug: 'one' } },
+    { id: 'one-de', collection: 'notes', data: { key: 'one', locale: 'de', slug: 'eins' } },
+  ],
+  pages: [
+    { id: 'home-en', collection: 'pages', data: { id: 'home', locale: 'en' } },
+    { id: 'home-de', collection: 'pages', data: { id: 'home', locale: 'de' } },
+  ],
+  authors: [{ id: 'ada-en', collection: 'authors', data: { id: 'ada', locale: 'en' } }],
+  sources: [],
+  roles: [],
+};
+
+function entryIntl(relativeCalls: UrlCall[] = [], absoluteCalls: UrlCall[] = []) {
+  return createIntl(
+    defineIntl({
+      locales: ['en', 'de'],
+      defaultLocale: 'en',
+      routing: { prefixDefaultLocale: true },
+      routes: [
+        { slug: { en: 'blog/{slug}', de: 'artikel/{slug}' }, view: 'post', collection: 'blog' },
+        { slug: { en: 'notes/{slug}', de: 'notizen/{slug}' }, view: 'note', collection: 'notes' },
+        { slug: { en: '/', de: '/' }, view: 'home', collection: { name: 'pages', entry: 'home' } },
+      ],
+      collections: {
+        translated: ['blog', 'notes', 'pages', 'authors'],
+        untranslated: ['sources', 'roles'],
+        fields: { notes: { id: 'key' } },
+      },
+    }),
+    {
+      loaders: {
+        getCollection: async (name) => {
+          if (!(name in entryCollections)) throw new Error(`missing ${name}`);
+          return entryCollections[name] ?? [];
+        },
+        getRelativeLocaleUrl: (locale, path) => {
+          relativeCalls.push({ locale, path });
+          return `rel:${locale}:${path ?? ''}`;
+        },
+        getAbsoluteLocaleUrl: (locale, path) => {
+          absoluteCalls.push({ locale, path });
+          return `abs:${locale}:${path ?? ''}`;
+        },
+      },
+    },
+  );
+}
+
+describe('entry urls', () => {
+  it('returns the relative url of a translated routed relation', async () => {
+    const relativeCalls: UrlCall[] = [];
+    const intl = entryIntl(relativeCalls);
+    assert.equal(
+      await intl.getRelativeEntryUrl('de', { target: 'blog', id: 'hello' }),
+      'rel:de:artikel/hallo',
+    );
+    assert.deepEqual(relativeCalls, [{ locale: 'de', path: 'artikel/hallo' }]);
+  });
+
+  it('returns the url of an entry', async () => {
+    const intl = entryIntl();
+    assert.equal(
+      await intl.getRelativeEntryUrl('en', {
+        id: 'hello-en',
+        collection: 'blog',
+        data: { id: 'hello', locale: 'en', slug: 'hello' },
+      }),
+      'rel:en:blog/hello',
+    );
+  });
+
+  it('resolves an entry whose pairing id field is renamed', async () => {
+    const intl = entryIntl();
+    assert.equal(
+      await intl.getRelativeEntryUrl('de', {
+        id: 'one-de',
+        collection: 'notes',
+        data: { key: 'one', locale: 'de', slug: 'eins' },
+      }),
+      'rel:de:notizen/eins',
+    );
+  });
+
+  it('returns undefined when the asked locale has no sibling', async () => {
+    const relativeCalls: UrlCall[] = [];
+    const intl = entryIntl(relativeCalls);
+    assert.equal(await intl.getRelativeEntryUrl('de', { target: 'blog', id: 'only' }), undefined);
+    assert.deepEqual(relativeCalls, []);
+  });
+
+  it('returns undefined for a record', async () => {
+    const relativeCalls: UrlCall[] = [];
+    const intl = entryIntl(relativeCalls);
+    assert.equal(await intl.getRelativeEntryUrl('en', { target: 'authors', id: 'ada' }), undefined);
+    assert.deepEqual(relativeCalls, []);
+  });
+
+  it('throws when the target is not translated or the entry has no collection', async () => {
+    const intl = entryIntl();
+    await assert.rejects(
+      () => intl.getRelativeEntryUrl('en', { target: 'sources', id: 'astro' }),
+      /@repo\/astro-intl: collection "sources" is not in collections\.translated\./,
+    );
+    await assert.rejects(
+      () => intl.getRelativeEntryUrl('en', { target: 'ghost', id: 'x' }),
+      /@repo\/astro-intl: collection "ghost" is not in collections\.translated\./,
+    );
+    await assert.rejects(
+      () =>
+        intl.getRelativeEntryUrl('en', {
+          id: 'astro',
+          collection: 'sources',
+          data: { id: 'astro' },
+        }),
+      /@repo\/astro-intl: collection "sources" is not in collections\.translated\./,
+    );
+    await assert.rejects(
+      () => intl.getRelativeEntryUrl('en', { id: 'x', data: { id: 'hello' } }),
+      /@repo\/astro-intl: entry has no collection\./,
+    );
+  });
+
+  it('calls the relative loader with an empty path for the home tail', async () => {
+    const relativeCalls: UrlCall[] = [];
+    const intl = entryIntl(relativeCalls);
+    assert.equal(await intl.getRelativeEntryUrl('en', { target: 'pages', id: 'home' }), 'rel:en:');
+    assert.deepEqual(relativeCalls, [{ locale: 'en', path: '' }]);
+  });
+
+  it('builds an absolute url through getAbsoluteLocaleUrl', async () => {
+    const relativeCalls: UrlCall[] = [];
+    const absoluteCalls: UrlCall[] = [];
+    const intl = entryIntl(relativeCalls, absoluteCalls);
+    assert.equal(
+      await intl.getAbsoluteEntryUrl('en', { target: 'blog', id: 'hello' }),
+      'abs:en:blog/hello',
+    );
+    assert.deepEqual(absoluteCalls, [{ locale: 'en', path: 'blog/hello' }]);
+    assert.deepEqual(relativeCalls, []);
+  });
+});
+
+describe('localeSwitcherLinks', () => {
+  it('omits href when a sibling is missing', async () => {
+    const intl = entryIntl();
+    assert.deepEqual(await intl.localeSwitcherLinks('en', 'blog/only'), [
+      { locale: 'en', current: true, sibling: true },
+      { locale: 'de', current: false, sibling: false },
+    ]);
+  });
+
+  it('omits href on the current locale', async () => {
+    const intl = entryIntl();
+    const links = await intl.localeSwitcherLinks('en', 'blog/hello');
+    assert.deepEqual(links, [
+      { locale: 'en', current: true, sibling: true },
+      { locale: 'de', current: false, sibling: true, href: 'rel:de:artikel/hallo' },
+    ]);
+    assert.equal(links[0]?.href, undefined);
+  });
+
+  it('reports no siblings for an unknown path', async () => {
+    const relativeCalls: UrlCall[] = [];
+    const intl = entryIntl(relativeCalls);
+    assert.deepEqual(await intl.localeSwitcherLinks('en', 'missing'), [
+      { locale: 'en', current: true, sibling: false },
+      { locale: 'de', current: false, sibling: false },
+    ]);
+    assert.deepEqual(relativeCalls, []);
+  });
+
+  it('links each other locale to its home url', async () => {
+    const relativeCalls: UrlCall[] = [];
+    const intl = entryIntl(relativeCalls);
+    assert.deepEqual(await intl.localeSwitcherLinks('en', '/'), [
+      { locale: 'en', current: true, sibling: true },
+      { locale: 'de', current: false, sibling: true, href: 'rel:de:' },
+    ]);
+    assert.deepEqual(await intl.localeSwitcherLinks('de', '/'), [
+      { locale: 'en', current: false, sibling: true, href: 'rel:en:' },
+      { locale: 'de', current: true, sibling: true },
+    ]);
+    assert.deepEqual(relativeCalls, [
+      { locale: 'de', path: '' },
+      { locale: 'en', path: '' },
+    ]);
   });
 });

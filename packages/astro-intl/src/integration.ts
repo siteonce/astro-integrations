@@ -57,7 +57,6 @@ export { id, locale, slug } from './fragments.ts';
 export type { IntlRegister, Locale } from './intl-register.ts';
 export { leafSlug } from './locale-section.ts';
 export type { LocaleSwitcherLink } from './locale-switcher.ts';
-export { localeSwitcherLinks } from './locale-switcher.ts';
 export type { PairedSlug, SitemapEntry } from './query.ts';
 export type { Relation } from './relation.ts';
 export { localized, localizedValue, relation } from './relation.ts';
@@ -333,6 +332,7 @@ export function astroIntl(
             routing: {
               prefixDefaultLocale: intlConfig.routing.prefixDefaultLocale,
               redirectToDefaultLocale: intlConfig.routing.redirectToDefaultLocale ?? false,
+              // Astro's config type requires this field.
               fallbackType: 'redirect',
             },
           },

@@ -1,17 +1,16 @@
 ---
 // Site chrome around BaseLayout: styles, Favicon, Analytics, locale switcher,
-// and a head pass-through. Document pages drop Seo/Hreflang/Schema into the
-// head slot and own their landmarks. This file does not compose blocks.
+// and a head pass-through. The layout renders the alternates. Pages drop Seo
+// and Schema into the head slot and own their landmarks. This file does not
+// compose blocks.
 
-import { getRelativeLocaleUrl } from 'astro:i18n';
-import { localeSwitcherLinks } from '@repo/astro-intl';
-import { locales } from '@repo/astro-intl/runtime';
+import { Hreflang } from '@repo/astro-intl/components';
 import { BaseLayout } from '@repo/astro-site/components';
 import { cn } from '@repo/astro-site/utils/cn';
 import type { HTMLAttributes } from 'astro/types';
 import Analytics from '../components/analytics.astro';
 import Favicon from '../components/favicon.astro';
-import { getAlternatePathsForPath } from '../utils/intl.ts';
+import { hreflangLinks, localeSwitcherLinks } from '../utils/intl.ts';
 import { useTranslations } from '../utils/t.ts';
 import '../styles';
 
@@ -20,8 +19,8 @@ interface Props {
   locale: string;
   /**
    * This view's locale-relative path. Another locale links to the sibling
-   * that publishes this tail. With no path, every other locale links to its
-   * locale root and the current locale is not a link.
+   * that publishes this tail. With no path, each locale links to its home
+   * where pairing publishes one. The current locale is not a link.
    */
   path?: string;
   /** Attrs on `<html>` except `lang`. Forwarded to BaseLayout. */
@@ -32,14 +31,9 @@ interface Props {
 
 const { locale, path, html, body } = Astro.props;
 const t = useTranslations(locale);
-const hrefFor = (code: string, tail?: string) =>
-  tail ? getRelativeLocaleUrl(code, tail) : getRelativeLocaleUrl(code);
-// With no path, every locale's root stands in as its sibling.
-const alternates =
-  path === undefined
-    ? Object.fromEntries(locales.map((code) => [code, '/']))
-    : await getAlternatePathsForPath(locale, path);
-const switcher = localeSwitcherLinks(locales, locale, alternates, hrefFor);
+// With no path, ask pairing for each locale's home. The current locale is not a link.
+const switcher = await localeSwitcherLinks(locale, path ?? '/');
+const alternates = path === undefined ? undefined : await hreflangLinks(locale, path);
 const { class: htmlClass, 'class:list': htmlClassList, ...htmlRest } = html ?? {};
 const { class: bodyClass, 'class:list': bodyClassList, ...bodyRest } = body ?? {};
 ---
@@ -53,13 +47,14 @@ const { class: bodyClass, 'class:list': bodyClassList, ...bodyRest } = body ?? {
     <Favicon />
     <Analytics />
     <slot name="head" />
+    {alternates && <Hreflang links={alternates} />}
   </Fragment>
   <header>
     <nav class="measure measure-size-wide mx-auto" aria-label={t('chrome.localeSwitcher')}>
       <ul>
         {switcher.map((item) => (
           <li>
-            {item.locale === locale ? (
+            {item.current ? (
               <span aria-current="page">{t(`locale.${item.locale}`)}</span>
             ) : item.href ? (
               <a href={item.href} hreflang={item.locale} lang={item.locale}>

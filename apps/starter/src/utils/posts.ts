@@ -1,10 +1,16 @@
 import { type CollectionEntry, getCollection } from 'astro:content';
-import type { Relation } from '@repo/astro-intl';
 import type { ImageMetadata } from 'astro';
-import { createLinks } from './links.ts';
+import { getRelativeEntryUrl, type Relation } from './intl.ts';
 import { useTranslations } from './t.ts';
 
 type Post = CollectionEntry<'posts'>;
+
+// An entry ref intl can turn into a URL. `collection` is set on collection entries.
+type EntryRef = {
+  id: string;
+  collection: string;
+  data: { id: string };
+};
 
 // Editorial media is a URL in frontmatter. The demo may store a co-located
 // relative path (`./feat.png`) so preview needs no cloud account.
@@ -66,10 +72,15 @@ function parentDir(filePath: string | undefined): string | undefined {
 }
 
 // Dates, feat images, tag links, and list items for one locale's posts.
+// A term, related post, or list item with no URL in this locale is omitted.
 export function createPosts(locale: string) {
   const t = useTranslations(locale);
   const dateFmt = new Intl.DateTimeFormat(locale, { dateStyle: 'long' });
-  const links = createLinks(locale);
+
+  function omit(ref: string): undefined {
+    console.warn(`starter: no url for "${ref}" in "${locale}".`);
+    return undefined;
+  }
 
   function dateLabel(post: Post) {
     return dateFmt.format(post.data.pubDate);
@@ -81,27 +92,32 @@ export function createPosts(locale: string) {
     return src ? { src, alt: post.data.featImageAlt } : undefined;
   }
 
+  /** URL of this entry in this locale. Undefined when the locale publishes none. */
+  function href(post: EntryRef) {
+    return getRelativeEntryUrl(locale, post);
+  }
+
   async function terms(tags: readonly Relation[]) {
-    return Promise.all(
+    const links = await Promise.all(
       tags.map(async (tag) => {
+        const link = await getRelativeEntryUrl(locale, tag);
+        if (link === undefined) return omit(`${tag.target}/${tag.id}`);
         const catalogKey = `taxonomy.blogTags.${tag.id}`;
         const value = t(catalogKey);
         return {
-          href: await links.href('tags', tag.id),
+          href: link,
           label: value === catalogKey ? tag.id : value,
         };
       }),
     );
-  }
-
-  /** Compiled href of a post in this locale. */
-  function href(post: { data: { id: string } }) {
-    return links.href('posts', post.data.id);
+    return links.filter((link) => link !== undefined);
   }
 
   async function item(post: Post) {
+    const link = await href(post);
+    if (link === undefined) return omit(`${post.collection}/${post.data.id}`);
     return {
-      href: await href(post),
+      href: link,
       title: post.data.seoTitle,
       excerpt: post.data.excerpt,
       datetime: post.data.pubDate.toISOString(),
@@ -111,10 +127,28 @@ export function createPosts(locale: string) {
     };
   }
 
+  /** List items for the posts in `list` that publish a URL in this locale. */
+  async function items(list: readonly Post[]) {
+    return (await Promise.all(list.map((post) => item(post)))).filter((post) => post !== undefined);
+  }
+
+  /** Related-post links. An entry with no URL in this locale is omitted. */
+  async function related(entries: readonly (EntryRef & { data: { seoTitle: string } })[]) {
+    return (
+      await Promise.all(
+        entries.map(async (entry) => {
+          const link = await href(entry);
+          if (link === undefined) return omit(`${entry.collection}/${entry.data.id}`);
+          return { href: link, title: entry.data.seoTitle };
+        }),
+      )
+    ).filter((entry) => entry !== undefined);
+  }
+
   /** That locale's posts, in no order. */
   async function list() {
     return (await getCollection('posts')).filter((post) => post.data.locale === locale);
   }
 
-  return { list, item, image, dateLabel, terms, href };
+  return { list, items, image, dateLabel, terms, related };
 }

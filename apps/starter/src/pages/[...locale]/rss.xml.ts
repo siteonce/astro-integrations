@@ -1,10 +1,10 @@
 import { getCollection } from 'astro:content';
-import { getAbsoluteLocaleUrl, getRelativeLocaleUrl } from 'astro:i18n';
+import { getRelativeLocaleUrl } from 'astro:i18n';
 import rss from '@astrojs/rss';
 import { locales } from '@repo/astro-intl/runtime';
 import type { APIRoute } from 'astro';
 import { siteConfig } from '../../site.config.ts';
-import { getAlternatePaths, getSitemapEntries } from '../../utils/intl.ts';
+import { getAbsoluteEntryUrl } from '../../utils/intl.ts';
 import { postsNewestFirst } from '../../utils/sorting.ts';
 import { t } from '../../utils/t.ts';
 
@@ -23,32 +23,28 @@ export function getStaticPaths() {
 
 export const GET: APIRoute<{ locale: string }> = async (context) => {
   const locale = context.props.locale;
-  const entries = await getSitemapEntries();
-
-  const byPath = new Map(
-    entries.filter((entry) => entry.locale === locale).map((entry) => [entry.path, entry]),
-  );
 
   const posts = (await getCollection('posts'))
     .filter((post) => post.data.locale === locale && post.data.status === 'published')
     .toSorted(postsNewestFirst);
 
-  const items = await Promise.all(
-    posts.map(async (post) => {
-      const tails = await getAlternatePaths(`posts/${post.data.id}`);
-      const compiled = tails[locale];
-      if (!compiled) {
-        throw new Error(`starter: no compiled path for "posts/${post.data.id}" in "${locale}".`);
-      }
-      const loc = byPath.get(compiled)?.loc;
-      return {
-        title: post.data.seoTitle,
-        description: post.data.excerpt,
-        pubDate: post.data.pubDate,
-        link: loc ?? getAbsoluteLocaleUrl(locale, compiled),
-      };
-    }),
-  );
+  const items = (
+    await Promise.all(
+      posts.map(async (post) => {
+        const link = await getAbsoluteEntryUrl(locale, post);
+        if (link === undefined) {
+          console.warn(`starter: no url for "${post.collection}/${post.data.id}" in "${locale}".`);
+          return undefined;
+        }
+        return {
+          title: post.data.seoTitle,
+          description: post.data.excerpt,
+          pubDate: post.data.pubDate,
+          link,
+        };
+      }),
+    )
+  ).filter((item) => item !== undefined);
 
   return rss({
     title: t(locale, 'blog.title'),

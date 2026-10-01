@@ -54,8 +54,21 @@ function locFor(absolute: AbsoluteLocaleUrl, locale: string, path: string): stri
   return absolute(locale, localeUrlPath(path));
 }
 
-function documentsForEntryId(pairing: PairingIndex, entryId: string): PairedDocument[] {
-  return pairing.routed.filter((document) => document.entryId === entryId);
+function indexRouted(routed: readonly PairedDocument[]): Map<string, PairedDocument[]> {
+  const byEntryId = new Map<string, PairedDocument[]>();
+  for (const document of routed) {
+    const group = byEntryId.get(document.entryId);
+    if (group) group.push(document);
+    else byEntryId.set(document.entryId, [document]);
+  }
+  return byEntryId;
+}
+
+function documentsForEntryId(
+  byEntryId: Map<string, PairedDocument[]>,
+  entryId: string,
+): PairedDocument[] {
+  return byEntryId.get(entryId) ?? [];
 }
 
 function alternateLocs(
@@ -79,6 +92,7 @@ function compareLocalePath(
 /** Query helpers over a paired snapshot of collection entries. */
 export function createIntlQuery(options: CreateIntlQueryOptions): IntlQuery {
   const pairing = pairCollections(options.config, options.collections);
+  const byEntryId = indexRouted(pairing.routed);
   const absolute = options.getAbsoluteLocaleUrl;
   const { config } = options;
 
@@ -93,7 +107,7 @@ export function createIntlQuery(options: CreateIntlQueryOptions): IntlQuery {
 
   function getAlternatePaths(entryId: string): Record<string, string> {
     const paths: Record<string, string> = {};
-    for (const document of documentsForEntryId(pairing, entryId)) {
+    for (const document of documentsForEntryId(byEntryId, entryId)) {
       paths[document.locale] = document.path;
     }
     return paths;
@@ -135,7 +149,7 @@ export function createIntlQuery(options: CreateIntlQueryOptions): IntlQuery {
 
   function getSitemapEntries(): SitemapEntry[] {
     const entries: SitemapEntry[] = pairing.routed.map((document) => {
-      const siblings = documentsForEntryId(pairing, document.entryId);
+      const siblings = documentsForEntryId(byEntryId, document.entryId);
       return withXDefault({
         locale: document.locale,
         path: document.path,

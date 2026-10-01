@@ -5,6 +5,9 @@
  * pairing; two factories do not share state.
  * `options.loaders` replaces the content and locale-url reads. Tests pass them.
  * Omitted, the first load uses `astro:content` and `astro:i18n`.
+ * `getRelativeEntryUrl` and `getAbsoluteEntryUrl` return undefined when that
+ * entry publishes no URL in the asked locale. `localeSwitcherLinks` takes the
+ * current public path. The current locale, and a locale with no sibling, have no href.
  */
 
 import type { PaginateFunction } from 'astro';
@@ -16,11 +19,16 @@ import {
   translatedNames,
   untranslatedNames,
 } from './define-intl.ts';
+import { resolveEntryId } from './entry-id.ts';
+import {
+  type LocaleSwitcherLink,
+  localeSwitcherLinks as switcherLinks,
+} from './locale-switcher.ts';
 import type { CollectionEntryLike } from './pairing.ts';
+import { localeUrlPath } from './path.ts';
 import { createIntlQuery, type IntlQuery } from './query.ts';
 import {
   assertRelations,
-  collectRelations,
   type Relation,
   recordedRelationNames,
   relatedTargetNames,
@@ -36,18 +44,20 @@ import {
 } from './routed-paths.ts';
 import { type CompiledRoute, compileRoutes } from './routing.ts';
 
-/** Collection read used by query helpers. Production uses `astro:content`. Intl does not call a CMS. */
+/** Content and locale-url reads. Production uses `astro:content` and `astro:i18n`. Intl does not call a CMS. */
 export type IntlLoaders = {
   getCollection: (name: string) => Promise<CollectionEntryLike[]>;
   getAbsoluteLocaleUrl: (locale: string, path?: string) => string;
+  getRelativeLocaleUrl: (locale: string, path?: string) => string;
 };
 
 async function defaultLoaders(): Promise<IntlLoaders> {
   const { getCollection } = await import('astro:content');
-  const { getAbsoluteLocaleUrl } = await import('astro:i18n');
+  const { getAbsoluteLocaleUrl, getRelativeLocaleUrl } = await import('astro:i18n');
   return {
     getCollection: async (name) => (await getCollection(name)) as CollectionEntryLike[],
     getAbsoluteLocaleUrl,
+    getRelativeLocaleUrl,
   };
 }
 
@@ -68,8 +78,36 @@ export function createIntl(input: IntlConfigInput, options?: { loaders?: IntlLoa
   const spec = config.collections;
   const names = relatedTargetNames(spec);
   const loadersOverride = options?.loaders;
+  let loadersPending: Promise<IntlLoaders> | undefined;
   let pending: Promise<IntlQuery> | undefined;
   let routes: CompiledRoute[] | undefined;
+
+  function resolveLoaders(): Promise<IntlLoaders> {
+    loadersPending ??=
+      loadersOverride !== undefined ? Promise.resolve(loadersOverride) : defaultLoaders();
+    return loadersPending;
+  }
+
+  function translatedCollection(name: string) {
+    const fields = translatedFields(spec)[name];
+    if (!fields) {
+      throw new Error(`@repo/astro-intl: collection "${name}" is not in collections.translated.`);
+    }
+    return fields;
+  }
+
+  /** Pairing id for a relation or a collection entry. Config mistakes throw. */
+  function entryIdOf(ref: Relation | CollectionEntryLike): string {
+    if ('target' in ref) {
+      translatedCollection(ref.target);
+      return `${ref.target}/${ref.id}`;
+    }
+    if (!ref.collection) {
+      throw new Error('@repo/astro-intl: entry has no collection.');
+    }
+    const fields = translatedCollection(ref.collection);
+    return resolveEntryId(ref.collection, ref.data, fields.id);
+  }
 
   function compiledRoutes(): CompiledRoute[] {
     routes ??= compileRoutes(config);
@@ -84,24 +122,16 @@ export function createIntl(input: IntlConfigInput, options?: { loaders?: IntlLoa
         `@repo/astro-intl: relation("${name}") points at a collection neither collections.translated nor collections.untranslated lists.`,
       );
     }
-    const loaders = loadersOverride ?? (await defaultLoaders());
+    // An override is already a value. Awaiting it would defer the first collection read.
+    const pendingLoaders = resolveLoaders();
+    const loaders = loadersOverride ?? (await pendingLoaders);
     const collections: Record<string, CollectionEntryLike[]> = {};
     for (const name of translatedNames(spec)) {
       collections[name] = await loadNamedCollection(loaders, name, 'translated');
     }
-    const needed = new Set(targets);
-    for (const entries of Object.values(collections)) {
-      for (const entry of entries) {
-        for (const rel of collectRelations(entry.data, names)) {
-          needed.add(rel.target);
-        }
-      }
-    }
     const untranslated = new Set(untranslatedNames(spec));
-    for (const name of needed) {
-      if (name in collections) continue;
-      const list = untranslated.has(name) ? 'untranslated' : 'translated';
-      collections[name] = await loadNamedCollection(loaders, name, list);
+    for (const name of untranslated) {
+      collections[name] = await loadNamedCollection(loaders, name, 'untranslated');
     }
     const query = createIntlQuery({
       config,
@@ -181,7 +211,7 @@ export function createIntl(input: IntlConfigInput, options?: { loaders?: IntlLoa
   ) {
     const query = await loadQuery();
     const route = routeFor(compiledRoutes(), routePattern, 'listing');
-    const { getRelativeLocaleUrl } = await import('astro:i18n');
+    const { getRelativeLocaleUrl } = await resolveLoaders();
     return listingPathsFor<T>(config, query, route, paginate, ordering, getRelativeLocaleUrl);
   }
 
@@ -199,8 +229,48 @@ export function createIntl(input: IntlConfigInput, options?: { loaders?: IntlLoa
   async function fallbackPaths<T>(routePattern: string) {
     const query = await loadQuery();
     const route = routeFor(compiledRoutes(), routePattern, 'fallback');
-    const { getRelativeLocaleUrl } = await import('astro:i18n');
+    const { getRelativeLocaleUrl } = await resolveLoaders();
     return fallbackPathsFor<T>(config, query, route, getRelativeLocaleUrl);
+  }
+
+  async function publishedPath(
+    locale: string,
+    ref: Relation | CollectionEntryLike,
+  ): Promise<string | undefined> {
+    const entryId = entryIdOf(ref);
+    const paths = (await loadQuery()).getAlternatePaths(entryId);
+    return paths[locale];
+  }
+
+  async function getRelativeEntryUrl(
+    locale: string,
+    ref: Relation | CollectionEntryLike,
+  ): Promise<string | undefined> {
+    const path = await publishedPath(locale, ref);
+    if (path === undefined) return undefined;
+    const { getRelativeLocaleUrl } = await resolveLoaders();
+    return getRelativeLocaleUrl(locale, localeUrlPath(path));
+  }
+
+  async function getAbsoluteEntryUrl(
+    locale: string,
+    ref: Relation | CollectionEntryLike,
+  ): Promise<string | undefined> {
+    const path = await publishedPath(locale, ref);
+    if (path === undefined) return undefined;
+    const { getAbsoluteLocaleUrl } = await resolveLoaders();
+    return getAbsoluteLocaleUrl(locale, localeUrlPath(path));
+  }
+
+  async function localeSwitcherLinks(locale: string, path: string): Promise<LocaleSwitcherLink[]> {
+    const query = await loadQuery();
+    const { getRelativeLocaleUrl } = await resolveLoaders();
+    return switcherLinks(
+      config.locales,
+      locale,
+      query.getAlternatePathsForPath(locale, path),
+      getRelativeLocaleUrl,
+    );
   }
 
   return {
@@ -215,5 +285,8 @@ export function createIntl(input: IntlConfigInput, options?: { loaders?: IntlLoa
     getPairedSlugs,
     getSitemapEntries,
     hreflangLinks,
+    getRelativeEntryUrl,
+    getAbsoluteEntryUrl,
+    localeSwitcherLinks,
   };
 }
