@@ -38,6 +38,8 @@ A snapshot monorepo that is the foundation for every Astro **content site** buil
 
 **`createIntl`**: The app-owned binding of intl’s page helpers to the intl config. _Avoid_: `setIntlConfig`, a global intl runtime, a virtual module
 
+**`createIntlSchema`**: The app-owned binding of the content-schema helpers `relation` and `localized` to the intl config. _Avoid_: `intlSchema`, the unbound `relation()`/`localized()`
+
 **`ogImage()`**: Default export of `@repo/astro-og-image`. _Avoid_: astroOgImage()
 
 **`createT`**: Pure factory that returns `t()` from message objects the app passes in. _Avoid_: loading catalogs through `virtual:app/i18n`

@@ -1,24 +1,18 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
-import { z } from 'zod';
 import { createIntl } from './create-intl.ts';
 import { defineIntl, type IntlConfigInput } from './define-intl.ts';
 import type { CollectionEntryLike } from './pairing.ts';
-import { localized, relation } from './relation.ts';
 
 const intlCollections = {
   translated: ['blog', 'authors'],
   untranslated: ['sources', 'roles'],
 };
 
-const locales = ['en', 'de'] as const;
-const authorRel = relation('authors').parse('ada');
-const sourceRel = relation('sources').parse('astro');
-const roleRel = relation('roles').parse('editor');
-const roleName = localized(z.string().min(1), locales).parse({
-  en: 'Editor',
-  de: 'Redakteur',
-});
+const authorRel = { intlRelationTarget: 'authors', id: 'ada' };
+const sourceRel = { intlRelationTarget: 'sources', id: 'astro' };
+const roleRel = { intlRelationTarget: 'roles', id: 'editor' };
+const roleName = { en: 'Editor', de: 'Redakteur' };
 
 const absoluteLocaleUrl = (locale: string, path = '') =>
   `https://example.com/${locale}${path ? `/${path}` : ''}`;

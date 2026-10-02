@@ -59,7 +59,7 @@ export { leafSlug } from './locale-section.ts';
 export type { LocaleSwitcherLink } from './locale-switcher.ts';
 export type { PairedSlug, SitemapEntry } from './query.ts';
 export type { Relation } from './relation.ts';
-export { localized, localizedValue, relation } from './relation.ts';
+export { createIntlSchema, localizedValue } from './relation.ts';
 export type { ListingContext, ListingOrder } from './routed-paths.ts';
 export { viewProps } from './view-props.ts';
 

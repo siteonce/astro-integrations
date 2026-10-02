@@ -137,6 +137,8 @@ A view that reads more data, such as relations or related posts, folds that data
 
 A **relation** is `{ intlRelationTarget, id }` after parse, where `intlRelationTarget` is the collection name. Both content sources use this pointer. Targets are the **translated** and **untranslated** collections.
 
+The content config takes `relation` and `localized` from `createIntlSchema(intlConfig)`. `relation(name)` takes a name in `collections.translated` or `collections.untranslated`. Any other name fails when Astro loads the content config. `localized(value)` uses `locales` from that config.
+
 Intl reads relations through those lists, so an on-demand view needs nothing beyond its `createIntl` binding. An entry holding a relation whose collection is in neither list fails when intl loads collections: in the build, and per request for an on-demand view.
 
 A **translated** target stores the pairing `id`. Resolve uses the current locale (`getRelated` from the `createIntl` binding). Those entries carry `id` and `locale`.
@@ -176,6 +178,7 @@ Fail at startup when:
 - A `fields` key is not in `translated`.
 - A route row names a collection that is not in `translated`.
 - A name in `translated` or `untranslated` is not a content collection.
+- `relation()` names a collection neither `collections.translated` nor `collections.untranslated` lists.
 - A **relation** points at a collection neither `collections.translated` nor `collections.untranslated` lists.
 - A **relation** pairing `id` is missing, a **translated** target has no sibling in the source locale, or a `localized()` map has a missing or extra locale key.
 

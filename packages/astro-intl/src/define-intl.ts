@@ -469,11 +469,22 @@ export function parseIntlConfig(input: IntlConfigInput): IntlConfig {
 /** Locale union of a config that lists `locales`. */
 export type LocaleOf<C extends { locales: readonly string[] }> = C['locales'][number];
 
+type CollectionFieldsInput = NonNullable<IntlConfigInput['collections']>['fields'];
+
 /** Typed helper for `src/intl.config.ts`. `astroIntl()` validates the object when it is called. */
-export function defineIntl<const L extends string>(
-  config: Omit<IntlConfigInput, 'locales' | 'defaultLocale'> & {
+export function defineIntl<
+  const L extends string,
+  const Translated extends string = never,
+  const Untranslated extends string = never,
+>(
+  config: Omit<IntlConfigInput, 'locales' | 'defaultLocale' | 'collections'> & {
     locales: L[];
     defaultLocale: NoInfer<L>;
+    collections?: {
+      translated?: Translated[];
+      untranslated?: Untranslated[];
+      fields?: CollectionFieldsInput;
+    };
   },
 ) {
   return config;

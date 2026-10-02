@@ -60,31 +60,46 @@ export function collectRelations(value: unknown): Relation[] {
   return [];
 }
 
-export function relation(collection: string) {
-  if (!collection) {
-    throw new Error('@repo/astro-intl: relation() needs a collection name.');
-  }
-  return z
-    .string()
-    .min(1)
-    .transform((id): Relation => ({ intlRelationTarget: collection, id }));
-}
-
-export function localized<T extends z.ZodType>(value: T, locales: readonly string[]) {
-  if (locales.length === 0) {
-    throw new Error('@repo/astro-intl: localized() needs at least one locale.');
-  }
-  if (new Set(locales).size !== locales.length) {
-    throw new Error('@repo/astro-intl: localized() locales must be unique.');
-  }
-  const shape: Record<string, T> = {};
-  for (const code of locales) {
-    if (!code) {
-      throw new Error('@repo/astro-intl: localized() locale codes must be non-empty.');
+/**
+ * Binds content-schema helpers to one intl config.
+ * `relation` takes a name from `collections.translated` or `collections.untranslated`
+ * and throws when the name is in neither. `localized` uses `config.locales`.
+ */
+export function createIntlSchema<
+  const Translated extends string = never,
+  const Untranslated extends string = never,
+>(config: {
+  locales: readonly string[];
+  collections?: {
+    translated?: readonly Translated[];
+    untranslated?: readonly Untranslated[];
+  };
+}) {
+  function relation(name: Translated | Untranslated) {
+    const names = new Set<string>([
+      ...(config.collections?.translated ?? []),
+      ...(config.collections?.untranslated ?? []),
+    ]);
+    if (!names.has(name)) {
+      throw new Error(
+        `@repo/astro-intl: relation("${name}") is in neither collections.translated nor collections.untranslated.`,
+      );
     }
-    shape[code] = value;
+    return z
+      .string()
+      .min(1)
+      .transform((id): Relation => ({ intlRelationTarget: name, id }));
   }
-  return z.strictObject(shape);
+
+  function localized<T extends z.ZodType>(value: T) {
+    const shape: Record<string, T> = {};
+    for (const code of config.locales) {
+      shape[code] = value;
+    }
+    return z.strictObject(shape);
+  }
+
+  return { relation, localized };
 }
 
 export function localizedValue<T>(field: Readonly<Record<string, T>>, locale: string): T {

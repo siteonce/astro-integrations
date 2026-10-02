@@ -1,5 +1,5 @@
 import { defineCollection } from 'astro:content';
-import { id, leafSlug, locale, localized, relation, slug } from '@repo/astro-intl';
+import { createIntlSchema, id, leafSlug, locale, slug } from '@repo/astro-intl';
 import { blog } from '@repo/astro-site/schemas/content/blog';
 import { seo } from '@repo/astro-site/schemas/content/seo';
 import { glob } from 'astro/loaders';
@@ -9,6 +9,8 @@ import intlConfig from './intl.config.ts';
 import { deployClass } from './utils/deploy.ts';
 import { withoutDrafts } from './utils/drafts.ts';
 import { slugify } from './utils/slugify.ts';
+
+const { relation, localized } = createIntlSchema(intlConfig);
 
 // Entry id is the file path without its extension. Pairing uses data.id, not this id.
 function entryFileId({ entry }: { entry: string }) {
@@ -83,7 +85,7 @@ const roles = defineCollection({
     generateId: entryFileId,
   }),
   schema: z.object({
-    name: localized(z.string().min(1), intlConfig.locales),
+    name: localized(z.string().min(1)),
   }),
 });
 
