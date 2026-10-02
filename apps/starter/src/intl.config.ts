@@ -16,13 +16,7 @@ const intl = defineIntl({
   // every `{slug}` row. `views/fallback.astro` redirects to the default-locale entry.
   fallbackView: 'fallback',
   // `view` and `fallbackView` name views. A row with `pagination` injects two routes per locale.
-  routes: routes.map(({ slug, view, collection, pagination, fallbackView }) => ({
-    slug,
-    view,
-    ...(collection ? { collection } : {}),
-    ...(pagination !== undefined ? { pagination } : {}),
-    ...(fallbackView !== undefined ? { fallbackView } : {}),
-  })),
+  routes,
   collections: {
     // Paired on id + locale. A collection on a `{slug}` row is routed.
     translated: ['posts', 'tags', 'authors'],

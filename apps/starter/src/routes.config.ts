@@ -9,9 +9,7 @@ import type { RouteConfig } from '@repo/astro-intl';
 // `sort` or `order` as the row's view. Omit `pagination` and the row stays that one tail.
 // `fallbackView` on a `{slug}` row replaces the one in `intl.config.ts`.
 // `false` means that row's untranslated URLs 404.
-export type StarterRoute = RouteConfig;
-
-export const routes: StarterRoute[] = [
+export const routes: RouteConfig[] = [
   {
     slug: { en: '/', de: '/' },
     view: 'home',
