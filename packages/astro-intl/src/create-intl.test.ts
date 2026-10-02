@@ -3,6 +3,7 @@ import { describe, it } from 'node:test';
 import { createIntl } from './create-intl.ts';
 import { defineIntl, type IntlConfigInput } from './define-intl.ts';
 import type { CollectionEntryLike } from './pairing.ts';
+import { localizedValue } from './relation.ts';
 
 const intlCollections = {
   translated: ['blog', 'authors'],
@@ -306,7 +307,9 @@ describe('getRelated', () => {
     const source = await intl.getRelated('de', sourceRel);
     assert.equal(source.data.name, 'Astro');
     const role = await intl.getRelated('de', roleRel);
-    assert.equal(role.data.name, 'Redakteur');
+    assert.deepEqual(role.data.name, roleName);
+    const roleNames = role.data.name as Readonly<Record<string, string>>;
+    assert.equal(localizedValue(roleNames, 'de'), 'Redakteur');
   });
 
   it('fails when a listed sibling is missing in the source locale', async () => {

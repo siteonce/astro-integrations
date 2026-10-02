@@ -23,7 +23,8 @@
  * carries pairing to those options. `viewRendering` does not change it.
  * `astro:build:done` reads that route's output, adds its URLs to `customPages`,
  * and deletes the output. `astro:config:done` injects a module augmentation so
- * `Locale` is this config's locale union. `astro:config:setup` fails startup
+ * `Locale` is this config's locale union and `entries` maps each collection name
+ * to its content entry. `astro:config:setup` fails startup
  * when the content config directly imports `@repo/astro-intl/runtime`. Astro
  * loads that file before page modules exist, so `astro:config/server` is
  * unavailable there. Does not load catalog JSON and does not create a virtual
@@ -341,7 +342,10 @@ export function astroIntl(
       'astro:config:done': ({ injectTypes }) => {
         injectTypes({
           filename: LOCALE_TYPES_FILENAME,
-          content: localeTypeDeclaration(intlConfig.locales),
+          content: localeTypeDeclaration(intlConfig.locales, [
+            ...(intlConfig.collections?.translated ?? []),
+            ...(intlConfig.collections?.untranslated ?? []),
+          ]),
         });
       },
       'astro:route:setup': ({ route, logger }) => {

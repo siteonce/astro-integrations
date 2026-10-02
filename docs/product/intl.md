@@ -141,9 +141,11 @@ The content config takes `relation` and `localized` from `createIntlSchema(intlC
 
 Intl reads relations through those lists, so an on-demand view needs nothing beyond its `createIntl` binding. An entry holding a relation whose collection is in neither list fails when intl loads collections: in the build, and per request for an on-demand view.
 
-A **translated** target stores the pairing `id`. Resolve uses the current locale (`getRelated` from the `createIntl` binding). Those entries carry `id` and `locale`.
+A **translated** target stores the pairing `id`. `getRelated(locale, relation)` from the `createIntl` binding resolves it in that locale. Those entries carry `id` and `locale`.
 
-An **untranslated** target stores the collection entry id. Locale-free tables and inline locale maps are **untranslated**. A file collection sets that id from the filename. A CMS sets it from its document id.
+An **untranslated** target stores the collection entry id and ignores the locale passed to `getRelated`. Locale-free tables and inline locale maps are **untranslated**. A file collection sets that id from the filename. A CMS sets it from its document id.
+
+`getRelated` returns the entry unchanged, as `getCollection` would. The return type is the target collection's `CollectionEntry` through the injected types, so a call site passes no type argument. A `localized()` field stays a locale map. The caller reads it with `localizedValue(field, locale)` from `@repo/astro-intl`. `localizedValue` throws when that locale is missing.
 
 Documents are paired entries (`id` + `locale` on each sibling). Inline locale maps are a lookup-target shape.
 

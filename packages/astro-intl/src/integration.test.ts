@@ -204,6 +204,28 @@ describe('astroIntl()', () => {
     ]);
   });
 
+  it('injects collection entries on astro:config:done', () => {
+    const integration = astroIntl({
+      locales: ['en', 'de'],
+      defaultLocale: 'en',
+      collections: { translated: ['posts'], untranslated: ['sources'] },
+    });
+    const hook = integration.hooks['astro:config:done'];
+    assert.ok(hook);
+    const injected: { filename: string; content: string }[] = [];
+    hook({
+      injectTypes(entry: { filename: string; content: string }) {
+        injected.push(entry);
+        return new URL('file:///tmp/intl-locales.d.ts');
+      },
+      logger: silentLogger(),
+    } as unknown as DoneParams);
+    assert.match(
+      injected[0]?.content ?? '',
+      /entries: \{ \[C in "posts" \| "sources"\]: import\('astro:content'\)\.CollectionEntry<C> \};/,
+    );
+  });
+
   it('json-escapes locale literals in the injected augmentation', () => {
     const integration = astroIntl({ locales: ['en', 'a"b'], defaultLocale: 'en' });
     const hook = integration.hooks['astro:config:done'];

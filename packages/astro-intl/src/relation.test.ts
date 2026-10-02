@@ -23,6 +23,15 @@ describe('relation schema', () => {
     });
   });
 
+  it('keeps the named collection on the parsed relation', () => {
+    const author = relation('authors').parse('ada');
+    const authorTarget: 'authors' = author.intlRelationTarget;
+    assert.equal(authorTarget, 'authors');
+    const source = relation('sources').parse('astro');
+    const sourceTarget: 'sources' = source.intlRelationTarget;
+    assert.equal(sourceTarget, 'sources');
+  });
+
   it('rejects an empty pairing id', () => {
     assert.throws(() => relation('authors').parse(''));
   });

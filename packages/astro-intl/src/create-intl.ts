@@ -20,6 +20,7 @@ import {
   untranslatedNames,
 } from './define-intl.ts';
 import { resolveEntryId } from './entry-id.ts';
+import type { EntryOf } from './intl-register.ts';
 import {
   type LocaleSwitcherLink,
   localeSwitcherLinks as switcherLinks,
@@ -142,15 +143,18 @@ export function createIntl(input: IntlConfigInput, options?: { loaders?: IntlLoa
     return pending;
   }
 
-  async function getRelated(locale: string, rel: Relation): Promise<CollectionEntryLike> {
+  async function getRelated<C extends string>(
+    locale: string,
+    rel: Relation<C>,
+  ): Promise<EntryOf<C>> {
     const query = await loadQuery();
+    // The loaded value is the target collection's entry. The app's register types it.
     return resolveRelation(locale, rel, {
-      locales: config.locales,
       translated: translatedFields(spec),
       untranslated: new Set(untranslatedNames(spec)),
       collections: query.collections,
       getContentById: query.getContentById,
-    });
+    }) as EntryOf<C>;
   }
 
   async function getContentByPath(locale: string, path: string) {
