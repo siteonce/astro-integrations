@@ -25,7 +25,7 @@ Stop and start `astro dev` after editing `intl.config.ts` or `routes.config.ts`.
 
 The test: if deleting a piece would make the site look more like ordinary Astro and pairing still works, it was cost.
 
-**Small surface.** Using intl should take few lines in the app, and each one should be a line the app would write anyway. A call site passes what only the app knows: locale, path, entry. Intl fills in what it already holds: config, locale list, key formats, tails. The customer copies views as templates, so every line a view needs gets repeated in every view. Shrinking the surface never hides the data behind it ([No boxing in](index.md#no-boxing-in)).
+**Small surface.** Using intl should take few lines in the app, and each one should be a line the app would write anyway. A call site passes what only the app knows: locale, path, entry. Intl fills in what it already holds: config, locale list, key formats, tails. The customer copies views as templates, so every line a view needs gets repeated in every view. Shrinking the surface never hides the data behind it ([No boxing in](index.md#no-boxing-in)). Why this also helps agents: [`builders.md`](../agents/builders.md#small-write-surface).
 
 ## Content source
 
