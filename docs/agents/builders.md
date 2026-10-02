@@ -8,19 +8,21 @@ An agent knows the code only through what it reads: source, types, docs, and err
 
 ## Small write surface
 
-The write surface is every line an app writes to use a package: imports, config keys, arguments, and lines repeated in each page or view.
+The write surface is what an app must write and know to use a package. It is the lines (imports, config keys, arguments, lines repeated in each page or view) and the facts behind them: what must be called first, what setup is required, how a call fails, and what shape a value comes back in.
 
 - A call site passes only what the app alone decides: locale, path, entry, sort order. The package fills in what it already holds: its config, the locale list, key formats.
-- Why: each line is something the agent must look up and can get wrong. A line that repeats a fact the package holds is a second copy; when the copies disagree, output is silently wrong. Views are copied as templates, so every line repeats in every view, and a later fix must touch each copy.
-- Shrinking the surface never hides the data behind it ([No boxing in](../product/index.md#no-boxing-in)).
-- Check: for each argument or line at a call site, ask whether the package could know it. If yes, the package should.
+- Hidden facts count. A one-line call that only works if the caller knows an unstated rule ("call this first in every bundle", "this field comes back as a string despite its type") has a large write surface. Magic usually removes lines and adds facts the caller must know.
+- Why: each line and each fact is something the agent must look up and can get wrong. A line that repeats a fact the package holds is a second copy; when the copies disagree, output is silently wrong. Views are copied as templates, so every line repeats in every view, and a later fix must touch each copy.
+- Shrinking the surface never hides the data behind it ([No boxing in](../product/index.md#no-boxing-in)). A package hands out the raw data and pieces behind its convenience path, even though that makes its surface larger. This is a deliberate exception to hiding as much as possible.
+- Check: for each line or fact at a call site, ask whether the package could know it or enforce it. If yes, the package should.
 
 ## Small read surface
 
 The read surface is what an agent must read to predict what code does.
 
 - The behavior of a function is visible from that function and the names it calls. It does not depend on a distant file, a naming convention, or a value set elsewhere at runtime.
-- A layer that only copies, renames, or wraps without deciding anything is cost. A later change must be repeated in it, or gets silently dropped by it. Example: mapping config rows into the same shape loses any key added later.
+- Apply the deletion test to every layer: imagine deleting it. If the complexity vanishes, it was a pass-through; delete it. If the same code would reappear in every caller, it earns its place.
+- A layer that only copies, renames, or wraps fails the deletion test. A later change must be repeated in it, or gets silently dropped by it. Example: mapping config rows into the same shape loses any key added later.
 - Names serve both readers. An agent finds code by searching for a name, so a name is distinctive: one name, one meaning, one hit. A human steers by talking with the agent, so a name is plain words from `CONTEXT.md` that say what the thing is or does. The agent's answer can then use the code's own names without translating them.
 - Check: to change one behavior, how many files must be opened? More than the code that owns it means the read surface is too large.
 
