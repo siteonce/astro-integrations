@@ -4,7 +4,7 @@ import { z } from 'zod';
 import { createIntl } from './create-intl.ts';
 import { defineIntl, type IntlConfigInput } from './define-intl.ts';
 import type { CollectionEntryLike } from './pairing.ts';
-import { localized, recordedRelationNames, relation } from './relation.ts';
+import { localized, relation } from './relation.ts';
 
 const intlCollections = {
   translated: ['blog', 'authors'],
@@ -335,7 +335,7 @@ describe('getRelated', () => {
     await assert.rejects(intl.getPairedSlugs(), /relation sources\/astro is missing/);
   });
 
-  it('ignores an unbranded { target, id } lookalike', async () => {
+  it('leaves a { target, id } lookalike as plain data', async () => {
     const loaded: string[] = [];
     const intl = createFixture(
       {
@@ -367,27 +367,34 @@ describe('getRelated', () => {
     await intl.getPairedSlugs();
     const count = loaded.length;
     await assert.rejects(
-      () => intl.getRelated('en', { target: 'ghost', id: 'x' }),
-      /collection "ghost" is not a content collection/,
+      () => intl.getRelated('en', { intlRelationTarget: 'ghost', id: 'x' }),
+      /relation points at "ghost", which neither collections\.translated nor collections\.untranslated lists/,
     );
     assert.equal(loaded.length, count);
   });
 
-  it('throws when relation() recorded a collection neither list names', async () => {
-    relation('not-listed');
-    const intl = createFixture({ blog, authors, sources, roles });
-    try {
-      await assert.rejects(
-        intl.getPairedSlugs(),
-        /relation\("not-listed"\) points at a collection neither collections\.translated nor collections\.untranslated lists/,
-      );
-    } finally {
-      const recorded = (globalThis as Record<symbol, Set<string> | undefined>)[
-        Symbol.for('@repo/astro-intl/related-targets')
-      ];
-      recorded?.delete('not-listed');
-    }
-    assert.equal(recordedRelationNames().includes('not-listed'), false);
+  it('fails load when entry data holds an unlisted intlRelationTarget', async () => {
+    const intl = createFixture({
+      blog: [
+        {
+          id: 'hello-en',
+          data: {
+            id: 'hello-world',
+            locale: 'en',
+            slug: 'hello-world',
+            author: authorRel,
+            lookalike: { intlRelationTarget: 'ghost', id: 'nope' },
+          },
+        },
+      ],
+      authors: [authors[0]],
+      sources,
+      roles,
+    });
+    await assert.rejects(
+      intl.getPairedSlugs(),
+      /@repo\/astro-intl: relation points at "ghost", which neither collections\.translated nor collections\.untranslated lists \(blog:hello-en\)\./,
+    );
   });
 });
 
@@ -453,7 +460,7 @@ describe('entry urls', () => {
     const relativeCalls: UrlCall[] = [];
     const intl = entryIntl(relativeCalls);
     assert.equal(
-      await intl.getRelativeEntryUrl('de', { target: 'blog', id: 'hello' }),
+      await intl.getRelativeEntryUrl('de', { intlRelationTarget: 'blog', id: 'hello' }),
       'rel:de:artikel/hallo',
     );
     assert.deepEqual(relativeCalls, [{ locale: 'de', path: 'artikel/hallo' }]);
@@ -486,25 +493,31 @@ describe('entry urls', () => {
   it('returns undefined when the asked locale has no sibling', async () => {
     const relativeCalls: UrlCall[] = [];
     const intl = entryIntl(relativeCalls);
-    assert.equal(await intl.getRelativeEntryUrl('de', { target: 'blog', id: 'only' }), undefined);
+    assert.equal(
+      await intl.getRelativeEntryUrl('de', { intlRelationTarget: 'blog', id: 'only' }),
+      undefined,
+    );
     assert.deepEqual(relativeCalls, []);
   });
 
   it('returns undefined for a record', async () => {
     const relativeCalls: UrlCall[] = [];
     const intl = entryIntl(relativeCalls);
-    assert.equal(await intl.getRelativeEntryUrl('en', { target: 'authors', id: 'ada' }), undefined);
+    assert.equal(
+      await intl.getRelativeEntryUrl('en', { intlRelationTarget: 'authors', id: 'ada' }),
+      undefined,
+    );
     assert.deepEqual(relativeCalls, []);
   });
 
   it('throws when the target is not translated or the entry has no collection', async () => {
     const intl = entryIntl();
     await assert.rejects(
-      () => intl.getRelativeEntryUrl('en', { target: 'sources', id: 'astro' }),
+      () => intl.getRelativeEntryUrl('en', { intlRelationTarget: 'sources', id: 'astro' }),
       /@repo\/astro-intl: collection "sources" is not in collections\.translated\./,
     );
     await assert.rejects(
-      () => intl.getRelativeEntryUrl('en', { target: 'ghost', id: 'x' }),
+      () => intl.getRelativeEntryUrl('en', { intlRelationTarget: 'ghost', id: 'x' }),
       /@repo\/astro-intl: collection "ghost" is not in collections\.translated\./,
     );
     await assert.rejects(
@@ -525,7 +538,10 @@ describe('entry urls', () => {
   it('calls the relative loader with an empty path for the home tail', async () => {
     const relativeCalls: UrlCall[] = [];
     const intl = entryIntl(relativeCalls);
-    assert.equal(await intl.getRelativeEntryUrl('en', { target: 'pages', id: 'home' }), 'rel:en:');
+    assert.equal(
+      await intl.getRelativeEntryUrl('en', { intlRelationTarget: 'pages', id: 'home' }),
+      'rel:en:',
+    );
     assert.deepEqual(relativeCalls, [{ locale: 'en', path: '' }]);
   });
 
@@ -534,7 +550,7 @@ describe('entry urls', () => {
     const absoluteCalls: UrlCall[] = [];
     const intl = entryIntl(relativeCalls, absoluteCalls);
     assert.equal(
-      await intl.getAbsoluteEntryUrl('en', { target: 'blog', id: 'hello' }),
+      await intl.getAbsoluteEntryUrl('en', { intlRelationTarget: 'blog', id: 'hello' }),
       'abs:en:blog/hello',
     );
     assert.deepEqual(absoluteCalls, [{ locale: 'en', path: 'blog/hello' }]);

@@ -1,28 +1,15 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 import { z } from 'zod';
-import {
-  collectRelations,
-  localized,
-  localizedValue,
-  recordedRelationNames,
-  relation,
-} from './relation.ts';
-
-function emptyRecordedRelations(): void {
-  const recorded = (globalThis as Record<symbol, Set<string> | undefined>)[
-    Symbol.for('@repo/astro-intl/related-targets')
-  ];
-  recorded?.clear();
-}
+import { collectRelations, localized, localizedValue, relation } from './relation.ts';
 
 const locales = ['en', 'de'] as const;
 
 describe('relation schema', () => {
-  it('parses a pairing id into { target, id }', () => {
+  it('parses a pairing id into { intlRelationTarget, id }', () => {
     const schema = z.object({ author: relation('authors') });
     assert.deepEqual(schema.parse({ author: 'demo' }), {
-      author: { target: 'authors', id: 'demo' },
+      author: { intlRelationTarget: 'authors', id: 'demo' },
     });
   });
 
@@ -32,24 +19,17 @@ describe('relation schema', () => {
 });
 
 describe('collectRelations', () => {
-  it('finds a relation from the passed names when nothing was recorded', () => {
-    emptyRecordedRelations();
-    assert.deepEqual(recordedRelationNames(), []);
-    assert.deepEqual(collectRelations({ author: { target: 'authors', id: 'ada' } }, ['authors']), [
-      { target: 'authors', id: 'ada' },
-    ]);
-  });
-
-  it('ignores a { target, id } whose target is not in the names', () => {
+  it('collects objects whose keys are exactly intlRelationTarget and id', () => {
     assert.deepEqual(
-      collectRelations(
-        {
-          author: { target: 'authors', id: 'ada' },
-          lookalike: { target: 'ghost', id: 'nope' },
-        },
-        ['authors'],
-      ),
-      [{ target: 'authors', id: 'ada' }],
+      collectRelations({
+        author: { intlRelationTarget: 'authors', id: 'ada' },
+        unlisted: { intlRelationTarget: 'ghost', id: 'nope' },
+        lookalike: { target: 'ghost', id: 'nope' },
+      }),
+      [
+        { intlRelationTarget: 'authors', id: 'ada' },
+        { intlRelationTarget: 'ghost', id: 'nope' },
+      ],
     );
   });
 });

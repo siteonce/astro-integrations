@@ -24,11 +24,6 @@ export function untranslatedNames(collections: CollectionsConfig | undefined): r
   return collections?.untranslated ?? [];
 }
 
-/** Translated and untranslated names. A relation may point at either. */
-export function relationNames(collections: CollectionsConfig | undefined): readonly string[] {
-  return [...translatedNames(collections), ...untranslatedNames(collections)];
-}
-
 /** Field names a translated collection's entries use, defaults applied. */
 export type EntryFields = {
   id: string;

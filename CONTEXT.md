@@ -82,7 +82,7 @@ A snapshot monorepo that is the foundation for every Astro **content site** buil
 
 **record**: An **entry** in a **translated** collection with no public URL. _Avoid_: routed (for this)
 
-**relation**: A pointer from an entry to another collection, authored as an id string. After parse `{ target, id }`, where `target` is the collection name. A **translated** target stores the pairing `id` and resolves in the current locale. An **untranslated** target stores the collection entry id. Targets are `collections.translated` and `collections.untranslated`. _Avoid_: `reference()` (for this helper); treating Astro’s collection file id as the stored pointer on a **translated** target
+**relation**: A pointer from an entry to another collection, authored as an id string. After parse `{ intlRelationTarget, id }`, where `intlRelationTarget` is the collection name. A **translated** target stores the pairing `id` and resolves in the current locale. An **untranslated** target stores the collection entry id. Targets are `collections.translated` and `collections.untranslated`. _Avoid_: `reference()` (for this helper); treating Astro’s collection file id as the stored pointer on a **translated** target
 
 **translated** (collection): A collection paired on `(pairing id, locale)`. Intl loads it, pairs it, and keeps `(id, locale)` and `(locale, path)` unique. A **relation** to it resolves in the current locale. Named on a `{slug}` row, it is routed and its entries need the **slug** field. With no `{slug}` row, its entries are **records**, except an entry a route names. _Avoid_: listed (as this name)
 

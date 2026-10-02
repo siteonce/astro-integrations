@@ -27,13 +27,7 @@ import {
 import type { CollectionEntryLike } from './pairing.ts';
 import { localeUrlPath } from './path.ts';
 import { createIntlQuery, type IntlQuery } from './query.ts';
-import {
-  assertRelations,
-  type Relation,
-  recordedRelationNames,
-  relatedTargetNames,
-  resolveRelation,
-} from './relation.ts';
+import { assertRelations, type Relation, resolveRelation } from './relation.ts';
 import {
   entryPathsFor,
   fallbackPathsFor,
@@ -76,7 +70,6 @@ async function loadNamedCollection(
 export function createIntl(input: IntlConfigInput, options?: { loaders?: IntlLoaders }) {
   const config = parseIntlConfig(input);
   const spec = config.collections;
-  const names = relatedTargetNames(spec);
   const loadersOverride = options?.loaders;
   let loadersPending: Promise<IntlLoaders> | undefined;
   let pending: Promise<IntlQuery> | undefined;
@@ -98,9 +91,9 @@ export function createIntl(input: IntlConfigInput, options?: { loaders?: IntlLoa
 
   /** Pairing id for a relation or a collection entry. Config mistakes throw. */
   function entryIdOf(ref: Relation | CollectionEntryLike): string {
-    if ('target' in ref) {
-      translatedCollection(ref.target);
-      return `${ref.target}/${ref.id}`;
+    if ('intlRelationTarget' in ref) {
+      translatedCollection(ref.intlRelationTarget);
+      return `${ref.intlRelationTarget}/${ref.id}`;
     }
     if (!ref.collection) {
       throw new Error('@repo/astro-intl: entry has no collection.');
@@ -115,13 +108,6 @@ export function createIntl(input: IntlConfigInput, options?: { loaders?: IntlLoa
   }
 
   async function load(): Promise<IntlQuery> {
-    const targets = new Set(names);
-    for (const name of recordedRelationNames()) {
-      if (targets.has(name)) continue;
-      throw new Error(
-        `@repo/astro-intl: relation("${name}") points at a collection neither collections.translated nor collections.untranslated lists.`,
-      );
-    }
     // An override is already a value. Awaiting it would defer the first collection read.
     const pendingLoaders = resolveLoaders();
     const loaders = loadersOverride ?? (await pendingLoaders);

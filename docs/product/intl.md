@@ -135,9 +135,9 @@ A view that reads more data, such as relations or related posts, folds that data
 
 ## Relations
 
-A **relation** is `{ target, id }` after parse, where `target` is the collection name. Both content sources use this pointer. Targets are the **translated** and **untranslated** collections.
+A **relation** is `{ intlRelationTarget, id }` after parse, where `intlRelationTarget` is the collection name. Both content sources use this pointer. Targets are the **translated** and **untranslated** collections.
 
-Intl reads relations through those lists, so an on-demand view needs nothing beyond its `createIntl` binding. A `relation()` pointing at a collection in neither list fails the build.
+Intl reads relations through those lists, so an on-demand view needs nothing beyond its `createIntl` binding. An entry holding a relation whose collection is in neither list fails when intl loads collections: in the build, and per request for an on-demand view.
 
 A **translated** target stores the pairing `id`. Resolve uses the current locale (`getRelated` from the `createIntl` binding). Those entries carry `id` and `locale`.
 
@@ -176,6 +176,7 @@ Fail at startup when:
 - A `fields` key is not in `translated`.
 - A route row names a collection that is not in `translated`.
 - A name in `translated` or `untranslated` is not a content collection.
+- A **relation** points at a collection neither `collections.translated` nor `collections.untranslated` lists.
 - A **relation** pairing `id` is missing, a **translated** target has no sibling in the source locale, or a `localized()` map has a missing or extra locale key.
 
 ## Today

@@ -101,7 +101,7 @@ export function createPosts(locale: string) {
     const links = await Promise.all(
       tags.map(async (tag) => {
         const link = await getRelativeEntryUrl(locale, tag);
-        if (link === undefined) return omit(`${tag.target}/${tag.id}`);
+        if (link === undefined) return omit(`${tag.intlRelationTarget}/${tag.id}`);
         const catalogKey = `taxonomy.blogTags.${tag.id}`;
         const value = t(catalogKey);
         return {
