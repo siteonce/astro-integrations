@@ -22,6 +22,10 @@ A public URL, route, or render mode exists because a config line names it, not b
 
 Hidden plumbing is fine when it eases integration or carries data the customer builds from, and takes no decision away from them. Examples are a build-only route, a generated file, or a hidden folder. The owning file names each one.
 
+## Tests document behavior
+
+The starter shows one setup by example. A package's tests show the rest: each capability and each refusal its product file names, run through the package's public calls. Tests are written before the code, so the record exists before the behavior does. When a product file and a test disagree, one of them is wrong; fix both in the same change.
+
 ## Reading order
 
 | File                             | Agreement                             |

@@ -30,7 +30,7 @@ The read surface is what an agent must read to predict what code does.
 
 - A file holds one job, and its name says which. An agent reads the whole file to find one function; unrelated code in it is spent context.
 - Past about 300 lines, check whether the file holds two jobs. If so, split by job. Do not split a single job only to meet a size.
-- Tests sit next to the module they test, in their own file.
+- A test sits at its seam, in its own file: [`tests.md`](tests.md).
 
 ## Wrong work fails loudly
 

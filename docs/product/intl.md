@@ -2,6 +2,8 @@
 
 How this snapshot builds multilingual **content sites** on Astro’s own i18n. Yardstick for `@repo/astro-intl` and for **starter**. Glossary: `CONTEXT.md` (`slug`, pairing `id`, `section`, **content source**).
 
+What the starter doesn't show is shown in `packages/astro-intl/test/`, one file per section of this page, plus the sitemap from [`publishing.md`](publishing.md#sitemap) ([Tests document behavior](index.md#tests-document-behavior)).
+
 ## Sit on Astro i18n
 
 Sit on Astro i18n. Enhance it.
@@ -193,5 +195,7 @@ The path helpers do not return a `cacheKey` yet.
 The starter keeps `'build'` and has no adapter.
 
 The starter keeps `blog/{page}` beside `blog/{slug}` on purpose. That is the clashing shape. It keeps the check and its workarounds exercised, so they do not rot. It is not the recommended setup for an on-demand site.
+
+Intl's tests still sit beside their modules in `src/` and import internal modules. `packages/astro-intl/test/` does not exist yet.
 
 Some URLs still exist without a config line that names them. A static row compiles to a hidden `[...index]` spread. Fallback routes are injected for every non-default locale without a row naming them. `viewRendering` is treated as `'build'` under `astro dev`.
