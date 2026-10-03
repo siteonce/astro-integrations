@@ -1,10 +1,9 @@
 import { getCollection } from 'astro:content';
 import { getRelativeLocaleUrl } from 'astro:i18n';
 import rss from '@astrojs/rss';
-import { locales } from '@repo/astro-intl/runtime';
 import type { APIRoute } from 'astro';
 import { siteConfig } from '../../site.config.ts';
-import { getAbsoluteEntryUrl } from '../../utils/intl.ts';
+import { getAbsoluteEntryUrl, locales } from '../../utils/intl.ts';
 import { postsNewestFirst } from '../../utils/sorting.ts';
 import { t } from '../../utils/t.ts';
 

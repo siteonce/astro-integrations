@@ -4,7 +4,6 @@
 // and Schema into the head slot and own their landmarks. This file does not
 // compose blocks.
 
-import { Hreflang } from '@repo/astro-intl/components';
 import { BaseLayout } from '@repo/astro-site/components';
 import { cn } from '@repo/astro-site/utils/cn';
 import type { HTMLAttributes } from 'astro/types';
@@ -47,7 +46,9 @@ const { class: bodyClass, 'class:list': bodyClassList, ...bodyRest } = body ?? {
     <Favicon />
     <Analytics />
     <slot name="head" />
-    {alternates && <Hreflang links={alternates} />}
+    {alternates?.map((link) => (
+      <link rel="alternate" hreflang={link.hreflang} href={link.href} />
+    ))}
   </Fragment>
   <header>
     <nav class="measure measure-size-wide mx-auto" aria-label={t('chrome.localeSwitcher')}>

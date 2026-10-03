@@ -2,12 +2,11 @@
   "name": "@repo/astro-intl",
   "version": "0.0.1",
   "private": true,
-  "description": "Astro integration for catalogs, collection pairing, query helpers, sorting helpers, and Hreflang.",
+  "description": "Astro integration for catalogs, collection pairing, query helpers, and sorting helpers.",
   "type": "module",
   "exports": {
     ".": "./src/integration.ts",
     "./runtime": "./src/runtime.ts",
-    "./components": "./src/components.ts",
     "./sorting": "./src/sorting.ts",
     "./package.json": "./package.json"
   },

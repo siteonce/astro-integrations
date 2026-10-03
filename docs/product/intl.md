@@ -6,13 +6,13 @@ How this snapshot builds multilingual **content sites** on Astro’s own i18n. Y
 
 Sit on Astro i18n. Enhance it.
 
-Astro already owns locale prefixing, `getRelativeLocaleUrl`, `Astro.currentLocale`, automatic routing, and content collections. Intl writes locale list and prefix policy into `defineConfig.i18n`. Callers use `astro:i18n` and `astro:content` under those names. Callers also read `locales` and `defaultLocale` through `@repo/astro-intl/runtime`, which reads `astro:config/server`. That module is server-only. The content config cannot import it.
+Astro already owns locale prefixing, `getRelativeLocaleUrl`, `Astro.currentLocale`, automatic routing, and content collections. Intl writes locale list and prefix policy into `defineConfig.i18n`. Callers use `astro:i18n` and `astro:content` under those names. Page code reads `locales` and `defaultLocale` through `src/utils/intl.ts`. That file re-exports them from `@repo/astro-intl/runtime`, which reads `astro:config/server`. Both are server-only. The content config cannot import either.
 
 The enhancement is what Astro does not own: **catalogs** (`t()`) and **pairing** entries across locales. A routed entry carries `id` (the same entry across locales), `locale` (which sibling this is), and a one-segment `slug`. The **section** in front of that segment is per locale and is not a field on the entry. The public tail comes from the route row. Folders, chrome, and the views are the app’s. Intl injects each view at the URLs its row publishes ([Routes](#routes)).
 
 Automatic routing with `prefixDefaultLocale` is enough. It defaults to `false`.
 
-`astro.config.mjs` passes the intl config to `astroIntl(intlConfig)`. Views and utils import intl through `src/utils/intl.ts`, which binds `createIntl(intlConfig)` and re-exports `viewProps` and `Relation`. The layout takes the switcher and the alternates from that file. The 404 and the feed take locale facts from `@repo/astro-intl/runtime`.
+`astro.config.mjs` passes the intl config to `astroIntl(intlConfig)`. Views and utils import intl through `src/utils/intl.ts`, which binds `createIntl(intlConfig)` and re-exports `viewProps`, `Relation`, `localizedValue`, `locales`, and `defaultLocale`. The layout takes the switcher and the alternates from that file.
 
 Intl does not depend on the bundler. It uses no virtual module, Vite plugin, `define`, or alias. Astro’s own virtual modules (`astro:content`, `astro:i18n`, `astro:config/server`) stay allowed. `Locale` comes from `injectTypes`, an Astro integration API.
 

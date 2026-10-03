@@ -33,7 +33,7 @@ describe('importsAstroIntlRuntime', () => {
   it('ignores other specifiers and a bare mention of the module', () => {
     const sources = [
       `import { id, locale } from '@repo/astro-intl';`,
-      `import { locales } from '@repo/astro-intl/components';`,
+      `import { locales } from '@repo/astro-intl/sorting';`,
       `import { locales } from '@repo/astro-intl/runtime/extra';`,
       `import { locales } from '@repo/astro-intl/runtime.ts';`,
       `const spec = '@repo/astro-intl/runtime';`,

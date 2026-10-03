@@ -124,8 +124,6 @@ A snapshot monorepo that is the foundation for every Astro **content site** buil
 
 **`Schema`**: The JSON-LD emitter component (Article, BreadcrumbList, Organization, WebSite).
 
-**`Hreflang`**: Alternate-language `<link rel="alternate">` tags from pairing. Intl export, distinct from **Seo**. The starter’s layout renders it.
-
 **`Analytics`**: The app head component that emits the analytics tag block. App concern, not a package export; the customer edits the file.
 
 **`Favicon`**: The app head component that emits the standard favicon tag block. App concern, not a package export; icon files live in the app’s `public/`.
