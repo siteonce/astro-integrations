@@ -1,7 +1,7 @@
 ---
 // Term. One tags entry and the posts tagged with it.
 // `entryPaths` emits one path per translated term.
-import { type CollectionEntry, render } from 'astro:content';
+import { render } from 'astro:content';
 import { ogImageFor } from '@repo/astro-og-image/utils/og-image-for';
 import { Hero, PostList, Schema, Seo } from '@repo/astro-site/components';
 import type { GetStaticPathsOptions, InferGetStaticPropsType } from 'astro';
@@ -14,7 +14,7 @@ import { postsNewestFirst } from '../../utils/sorting.ts';
 import { useTranslations } from '../../utils/t.ts';
 
 export async function getStaticPaths({ routePattern }: GetStaticPathsOptions) {
-  return entryPaths<CollectionEntry<'tags'>>(routePattern);
+  return entryPaths(routePattern, 'tags');
 }
 
 type Props = InferGetStaticPropsType<typeof getStaticPaths>;

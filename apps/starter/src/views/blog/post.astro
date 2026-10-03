@@ -1,7 +1,7 @@
 ---
 // Post. One entry in the posts collection: the article, its byline, and related posts.
 // `entryPaths` emits one path per translated entry.
-import { type CollectionEntry, render } from 'astro:content';
+import { render } from 'astro:content';
 import { ogImageFor } from '@repo/astro-og-image/utils/og-image-for';
 import { Article, RelatedPosts, Schema, Seo } from '@repo/astro-site/components';
 import { getRelatedContent } from '@repo/astro-site/utils/related-content';
@@ -21,7 +21,7 @@ import { postsNewestFirst } from '../../utils/sorting.ts';
 import { useTranslations } from '../../utils/t.ts';
 
 export async function getStaticPaths({ routePattern }: GetStaticPathsOptions) {
-  return entryPaths<CollectionEntry<'posts'>>(routePattern);
+  return entryPaths(routePattern, 'posts');
 }
 
 type Props = InferGetStaticPropsType<typeof getStaticPaths>;

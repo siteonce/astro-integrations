@@ -5,6 +5,8 @@
  * pairing; two factories do not share state.
  * `options.loaders` replaces the content and locale-url reads. Tests pass them.
  * Omitted, the first load uses `astro:content` and `astro:i18n`.
+ * `entryPaths` and `listingPaths` take one translated collection, or a list of them.
+ * The route row must name one of those. `staticPaths` and `fallbackPaths` take none.
  * `getRelativeEntryUrl` and `getAbsoluteEntryUrl` return undefined when that
  * entry publishes no URL in the asked locale. `localeSwitcherLinks` takes the
  * current public path. The current locale, and a locale with no sibling, have no href.
@@ -46,6 +48,14 @@ export type IntlLoaders = {
   getRelativeLocaleUrl: (locale: string, path?: string) => string;
 };
 
+type CreateIntlInput<Translated extends string> = Omit<IntlConfigInput, 'collections'> & {
+  collections?: {
+    translated?: Translated[];
+    untranslated?: NonNullable<IntlConfigInput['collections']>['untranslated'];
+    fields?: NonNullable<IntlConfigInput['collections']>['fields'];
+  };
+};
+
 async function defaultLoaders(): Promise<IntlLoaders> {
   const { getCollection } = await import('astro:content');
   const { getAbsoluteLocaleUrl, getRelativeLocaleUrl } = await import('astro:i18n');
@@ -68,7 +78,10 @@ async function loadNamedCollection(
   }
 }
 
-export function createIntl(input: IntlConfigInput, options?: { loaders?: IntlLoaders }) {
+export function createIntl<const Translated extends string = never>(
+  input: CreateIntlInput<Translated>,
+  options?: { loaders?: IntlLoaders },
+) {
   const config = parseIntlConfig(input);
   const spec = config.collections;
   const loadersOverride = options?.loaders;
@@ -182,45 +195,81 @@ export function createIntl(input: IntlConfigInput, options?: { loaders?: IntlLoa
     return (await loadQuery()).hreflangLinks(locale, path);
   }
 
-  /** Leaf paths for the injected `{slug}` route at `routePattern`. */
-  async function entryPaths<T>(routePattern: string) {
+  /**
+   * Leaf paths for the injected `{slug}` route at `routePattern`.
+   * `collection` is one translated collection, or a list when one view serves
+   * several rows. The route row must name one of them.
+   */
+  async function entryPaths<C extends Translated>(
+    routePattern: string,
+    collection: C | readonly C[],
+  ) {
     const query = await loadQuery();
     const route = routeFor(compiledRoutes(), routePattern, 'entry');
-    return entryPathsFor<T>(config, query, route);
+    return entryPathsFor(config, query, route, collection);
   }
 
   /**
    * Paginated paths for the injected listing route at `routePattern`.
+   * `collection` is one translated collection, or a list when one view serves
+   * several rows. The route row must name one of them.
    * `sort` compares two entries. `order` reorders the whole list and must keep every entry.
    * One is required. Both receive the route's locale.
    */
-  async function listingPaths<T>(
+  async function listingPaths<C extends Translated>(
     routePattern: string,
+    collection: C | readonly C[],
     paginate: PaginateFunction,
-    ordering: ListingOrder<T>,
+    ordering: ListingOrder<EntryOf<C>>,
   ) {
     const query = await loadQuery();
     const route = routeFor(compiledRoutes(), routePattern, 'listing');
     const { getRelativeLocaleUrl } = await resolveLoaders();
-    return listingPathsFor<T>(config, query, route, paginate, ordering, getRelativeLocaleUrl);
+    return listingPathsFor(
+      config,
+      query,
+      route,
+      collection,
+      paginate,
+      ordering,
+      getRelativeLocaleUrl,
+    );
   }
 
   /**
    * `getStaticPaths` rows for the injected static route at `routePattern`.
    * `[]` when the locale does not publish it.
+   * `entry` is a translated collection's entry, or undefined when the tail names none.
    */
-  async function staticPaths<T>(routePattern: string) {
+  async function staticPaths(routePattern: string) {
     const query = await loadQuery();
     const route = routeFor(compiledRoutes(), routePattern, 'static');
-    return staticPathsFor<T>(config, query, route);
+    return staticPathsFor(config, query, route).map((row) => ({
+      params: row.params,
+      props: {
+        ...row.props,
+        // Pairing only holds translated entries.
+        entry: row.props.entry as EntryOf<Translated> | undefined,
+      },
+    }));
   }
 
-  /** Missing-translation paths for the injected route at `routePattern`. */
-  async function fallbackPaths<T>(routePattern: string) {
+  /**
+   * Missing-translation paths for the injected route at `routePattern`.
+   * `entry` is the default-locale entry from that row's translated collection.
+   */
+  async function fallbackPaths(routePattern: string) {
     const query = await loadQuery();
     const route = routeFor(compiledRoutes(), routePattern, 'fallback');
     const { getRelativeLocaleUrl } = await resolveLoaders();
-    return fallbackPathsFor<T>(config, query, route, getRelativeLocaleUrl);
+    return fallbackPathsFor(config, query, route, getRelativeLocaleUrl).map((row) => ({
+      params: row.params,
+      props: {
+        ...row.props,
+        // Pairing only holds translated entries, and each fallback path has one.
+        entry: row.props.entry as EntryOf<Translated>,
+      },
+    }));
   }
 
   async function publishedPath(

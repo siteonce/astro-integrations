@@ -601,3 +601,25 @@ describe('localeSwitcherLinks', () => {
     ]);
   });
 });
+
+describe('path helper collections', () => {
+  it('types collection names from collections.translated', () => {
+    const intl = createIntl(
+      defineIntl({
+        locales: ['en'],
+        defaultLocale: 'en',
+        routes: [{ slug: { en: 'blog/{slug}' }, view: 'post', collection: 'posts' }],
+        collections: { translated: ['posts', 'tags'] },
+      }),
+    );
+    const accept = () => intl.entryPaths('/blog/[slug]', 'posts');
+    const listed = () => intl.entryPaths('/blog/[slug]', ['posts', 'tags']);
+    const rejected = () => {
+      // @ts-expect-error collection name is not in collections.translated
+      return intl.entryPaths('/blog/[slug]', 'postz');
+    };
+    assert.equal(typeof accept, 'function');
+    assert.equal(typeof listed, 'function');
+    assert.equal(typeof rejected, 'function');
+  });
+});

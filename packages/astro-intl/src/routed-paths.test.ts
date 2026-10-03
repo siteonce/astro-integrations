@@ -125,11 +125,7 @@ describe('routeFor', () => {
 describe('entryPathsFor', () => {
   it('returns that locale’s leaves and leaves out the fixed entry', () => {
     const query = queryFor();
-    const en = entryPathsFor<CollectionEntryLike>(
-      config,
-      query,
-      compiledRoute('/en/blog/[slug]', 'entry'),
-    );
+    const en = entryPathsFor(config, query, compiledRoute('/en/blog/[slug]', 'entry'), 'blog');
     assert.deepEqual(
       en.map((item) => item.props.path),
       ['blog/alpha', 'blog/solo', 'blog/mehr'],
@@ -138,11 +134,58 @@ describe('entryPathsFor', () => {
       en.map((item) => item.params.slug),
       ['alpha', 'solo', 'mehr'],
     );
-    const de = entryPathsFor(config, query, compiledRoute('/de/artikel/[slug]', 'entry'));
+    const de = entryPathsFor(config, query, compiledRoute('/de/artikel/[slug]', 'entry'), 'blog');
     assert.deepEqual(
       de.map((item) => item.props.path),
       ['artikel/anders', 'artikel/mehr'],
     );
+  });
+
+  it('throws when the name is not the row collection', () => {
+    assert.throws(
+      () => entryPathsFor(config, queryFor(), compiledRoute('/en/blog/[slug]', 'entry'), 'tags'),
+      {
+        message:
+          '@repo/astro-intl: entryPaths for "/en/blog/[slug]" in view "post" got "tags", but that route row names collection "blog". Pass "blog" (or add it to the list).',
+      },
+    );
+  });
+
+  it('accepts a list that contains the row collection', () => {
+    const query = queryFor();
+    const route = compiledRoute('/en/blog/[slug]', 'entry');
+    assert.deepEqual(
+      entryPathsFor(config, query, route, ['tags', 'blog']),
+      entryPathsFor(config, query, route, 'blog'),
+    );
+  });
+
+  it('throws when a list omits the row collection', () => {
+    assert.throws(
+      () =>
+        entryPathsFor(config, queryFor(), compiledRoute('/en/blog/[slug]', 'entry'), [
+          'tags',
+          'notes',
+        ]),
+      {
+        message:
+          '@repo/astro-intl: entryPaths for "/en/blog/[slug]" in view "post" got "tags", "notes", but that route row names collection "blog". Pass "blog" (or add it to the list).',
+      },
+    );
+  });
+
+  it('throws when the route row names no collection', () => {
+    const bare: IntlConfig = {
+      locales: ['en'],
+      defaultLocale: 'en',
+      routing: { prefixDefaultLocale: false },
+      routes: [{ slug: { en: 'blog/{slug}' }, view: 'post' }],
+    };
+    const route = routeFor(compileRoutes(bare), '/blog/[slug]', 'entry');
+    assert.throws(() => entryPathsFor(bare, queryFor(), route, 'blog'), {
+      message:
+        '@repo/astro-intl: entryPaths for "/blog/[slug]" in view "post" got "blog", but that route row names no collection. Name a collection on that route row.',
+    });
   });
 });
 
@@ -198,8 +241,18 @@ describe('renamed collection fields', () => {
       getAbsoluteLocaleUrl: () => '',
     });
     const compiled = compileRoutes(renamed);
-    const en = entryPathsFor(renamed, query, routeFor(compiled, '/en/blog/[slug]', 'entry'));
-    const de = entryPathsFor(renamed, query, routeFor(compiled, '/de/artikel/[slug]', 'entry'));
+    const en = entryPathsFor(
+      renamed,
+      query,
+      routeFor(compiled, '/en/blog/[slug]', 'entry'),
+      'posts',
+    );
+    const de = entryPathsFor(
+      renamed,
+      query,
+      routeFor(compiled, '/de/artikel/[slug]', 'entry'),
+      'posts',
+    );
     assert.deepEqual(
       en.map((item) => item.params.slug),
       ['alpha', 'beta'],
@@ -215,6 +268,7 @@ describe('renamed collection fields', () => {
       renamed,
       query,
       routeFor(compiled, '/en/blog/[...page]', 'listing'),
+      'posts',
       requestPaginate,
       keepOrder,
       markedRelativeUrl,
@@ -223,6 +277,7 @@ describe('renamed collection fields', () => {
       renamed,
       query,
       routeFor(compiled, '/en/blog/[page]', 'listing'),
+      'posts',
       requestPaginate,
       keepOrder,
       markedRelativeUrl,
@@ -231,6 +286,7 @@ describe('renamed collection fields', () => {
       renamed,
       query,
       routeFor(compiled, '/de/artikel/[...page]', 'listing'),
+      'posts',
       requestPaginate,
       keepOrder,
       markedRelativeUrl,
@@ -249,7 +305,7 @@ describe('listingPathsFor', () => {
     const spread = await astroPaginate('...page');
     const named = await astroPaginate('page');
     const list = (route: CompiledRoute, paginate: PaginateFunction) =>
-      listingPathsFor(config, query, route, paginate, keepOrder, markedRelativeUrl);
+      listingPathsFor(config, query, route, 'blog', paginate, keepOrder, markedRelativeUrl);
     for (const paginate of [spread, requestPaginate]) {
       const pages = list(first, paginate);
       assert.deepEqual(
@@ -301,6 +357,7 @@ describe('listingPathsFor', () => {
       section,
       query,
       routeFor(compiled, '/en/blog/[...page]', 'listing'),
+      'blog',
       paginateFn,
       keepOrder,
       markedRelativeUrl,
@@ -309,6 +366,7 @@ describe('listingPathsFor', () => {
       section,
       query,
       routeFor(compiled, '/en/blog/page/[page]', 'listing'),
+      'blog',
       paginateFn,
       keepOrder,
       markedRelativeUrl,
@@ -354,6 +412,7 @@ describe('listingPathsFor', () => {
       home,
       query,
       routeFor(compiled, '/[...page]', 'listing'),
+      'posts',
       paginateFn,
       keepOrder,
       markedRelativeUrl,
@@ -362,6 +421,7 @@ describe('listingPathsFor', () => {
       home,
       query,
       routeFor(compiled, '/[page]', 'listing'),
+      'posts',
       paginateFn,
       keepOrder,
       markedRelativeUrl,
@@ -404,6 +464,7 @@ describe('listingPathsFor', () => {
       archive,
       query,
       routeFor(compileRoutes(archive), '/en/blog/[...page]', 'listing'),
+      'blog',
       paginateFn,
       keepOrder,
       markedRelativeUrl,
@@ -436,6 +497,7 @@ describe('listingPathsFor', () => {
           config,
           queryFor(),
           compiledRoute('/en/blog/[page]', 'listing'),
+          'blog',
           extra,
           keepOrder,
           markedRelativeUrl,
@@ -474,6 +536,7 @@ describe('listingPathsFor', () => {
       section,
       query,
       routeFor(compiled, '/en/blog/[...page]', 'listing'),
+      'blog',
       requestPaginate,
       descend,
       markedRelativeUrl,
@@ -482,6 +545,7 @@ describe('listingPathsFor', () => {
       section,
       query,
       routeFor(compiled, '/en/blog/[page]', 'listing'),
+      'blog',
       requestPaginate,
       descend,
       markedRelativeUrl,
@@ -496,6 +560,7 @@ describe('listingPathsFor', () => {
       config,
       queryFor(),
       compiledRoute('/de/artikel/[...page]', 'listing'),
+      'blog',
       paginateFn,
       {
         order: (entries, context) => {
@@ -514,6 +579,7 @@ describe('listingPathsFor', () => {
       config,
       queryFor(),
       compiledRoute('/de/artikel/[...page]', 'listing'),
+      'blog',
       paginateFn,
       {
         sort: (context) => {
@@ -533,6 +599,7 @@ describe('listingPathsFor', () => {
           config,
           queryFor(),
           compiledRoute('/en/blog/[...page]', 'listing'),
+          'blog',
           paginateFn,
           { order: (entries) => entries.slice(1) },
           markedRelativeUrl,
@@ -548,6 +615,7 @@ describe('listingPathsFor', () => {
           config,
           queryFor(),
           compiledRoute('/en/blog/[...page]', 'listing'),
+          'blog',
           paginateFn,
           {
             order: (entries) => {
@@ -569,6 +637,7 @@ describe('listingPathsFor', () => {
           config,
           queryFor(),
           compiledRoute('/en/blog/[...page]', 'listing'),
+          'blog',
           paginateFn,
           {} as ListingOrder<CollectionEntryLike>,
           markedRelativeUrl,
@@ -584,6 +653,7 @@ describe('listingPathsFor', () => {
           config,
           queryFor(),
           compiledRoute('/en/blog/[...page]', 'listing'),
+          'blog',
           paginateFn,
           {
             sort: () => () => 0,
@@ -592,6 +662,71 @@ describe('listingPathsFor', () => {
           markedRelativeUrl,
         ),
       /listing "blog" in "en" sets both sort and order/,
+    );
+  });
+
+  it('throws when the name is not the row collection', () => {
+    assert.throws(
+      () =>
+        listingPathsFor(
+          config,
+          queryFor(),
+          compiledRoute('/en/blog/[...page]', 'listing'),
+          'tags',
+          paginateFn,
+          keepOrder,
+          markedRelativeUrl,
+        ),
+      {
+        message:
+          '@repo/astro-intl: listingPaths for "/en/blog/[...page]" in view "index" got "tags", but that route row names collection "blog". Pass "blog" (or add it to the list).',
+      },
+    );
+  });
+
+  it('accepts a list that contains the row collection', () => {
+    const query = queryFor();
+    const route = compiledRoute('/en/blog/[...page]', 'listing');
+    const listed = listingPathsFor(
+      config,
+      query,
+      route,
+      ['notes', 'blog'],
+      paginateFn,
+      keepOrder,
+      markedRelativeUrl,
+    );
+    const single = listingPathsFor(
+      config,
+      query,
+      route,
+      'blog',
+      paginateFn,
+      keepOrder,
+      markedRelativeUrl,
+    );
+    assert.deepEqual(
+      listed.map((item) => item.props.path),
+      single.map((item) => item.props.path),
+    );
+  });
+
+  it('throws when a list omits the row collection', () => {
+    assert.throws(
+      () =>
+        listingPathsFor(
+          config,
+          queryFor(),
+          compiledRoute('/en/blog/[...page]', 'listing'),
+          ['tags', 'notes'],
+          paginateFn,
+          keepOrder,
+          markedRelativeUrl,
+        ),
+      {
+        message:
+          '@repo/astro-intl: listingPaths for "/en/blog/[...page]" in view "index" got "tags", "notes", but that route row names collection "blog". Pass "blog" (or add it to the list).',
+      },
     );
   });
 });
@@ -607,7 +742,7 @@ describe('staticPathsFor', () => {
   });
 
   it('returns the written tail with no entry', () => {
-    const paths = staticPathsFor<CollectionEntryLike>(
+    const paths = staticPathsFor(
       config,
       queryFor(),
       compiledRoute('/en/about/[...index]', 'static'),
@@ -628,7 +763,7 @@ describe('staticPathsFor', () => {
 
 describe('fallbackPathsFor', () => {
   it('points an untranslated leaf at the default-locale url and skips a published slug', () => {
-    const paths = fallbackPathsFor<CollectionEntryLike>(
+    const paths = fallbackPathsFor(
       config,
       queryFor(),
       compiledRoute('/de/artikel/[slug]', 'fallback'),

@@ -2,7 +2,6 @@
 // Listing. One chunk of that locale's published posts, newest first. This view
 // sets that order. The HTML title comes from the catalog. `listingPaths` emits
 // each page and its path.
-import type { CollectionEntry } from 'astro:content';
 import { ogImageFor } from '@repo/astro-og-image/utils/og-image-for';
 import { Hero, PostList, Schema, Seo } from '@repo/astro-site/components';
 import type { GetStaticPathsOptions, InferGetStaticPropsType } from 'astro';
@@ -15,7 +14,7 @@ import { postsNewestFirst } from '../../utils/sorting.ts';
 import { useTranslations } from '../../utils/t.ts';
 
 export async function getStaticPaths({ paginate, routePattern }: GetStaticPathsOptions) {
-  return listingPaths<CollectionEntry<'posts'>>(routePattern, paginate, {
+  return listingPaths(routePattern, 'posts', paginate, {
     sort: () => postsNewestFirst,
   });
 }

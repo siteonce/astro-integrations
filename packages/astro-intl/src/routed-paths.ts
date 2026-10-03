@@ -5,7 +5,8 @@
 
 import type { PaginateFunction } from 'astro';
 import { fieldsFor, type IntlConfig } from './define-intl.ts';
-import { listingSelection, localePathKey } from './pairing.ts';
+import type { EntryOf } from './intl-register.ts';
+import { type CollectionEntryLike, listingSelection, localePathKey } from './pairing.ts';
 import {
   compilePath,
   listingPagePath,
@@ -52,23 +53,54 @@ export function routeFor(
   return found;
 }
 
-/** Leaf documents for one `{slug}` route. A fixed entry's written tail is left out. */
-export function entryPathsFor<T>(
+/**
+ * The collection the route row names, when that name is one of `collection`.
+ * A missing collection fails too: a listing row can name none.
+ */
+function requireRouteCollection(
+  helper: 'entryPaths' | 'listingPaths',
+  route: CompiledRoute,
+  row: RouteRow,
+  collection: string | readonly string[],
+): string {
+  const named = row.collection;
+  const names = typeof collection === 'string' ? [collection] : collection;
+  if (named !== undefined && names.includes(named)) return named;
+  const got = names.length === 0 ? 'nothing' : names.map((name) => `"${name}"`).join(', ');
+  const where = `${helper} for "${route.pattern}" in view "${route.view}" got ${got}`;
+  if (named === undefined) {
+    throw new Error(
+      `@repo/astro-intl: ${where}, but that route row names no collection. Name a collection on that route row.`,
+    );
+  }
+  throw new Error(
+    `@repo/astro-intl: ${where}, but that route row names collection "${named}". Pass "${named}" (or add it to the list).`,
+  );
+}
+
+/**
+ * Leaf documents for one `{slug}` route. A fixed entry's written tail is left out.
+ * Throws when the route row's collection is not one of `collection`.
+ */
+export function entryPathsFor<C extends string>(
   config: IntlConfig,
   query: IntlQuery,
   route: CompiledRoute,
+  collection: C | readonly C[],
 ): {
   params: { slug: string };
-  props: { locale: string; route: RouteRow; path: string; entry: T };
+  props: { locale: string; route: RouteRow; path: string; entry: EntryOf<C> };
 }[] {
   const row = routeRow(config, route);
+  requireRouteCollection('entryPaths', route, row, collection);
   return entryDocuments(query, row, route.locale).map((doc) => ({
     params: { slug: doc.slug },
     props: {
       locale: route.locale,
       route: row,
       path: doc.path,
-      entry: doc.entry as T,
+      // The check above backs this cast: the row's collection is one of the names passed.
+      entry: doc.entry as EntryOf<C>,
     },
   }));
 }
@@ -80,16 +112,19 @@ export function entryPathsFor<T>(
  * `path` is added per page. `page.url` comes from `relativeUrl`, not from `paginate`.
  * Page 1's `next` uses `pagination.slug`. Page 2's `prev` uses the row's `slug`.
  * `paginate` shares one props object across pages.
+ * Throws when the route row's collection is not one of `collection`.
  */
-export function listingPathsFor<T>(
+export function listingPathsFor<C extends string>(
   config: IntlConfig,
   query: IntlQuery,
   route: CompiledRoute,
+  collection: C | readonly C[],
   paginate: PaginateFunction,
-  ordering: ListingOrder<T>,
+  ordering: ListingOrder<EntryOf<C>>,
   relativeUrl: RelativeUrl,
 ) {
   const row = routeRow(config, route);
+  const named = requireRouteCollection('listingPaths', route, row, collection);
   const pagination = row.pagination;
   const span = listingSpan(route.pattern);
   const written = normalizeSlug(row.slug[route.locale] ?? '');
@@ -99,13 +134,14 @@ export function listingPathsFor<T>(
     throw new Error(`@repo/astro-intl: listing "${label}" in "${route.locale}" has no pagination.`);
   }
   const pathFor = (page: number) => listingPagePath(written, pageTail, page);
-  const localeField = fieldsFor(config.collections, row.collection ?? '').locale;
+  const localeField = fieldsFor(config.collections, named).locale;
+  // The check above backs this cast: `named` is one of the collections passed.
   const selected = listingSelection(
     query.collections,
-    row.collection ?? '',
+    named,
     route.locale,
     localeField,
-  ) as readonly T[];
+  ) as readonly EntryOf<C>[];
   const entries = listingOrder(selected, ordering, route.locale, label);
   const pages = paginate(entries, {
     pageSize: pagination.pageSize,
@@ -214,13 +250,13 @@ function listingSpan(pattern: string): 'first' | 'rest' {
 /**
  * The one path for this static route, or none when that tail is unpublished.
  */
-export function staticPathsFor<T>(
+export function staticPathsFor(
   config: IntlConfig,
   query: IntlQuery,
   route: CompiledRoute,
 ): {
   params: { index: undefined };
-  props: { locale: string; route: RouteRow; path: string; entry: T | undefined };
+  props: { locale: string; route: RouteRow; path: string; entry: CollectionEntryLike | undefined };
 }[] {
   const row = routeRow(config, route);
   const path = normalizeSlug(row.slug[route.locale] ?? '');
@@ -234,7 +270,7 @@ export function staticPathsFor<T>(
         locale: route.locale,
         route: row,
         path,
-        entry: doc ? (doc.entry as T) : undefined,
+        entry: doc?.entry,
       },
     },
   ];
@@ -244,14 +280,20 @@ export function staticPathsFor<T>(
  * Default-locale leaves this locale does not publish.
  * `path` is the tail the request asked for. `target` is the default-locale URL.
  */
-export function fallbackPathsFor<T>(
+export function fallbackPathsFor(
   config: IntlConfig,
   query: IntlQuery,
   route: CompiledRoute,
   relativeUrl: RelativeUrl,
 ): {
   params: { slug: string };
-  props: { locale: string; route: RouteRow; path: string; target: string; entry: T };
+  props: {
+    locale: string;
+    route: RouteRow;
+    path: string;
+    target: string;
+    entry: CollectionEntryLike | undefined;
+  };
 }[] {
   const row = routeRow(config, route);
   const section = patternSection(row.slug[route.locale] ?? '');
@@ -270,7 +312,7 @@ export function fallbackPathsFor<T>(
         route: row,
         path,
         target: relativeUrl(config.defaultLocale, localeUrlPath(doc.path)),
-        entry: doc.entry as T,
+        entry: doc.entry,
       },
     });
   }
