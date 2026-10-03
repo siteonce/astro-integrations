@@ -12,7 +12,7 @@ The enhancement is what Astro does not own: **catalogs** (`t()`) and **pairing**
 
 Automatic routing with `prefixDefaultLocale` is enough. It defaults to `false`.
 
-`astro.config.mjs` passes the intl config to `astroIntl(intlConfig)`. Views and utils import intl through `src/utils/intl.ts`, which binds `createIntl(intlConfig)` and re-exports `viewProps`, `Relation`, `localizedValue`, `locales`, and `defaultLocale`. The layout takes the switcher and the alternates from that file.
+`astro.config.mjs` passes the intl config to `astroIntl(intlConfig)`. Views and utils import intl through `src/utils/intl.ts`, which binds `createIntl(intlConfig)` and re-exports `viewProps`, `Relation`, `localizedValue`, `Locale`, `locales`, and `defaultLocale`. The layout takes the switcher and the alternates from that file.
 
 Intl does not depend on the bundler. It uses no virtual module, Vite plugin, `define`, or alias. Astro’s own virtual modules (`astro:content`, `astro:i18n`, `astro:config/server`) stay allowed. `Locale` comes from `injectTypes`, an Astro integration API.
 
@@ -145,7 +145,7 @@ A **translated** target stores the pairing `id`. `getRelated(locale, relation)` 
 
 An **untranslated** target stores the collection entry id and ignores the locale passed to `getRelated`. Locale-free tables and inline locale maps are **untranslated**. A file collection sets that id from the filename. A CMS sets it from its document id.
 
-`getRelated` returns the entry unchanged, as `getCollection` would. The return type is the target collection's `CollectionEntry` through the injected types, so a call site passes no type argument. A `localized()` field stays a locale map. The caller reads it with `localizedValue(field, locale)` from `@repo/astro-intl`. `localizedValue` throws when that locale is missing.
+`getRelated` returns the entry unchanged, as `getCollection` would. The return type is the target collection's `CollectionEntry` through the injected types, so a call site passes no type argument. A `localized()` field stays a locale map. The caller reads it with `localizedValue(field, locale)` from `@repo/astro-intl`. `localizedValue` takes a configured locale and throws when that locale is missing.
 
 Documents are paired entries (`id` + `locale` on each sibling). Inline locale maps are a lookup-target shape.
 

@@ -5,7 +5,7 @@
 
 import type { PaginateFunction } from 'astro';
 import { fieldsFor, type IntlConfig } from './define-intl.ts';
-import type { EntryOf } from './intl-register.ts';
+import type { EntryOf, Locale } from './intl-register.ts';
 import { type CollectionEntryLike, listingSelection, localePathKey } from './pairing.ts';
 import {
   compilePath,
@@ -23,7 +23,7 @@ type RelativeUrl = (locale: string, path?: string) => string;
 type RouteRow = NonNullable<IntlConfig['routes']>[number];
 
 /** Locale handed to `sort` and `order`. */
-export type ListingContext = { locale: string };
+export type ListingContext = { locale: Locale };
 
 /**
  * `sort` builds a comparator. `order` reorders the whole list and must keep every entry.
@@ -89,7 +89,7 @@ export function entryPathsFor<C extends string>(
   collection: C | readonly C[],
 ): {
   params: { slug: string };
-  props: { locale: string; route: RouteRow; path: string; entry: EntryOf<C> };
+  props: { locale: Locale; route: RouteRow; path: string; entry: EntryOf<C> };
 }[] {
   const row = routeRow(config, route);
   requireRouteCollection('entryPaths', route, row, collection);
@@ -198,7 +198,7 @@ export function listingPathsFor<C extends string>(
 function listingOrder<T>(
   selected: readonly T[],
   ordering: ListingOrder<T>,
-  locale: string,
+  locale: Locale,
   label: string,
 ): readonly T[] {
   const sort = ordering.sort;
@@ -256,7 +256,7 @@ export function staticPathsFor(
   route: CompiledRoute,
 ): {
   params: { index: undefined };
-  props: { locale: string; route: RouteRow; path: string; entry: CollectionEntryLike | undefined };
+  props: { locale: Locale; route: RouteRow; path: string; entry: CollectionEntryLike | undefined };
 }[] {
   const row = routeRow(config, route);
   const path = normalizeSlug(row.slug[route.locale] ?? '');
@@ -288,7 +288,7 @@ export function fallbackPathsFor(
 ): {
   params: { slug: string };
   props: {
-    locale: string;
+    locale: Locale;
     route: RouteRow;
     path: string;
     target: string;

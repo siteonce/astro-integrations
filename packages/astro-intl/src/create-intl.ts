@@ -22,7 +22,7 @@ import {
   untranslatedNames,
 } from './define-intl.ts';
 import { resolveEntryId } from './entry-id.ts';
-import type { EntryOf } from './intl-register.ts';
+import type { EntryOf, Locale } from './intl-register.ts';
 import {
   type LocaleSwitcherLink,
   localeSwitcherLinks as switcherLinks,
@@ -157,7 +157,7 @@ export function createIntl<const Translated extends string = never>(
   }
 
   async function getRelated<C extends string>(
-    locale: string,
+    locale: Locale,
     rel: Relation<C>,
   ): Promise<EntryOf<C>> {
     const query = await loadQuery();
@@ -170,7 +170,7 @@ export function createIntl<const Translated extends string = never>(
     }) as EntryOf<C>;
   }
 
-  async function getContentByPath(locale: string, path: string) {
+  async function getContentByPath(locale: Locale, path: string) {
     return (await loadQuery()).getContentByPath(locale, path);
   }
 
@@ -178,7 +178,7 @@ export function createIntl<const Translated extends string = never>(
     return (await loadQuery()).getAlternatePaths(entryId);
   }
 
-  async function getAlternatePathsForPath(locale: string, path: string) {
+  async function getAlternatePathsForPath(locale: Locale, path: string) {
     return (await loadQuery()).getAlternatePathsForPath(locale, path);
   }
 
@@ -191,7 +191,7 @@ export function createIntl<const Translated extends string = never>(
   }
 
   /** Alternate links for one public path, plus `x-default` when the default locale has a tail. */
-  async function hreflangLinks(locale: string, path: string) {
+  async function hreflangLinks(locale: Locale, path: string) {
     return (await loadQuery()).hreflangLinks(locale, path);
   }
 
@@ -273,7 +273,7 @@ export function createIntl<const Translated extends string = never>(
   }
 
   async function publishedPath(
-    locale: string,
+    locale: Locale,
     ref: Relation | CollectionEntryLike,
   ): Promise<string | undefined> {
     const entryId = entryIdOf(ref);
@@ -282,7 +282,7 @@ export function createIntl<const Translated extends string = never>(
   }
 
   async function getRelativeEntryUrl(
-    locale: string,
+    locale: Locale,
     ref: Relation | CollectionEntryLike,
   ): Promise<string | undefined> {
     const path = await publishedPath(locale, ref);
@@ -292,7 +292,7 @@ export function createIntl<const Translated extends string = never>(
   }
 
   async function getAbsoluteEntryUrl(
-    locale: string,
+    locale: Locale,
     ref: Relation | CollectionEntryLike,
   ): Promise<string | undefined> {
     const path = await publishedPath(locale, ref);
@@ -301,7 +301,7 @@ export function createIntl<const Translated extends string = never>(
     return getAbsoluteLocaleUrl(locale, localeUrlPath(path));
   }
 
-  async function localeSwitcherLinks(locale: string, path: string): Promise<LocaleSwitcherLink[]> {
+  async function localeSwitcherLinks(locale: Locale, path: string): Promise<LocaleSwitcherLink[]> {
     const query = await loadQuery();
     const { getRelativeLocaleUrl } = await resolveLoaders();
     return switcherLinks(

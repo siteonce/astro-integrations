@@ -3,7 +3,7 @@ import { getRelativeLocaleUrl } from 'astro:i18n';
 import rss from '@astrojs/rss';
 import type { APIRoute } from 'astro';
 import { siteConfig } from '../../site.config.ts';
-import { getAbsoluteEntryUrl, locales } from '../../utils/intl.ts';
+import { getAbsoluteEntryUrl, type Locale, locales } from '../../utils/intl.ts';
 import { postsNewestFirst } from '../../utils/sorting.ts';
 import { t } from '../../utils/t.ts';
 
@@ -20,7 +20,7 @@ export function getStaticPaths() {
   });
 }
 
-export const GET: APIRoute<{ locale: string }> = async (context) => {
+export const GET: APIRoute<{ locale: Locale }> = async (context) => {
   const locale = context.props.locale;
 
   const posts = (await getCollection('posts'))

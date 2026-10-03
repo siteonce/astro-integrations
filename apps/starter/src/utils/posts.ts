@@ -1,6 +1,6 @@
 import { type CollectionEntry, getCollection } from 'astro:content';
 import type { ImageMetadata } from 'astro';
-import { getRelativeEntryUrl, type Relation } from './intl.ts';
+import { getRelativeEntryUrl, type Locale, type Relation } from './intl.ts';
 import { useTranslations } from './t.ts';
 
 type Post = CollectionEntry<'posts'>;
@@ -73,7 +73,7 @@ function parentDir(filePath: string | undefined): string | undefined {
 
 // Dates, feat images, tag links, and list items for one locale's posts.
 // A term, related post, or list item with no URL in this locale is omitted.
-export function createPosts(locale: string) {
+export function createPosts(locale: Locale) {
   const t = useTranslations(locale);
   const dateFmt = new Intl.DateTimeFormat(locale, { dateStyle: 'long' });
 

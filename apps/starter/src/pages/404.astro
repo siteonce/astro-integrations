@@ -6,10 +6,10 @@ import { getRelativeLocaleUrl } from 'astro:i18n';
 import { NotFound, Seo } from '@repo/astro-site/components';
 import SiteLayout from '../layouts/site-layout.astro';
 import { siteConfig } from '../site.config.ts';
-import { defaultLocale } from '../utils/intl.ts';
+import { defaultLocale, locales } from '../utils/intl.ts';
 import { useTranslations } from '../utils/t.ts';
 
-const locale = Astro.currentLocale ?? defaultLocale;
+const locale = locales.find((code) => code === Astro.currentLocale) ?? defaultLocale;
 const t = useTranslations(locale);
 const homeHref = getRelativeLocaleUrl(locale);
 ---

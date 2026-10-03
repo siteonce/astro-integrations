@@ -1,11 +1,12 @@
 import { join } from 'node:path';
 import type { IntlConfig } from './define-intl.ts';
+import type { Locale } from './intl-register.ts';
 import { normalizeSlug } from './path.ts';
 
 export type CompiledRoute = {
   pattern: string;
   view: string;
-  locale: string;
+  locale: Locale;
   rowIndex: number;
   kind: 'static' | 'entry' | 'listing' | 'fallback';
 };
@@ -30,10 +31,12 @@ const PAGE_TOKEN = '{page}';
 export function compileRoutes(config: IntlConfig): CompiledRoute[] {
   const compiled: CompiledRoute[] = [];
   const seen = new Map<string, number>();
+  // The injected `Locale` union comes from this config's `locales` list.
+  const locales = config.locales as readonly Locale[];
 
   for (const [rowIndex, row] of (config.routes ?? []).entries()) {
     const fallbackView = row.fallbackView ?? config.fallbackView;
-    for (const locale of config.locales) {
+    for (const locale of locales) {
       if (!(locale in row.slug)) continue;
       const view = viewForLocale(row.view, locale);
       if (view === undefined) continue;
@@ -59,7 +62,7 @@ export function compileRoutes(config: IntlConfig): CompiledRoute[] {
 
     const pagination = row.pagination;
     if (!pagination) continue;
-    for (const locale of config.locales) {
+    for (const locale of locales) {
       if (!(locale in pagination.slug)) continue;
       const view = viewForLocale(pagination.view ?? row.view, locale);
       if (view === undefined) continue;

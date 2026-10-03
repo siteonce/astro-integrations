@@ -36,13 +36,13 @@ function formatMessage(locale: string, message: string, values?: CatalogValues):
 export function createT<L extends string = Locale>(catalogs: NoInfer<Record<L, unknown>>) {
   const byLocale = catalogs as Record<string, unknown>;
 
-  function t(locale: string, key: string, values?: CatalogValues): string {
+  function t(locale: L, key: string, values?: CatalogValues): string {
     const message = lookup(byLocale[locale], key);
     if (message === undefined) return key;
     return formatMessage(locale, message, values);
   }
 
-  function useTranslations(locale: string, namespace?: string) {
+  function useTranslations(locale: L, namespace?: string) {
     return (key: string, values?: CatalogValues) => {
       const fullKey = namespace ? `${namespace}.${key}` : key;
       return t(locale, fullKey, values);

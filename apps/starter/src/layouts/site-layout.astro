@@ -9,13 +9,13 @@ import { cn } from '@repo/astro-site/utils/cn';
 import type { HTMLAttributes } from 'astro/types';
 import Analytics from '../components/analytics.astro';
 import Favicon from '../components/favicon.astro';
-import { hreflangLinks, localeSwitcherLinks } from '../utils/intl.ts';
+import { hreflangLinks, type Locale, localeSwitcherLinks } from '../utils/intl.ts';
 import { useTranslations } from '../utils/t.ts';
 import '../styles';
 
 interface Props {
   /** Document language. Forwarded to BaseLayout as `<html lang>`. */
-  locale: string;
+  locale: Locale;
   /**
    * This view's locale-relative path. Another locale links to the sibling
    * that publishes this tail. With no path, each locale links to its home

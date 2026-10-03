@@ -1,5 +1,6 @@
 import * as z from 'zod';
 import { type EntryFields, missingContentCollection } from './define-intl.ts';
+import type { Locale } from './intl-register.ts';
 import type { CollectionEntryLike } from './pairing.ts';
 
 // `intlRelationTarget` rather than `collection`: Astro checks every stored `{ collection, id }` as a
@@ -95,7 +96,7 @@ export function createIntlSchema<
   return { relation, localized };
 }
 
-export function localizedValue<T>(field: Readonly<Record<string, T>>, locale: string): T {
+export function localizedValue<T>(field: Readonly<Record<string, T>>, locale: Locale): T {
   if (!(locale in field)) {
     throw new Error(`@repo/astro-intl: localized field missing locale "${locale}".`);
   }
