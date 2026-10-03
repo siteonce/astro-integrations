@@ -1,0 +1,371 @@
+import assert from 'node:assert/strict';
+import { mkdir, writeFile } from 'node:fs/promises';
+import { join, sep } from 'node:path';
+import { describe, it, type TestContext } from 'node:test';
+import { viewProps } from '@repo/astro-intl';
+import type { AstroIntegration, GetStaticPathsOptions } from 'astro';
+import {
+  astroPaginate,
+  type InjectedRoute,
+  intlHooks,
+  resolvedRoute,
+  siteRootRoute,
+} from './astro.ts';
+import { type IntlConfigInput, intlConfig } from './fixtures.ts';
+
+/**
+ * Static about, a `{slug}` post with fallback view `missing`, and a blog listing.
+ * `blog/{page}` has the same section as `blog/{slug}`.
+ */
+function renderingConfig(viewRendering: 'build' | 'request'): IntlConfigInput {
+  return intlConfig({
+    viewRendering,
+    routes: [
+      { slug: { en: 'about', de: 'ueber' }, view: 'about' },
+      {
+        slug: { en: 'blog/{slug}', de: 'artikel/{slug}' },
+        collection: 'blog',
+        view: 'post',
+        fallbackView: 'missing',
+      },
+      {
+        slug: { en: 'blog', de: 'artikel' },
+        collection: 'blog',
+        view: 'blog',
+        pagination: { pageSize: 10, slug: { en: 'blog/{page}', de: 'artikel/{page}' } },
+      },
+    ],
+    collections: { translated: ['blog'] },
+  });
+}
+
+/** Writes the view files those rows name. */
+async function writeViews(root: string): Promise<void> {
+  const viewsDir = join(root, 'src', 'views');
+  await mkdir(viewsDir, { recursive: true });
+  for (const name of ['about.astro', 'post.astro', 'blog.astro', 'missing.astro']) {
+    await writeFile(join(viewsDir, name), '');
+  }
+}
+
+async function prepare(t: TestContext, viewRendering: 'build' | 'request') {
+  const hooks = await intlHooks(t, renderingConfig(viewRendering));
+  await writeViews(hooks.root);
+  return hooks;
+}
+
+/**
+ * Injected routes whose entrypoint is a view file.
+ * The build-only sitemap data route is left out.
+ * `prerender` is present only when the integration set it.
+ */
+function renderedViews(root: string, injected: readonly InjectedRoute[]) {
+  const prefix = `${join(root, 'src', 'views')}${sep}`;
+  return injected.flatMap((route) => {
+    const entrypoint = String(route.entrypoint);
+    if (!entrypoint.startsWith(prefix)) return [];
+    return [
+      {
+        pattern: route.pattern,
+        view: entrypoint.slice(prefix.length),
+        ...(Object.hasOwn(route, 'prerender') ? { prerender: route.prerender } : {}),
+      },
+    ];
+  });
+}
+
+/** Same rows with no `prerender` option: `'build'`, and `'request'` under `astro dev`. */
+const prerenderedRoutes = [
+  { pattern: '/en/about/[...index]', view: 'about.astro' },
+  { pattern: '/de/ueber/[...index]', view: 'about.astro' },
+  { pattern: '/en/blog/[slug]', view: 'post.astro' },
+  { pattern: '/de/artikel/[slug]', view: 'post.astro' },
+  { pattern: '/de/artikel/[slug]', view: 'missing.astro' },
+  { pattern: '/en/blog/[...page]', view: 'blog.astro' },
+  { pattern: '/de/artikel/[...page]', view: 'blog.astro' },
+  { pattern: '/en/blog/[page]', view: 'blog.astro' },
+  { pattern: '/de/artikel/[page]', view: 'blog.astro' },
+];
+
+const nodeAdapter = { name: '@astrojs/node', hooks: {} } as AstroIntegration;
+
+describe('view rendering', () => {
+  it('injects static, {slug}, and listing routes on demand and leaves fallback routes prerendered', async (t) => {
+    const hooks = await prepare(t, 'request');
+    await hooks.setup({ adapter: nodeAdapter });
+
+    assert.deepEqual(renderedViews(hooks.root, hooks.injected), [
+      { pattern: '/en/about/[...index]', view: 'about.astro', prerender: false },
+      { pattern: '/de/ueber/[...index]', view: 'about.astro', prerender: false },
+      { pattern: '/en/blog/[slug]', view: 'post.astro', prerender: false },
+      { pattern: '/de/artikel/[slug]', view: 'post.astro', prerender: false },
+      { pattern: '/de/artikel/[slug]', view: 'missing.astro' },
+      { pattern: '/en/blog/[...page]', view: 'blog.astro', prerender: false },
+      { pattern: '/de/artikel/[...page]', view: 'blog.astro', prerender: false },
+      { pattern: '/en/blog/[page]', view: 'blog.astro', prerender: false },
+      { pattern: '/de/artikel/[page]', view: 'blog.astro', prerender: false },
+    ]);
+  });
+
+  it('sets no prerender option when viewRendering is build', async (t) => {
+    const hooks = await prepare(t, 'build');
+    await hooks.setup();
+
+    const views = renderedViews(hooks.root, hooks.injected);
+    assert.ok(views.length > 0);
+    assert.deepEqual(views, prerenderedRoutes);
+  });
+
+  it('treats viewRendering request as build under astro dev', async (t) => {
+    const hooks = await prepare(t, 'request');
+    await hooks.setup({ command: 'dev' });
+
+    const views = renderedViews(hooks.root, hooks.injected);
+    assert.equal(hooks.injected.length, views.length);
+    assert.equal(
+      hooks.injected.some((route) => Object.hasOwn(route, 'prerender')),
+      false,
+    );
+    assert.deepEqual(views, prerenderedRoutes);
+  });
+
+  it('does not refuse an on-demand {page} route beside {slug} under astro dev', async (t) => {
+    const hooks = await prepare(t, 'request');
+    await hooks.setup({ command: 'dev' });
+    const entrypoint = (pattern: string) => {
+      const route = hooks.injected.find((item) => item.pattern === pattern);
+      assert.ok(route, pattern);
+      return String(route.entrypoint);
+    };
+
+    // Both routes are on demand. Under astro dev the clash is not checked.
+    await hooks.routesResolved([
+      resolvedRoute({
+        entrypoint: entrypoint('/en/blog/[slug]'),
+        pattern: '/en/blog/[slug]',
+        isPrerendered: false,
+      }),
+      resolvedRoute({
+        entrypoint: entrypoint('/en/blog/[page]'),
+        pattern: '/en/blog/[page]',
+        isPrerendered: false,
+      }),
+      siteRootRoute(),
+    ]);
+    assert.equal(hooks.error, undefined);
+  });
+
+  it('returns Astro.props when the view is prerendered', async () => {
+    const props = { locale: 'en', path: 'blog/hello' };
+    const getStaticPaths = (): { params: { slug: string }; props: typeof props }[] => {
+      throw new Error('getStaticPaths should not run');
+    };
+    const result = await viewProps(
+      {
+        isPrerendered: true,
+        props,
+        params: { slug: 'hello' },
+        routePattern: '/en/blog/[slug]',
+      },
+      getStaticPaths,
+    );
+    assert.equal(result, props);
+  });
+
+  it('returns the props of the path whose params match the request', async () => {
+    const hello = { locale: 'en', path: 'blog/hello' };
+    const other = { locale: 'en', path: 'blog/other' };
+    let routePattern: string | undefined;
+    const getStaticPaths = (options: GetStaticPathsOptions) => {
+      routePattern = options.routePattern;
+      return [
+        { params: { slug: 'hello' }, props: hello },
+        { params: { slug: 'other' }, props: other },
+      ];
+    };
+    const result = await viewProps(
+      {
+        isPrerendered: false,
+        props: { locale: 'de', path: 'ignored' },
+        params: { slug: 'hello' },
+        routePattern: '/en/blog/[slug]',
+      },
+      getStaticPaths,
+    );
+    assert.equal(routePattern, '/en/blog/[slug]');
+    assert.equal(result, hello);
+  });
+
+  it('returns undefined when no path matches the request', async () => {
+    const hello = { locale: 'en', path: 'blog/hello' };
+    const result = await viewProps(
+      {
+        isPrerendered: false,
+        props: hello,
+        params: { slug: 'missing' },
+        routePattern: '/en/blog/[slug]',
+      },
+      () => [{ params: { slug: 'hello' }, props: hello }],
+    );
+    assert.equal(result, undefined);
+  });
+
+  it('returns the written tail when the spread param is undefined or empty', async () => {
+    const home = { locale: 'en', path: '/' };
+    const getStaticPaths = () => [{ params: { index: undefined }, props: home }];
+    const written = await viewProps(
+      {
+        isPrerendered: false,
+        props: { locale: 'de', path: 'ignored' },
+        params: { index: undefined },
+        routePattern: '/en/[...index]',
+      },
+      getStaticPaths,
+    );
+    const empty = await viewProps(
+      {
+        isPrerendered: false,
+        props: { locale: 'de', path: 'ignored' },
+        params: { index: '' },
+        routePattern: '/en/[...index]',
+      },
+      getStaticPaths,
+    );
+    assert.equal(written, home);
+    assert.equal(empty, home);
+  });
+
+  it('returns page 1 for an empty page param, page 2 for "2", and nothing for "1"', async () => {
+    const posts = ['one', 'two'];
+    let routePattern: string | undefined;
+    const getStaticPaths = ({ paginate, routePattern: pattern }: GetStaticPathsOptions) => {
+      routePattern = pattern;
+      return paginate(posts, { pageSize: 1, props: { locale: 'en' } });
+    };
+    const demand = (page: string | undefined) =>
+      viewProps(
+        {
+          isPrerendered: false,
+          props: {
+            locale: 'en',
+            page: {
+              data: ['ignored'],
+              start: 0,
+              end: 0,
+              size: 1,
+              total: 1,
+              currentPage: 0,
+              lastPage: 1,
+              url: {
+                current: '/ignored',
+                prev: undefined,
+                next: undefined,
+                first: undefined,
+                last: undefined,
+              },
+            },
+          },
+          params: { page },
+          routePattern: '/en/blog/[...page]',
+        },
+        getStaticPaths,
+      );
+
+    const page1 = await demand(undefined);
+    const page2 = await demand('2');
+    const numberedOne = await demand('1');
+
+    assert.equal(routePattern, '/en/blog/[...page]');
+    assert.deepEqual(page1?.page.data, ['one']);
+    assert.equal(page1?.page.currentPage, 1);
+    assert.deepEqual(page2?.page.data, ['two']);
+    assert.equal(page2?.page.currentPage, 2);
+    assert.equal(numberedOne, undefined);
+  });
+
+  it('returns the same listing page as Astro paginate, apart from the page url', async () => {
+    // Five entries at page size 2. Page 1's intl url is empty; later pages use the number.
+    // Astro's paginate, given no route segments, uses `/`.
+    const items = ['a', 'b', 'c', 'd', 'e'];
+    const args = { pageSize: 2, props: { locale: 'en' } };
+    const astroPages = (await astroPaginate('...page'))(items, args);
+    const getStaticPaths = ({ paginate }: GetStaticPathsOptions) => paginate(items, args);
+    const demand = (page: string | undefined) =>
+      viewProps(
+        {
+          isPrerendered: false,
+          props: {
+            locale: 'ignored',
+            page: {
+              data: ['ignored'],
+              start: 0,
+              end: 0,
+              size: 0,
+              total: 0,
+              currentPage: 0,
+              lastPage: 0,
+              url: {
+                current: '/ignored',
+                prev: undefined,
+                next: undefined,
+                first: undefined,
+                last: undefined,
+              },
+            },
+          },
+          params: { page },
+          routePattern: '/en/blog/[...page]',
+        },
+        getStaticPaths,
+      );
+
+    const pages = [
+      {
+        param: undefined,
+        data: ['a', 'b'],
+        start: 0,
+        end: 1,
+        currentPage: 1,
+        url: { current: '', next: '2', prev: undefined, first: undefined, last: '3' },
+        astroUrl: { current: '/', next: '/', prev: undefined, first: undefined, last: '/' },
+      },
+      {
+        param: '2',
+        data: ['c', 'd'],
+        start: 2,
+        end: 3,
+        currentPage: 2,
+        url: { current: '2', next: '3', prev: '', first: '', last: '3' },
+        astroUrl: { current: '/', next: '/', prev: '/', first: '/', last: '/' },
+      },
+      {
+        param: '3',
+        data: ['e'],
+        start: 4,
+        end: 4,
+        currentPage: 3,
+        url: { current: '3', next: undefined, prev: '2', first: '', last: undefined },
+        astroUrl: { current: '/', next: undefined, prev: '/', first: '/', last: undefined },
+      },
+    ];
+
+    assert.equal(astroPages.length, pages.length);
+    for (const [index, spec] of pages.entries()) {
+      const props = await demand(spec.param);
+      const astro = astroPages[index];
+      assert.ok(props);
+      assert.ok(astro);
+      const body = {
+        data: spec.data,
+        start: spec.start,
+        end: spec.end,
+        size: 2,
+        total: 5,
+        currentPage: spec.currentPage,
+        lastPage: 3,
+      };
+      assert.deepEqual(props, { locale: 'en', page: { ...body, url: spec.url } });
+      assert.deepEqual(astro.props, { locale: 'en', page: { ...body, url: spec.astroUrl } });
+    }
+  });
+});
