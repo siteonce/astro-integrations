@@ -178,8 +178,7 @@ export function createIntlQuery(options: CreateIntlQueryOptions): IntlQuery {
     const document = pairing.byLocalePath.get(key);
     const tails: Record<string, string> = document
       ? getAlternatePaths(document.entryId)
-      : (pairing.byLocaleTail.get(key)?.tails ??
-        Object.fromEntries(config.locales.map((code) => [code, normalized])));
+      : (pairing.byLocaleTail.get(key)?.tails ?? {});
     const links = Object.entries(tails)
       .sort(([a], [b]) => a.localeCompare(b))
       .map(([code, tail]) => ({

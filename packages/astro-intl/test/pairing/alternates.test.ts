@@ -326,6 +326,12 @@ describe('pairing', () => {
     );
   });
 
+  it("returns no alternates for a path pairing doesn't know", async () => {
+    const intl = openTails();
+
+    assert.deepEqual(await intl.hreflangLinks('en', 'missing/path'), []);
+  });
+
   it('publishes a named entry at the written tail and does not reuse its slug', async () => {
     const intl = open(
       [

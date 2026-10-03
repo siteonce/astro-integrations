@@ -70,7 +70,7 @@ The view passes the collection, or a list of collections, and a required `sort` 
 
 The content source decides which drafts exist. Outside local and preview, drafts never enter the collection, so no page, listing, sitemap URL, or alternate sees them. A CMS does this with its published view of the content. The view orders the list. Intl filters by locale.
 
-A **translated** collection with no `{slug}` row is **records**, except an entry a route names. A tail with no entry has no pairing `id`. Its alternates are the locales that publish that tail.
+A **translated** collection with no `{slug}` row is **records**, except an entry a route names. A tail with no entry has no pairing `id`. Its alternates are the locales that publish that tail. A path pairing does not know has no alternates.
 
 Intl keeps uniqueness of `(id, locale)` and of `(locale, path)`, lookup by locale and public tail, and sibling tails.
 

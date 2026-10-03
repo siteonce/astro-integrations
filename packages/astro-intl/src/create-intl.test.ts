@@ -248,14 +248,6 @@ describe('hreflangLinks', () => {
     ]);
   });
 
-  it('returns every locale at an unknown path, including x-default', async () => {
-    assert.deepEqual(await intl.hreflangLinks('en', 'missing/path'), [
-      { hreflang: 'de', href: 'https://example.com/de/missing/path' },
-      { hreflang: 'en', href: 'https://example.com/en/missing/path' },
-      { hreflang: 'x-default', href: 'https://example.com/en/missing/path' },
-    ]);
-  });
-
   it('omits x-default when the default locale has no tail', async () => {
     assert.deepEqual(await intl.hreflangLinks('de', 'artikel/nur-deutsch'), [
       { hreflang: 'de', href: 'https://example.com/de/artikel/nur-deutsch' },
