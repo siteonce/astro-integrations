@@ -1,12 +1,16 @@
 import assert from 'node:assert/strict';
 import { mkdir, writeFile } from 'node:fs/promises';
-import { dirname, join, sep } from 'node:path';
+import { dirname, join } from 'node:path';
 import { describe, it, type TestContext } from 'node:test';
-import type { AstroIntegration } from 'astro';
-import { type InjectedRoute, type IntlSetupOptions, intlHooks } from '../astro.ts';
+import {
+  type IntlSetupOptions,
+  injectedViews,
+  intlHooks,
+  nodeAdapter,
+  viewComponent,
+} from '../astro.ts';
 import { type IntlConfigInput, intlConfig } from '../fixtures.ts';
 
-const nodeAdapter = { name: '@astrojs/node', hooks: {} } as AstroIntegration;
 const viewsDirectory = ['src', 'views'].join('/');
 
 const fallbackOnDemand =
@@ -21,10 +25,6 @@ function bothFilesMessage(view: string): string {
   return `@repo/astro-intl: view "${view}" has both "${view}.astro" and "${view}/index.astro".`;
 }
 
-function viewComponent(file: string): string {
-  return join('src', 'views', file);
-}
-
 async function writeViewFiles(root: string, names: readonly string[]): Promise<void> {
   for (const name of names) {
     const file = join(root, viewsDirectory, name);
@@ -37,15 +37,6 @@ async function prepare(t: TestContext, config: IntlConfigInput, files: readonly 
   const hooks = await intlHooks(t, config);
   if (files.length > 0) await writeViewFiles(hooks.root, files);
   return hooks;
-}
-
-function injectedViewFiles(root: string, injected: readonly InjectedRoute[]) {
-  const prefix = `${join(root, viewsDirectory)}${sep}`;
-  return injected.map((route) => {
-    const entrypoint = String(route.entrypoint);
-    assert.ok(entrypoint.startsWith(prefix), entrypoint);
-    return { pattern: route.pattern, view: entrypoint.slice(prefix.length) };
-  });
 }
 
 /**
@@ -137,7 +128,7 @@ describe(`a row names a view that has no file under ${viewsDirectory}/, or that 
       ['post.astro'],
       { command: 'dev' },
     );
-    assert.deepEqual(injectedViewFiles(hooks.root, hooks.injected), [
+    assert.deepEqual(injectedViews(hooks.root, hooks.injected), [
       { pattern: '/en/post/[...index]', view: 'post.astro' },
       { pattern: '/de/beitrag/[...index]', view: 'post.astro' },
     ]);
@@ -152,7 +143,7 @@ describe(`a row names a view that has no file under ${viewsDirectory}/, or that 
       [join('blog', 'index.astro')],
       { command: 'dev' },
     );
-    assert.deepEqual(injectedViewFiles(hooks.root, hooks.injected), [
+    assert.deepEqual(injectedViews(hooks.root, hooks.injected), [
       { pattern: '/en/blog/[...index]', view: 'blog/index.astro' },
       { pattern: '/de/artikel/[...index]', view: 'blog/index.astro' },
     ]);

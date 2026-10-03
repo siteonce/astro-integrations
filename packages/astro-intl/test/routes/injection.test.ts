@@ -1,35 +1,7 @@
 import assert from 'node:assert/strict';
-import { mkdir, writeFile } from 'node:fs/promises';
-import { dirname, join, sep } from 'node:path';
-import { describe, it, type TestContext } from 'node:test';
-import { type InjectedRoute, intlHooks } from '../astro.ts';
-import { type IntlConfigInput, intlConfig } from '../fixtures.ts';
-
-/**
- * Dev skips the build-only sitemap data route, so `injected` is the row routes.
- * View files have to exist. Setup resolves each named view to a file.
- */
-async function inject(t: TestContext, config: IntlConfigInput, views: readonly string[]) {
-  const hooks = await intlHooks(t, config);
-  for (const view of views) {
-    const file = join(hooks.root, 'src', 'views', `${view}.astro`);
-    await mkdir(dirname(file), { recursive: true });
-    await writeFile(file, '');
-  }
-  await hooks.setup({ command: 'dev' });
-  return { root: hooks.root, injected: hooks.injected };
-}
-
-/** Pattern plus the view file under the project `views` directory. */
-function injectedViews(root: string, injected: readonly InjectedRoute[]) {
-  const viewsDir = join(root, 'src', 'views');
-  return injected.map((route) => {
-    const entrypoint = String(route.entrypoint);
-    const prefix = `${viewsDir}${sep}`;
-    assert.ok(entrypoint.startsWith(prefix), entrypoint);
-    return { pattern: route.pattern, view: entrypoint.slice(prefix.length) };
-  });
-}
+import { describe, it } from 'node:test';
+import { inject, injectedViews } from '../astro.ts';
+import { intlConfig } from '../fixtures.ts';
 
 describe('route injection', () => {
   it('injects a route shape for every locale of each row', async (t) => {

@@ -1,25 +1,26 @@
 import assert from 'node:assert/strict';
-import { mkdir, writeFile } from 'node:fs/promises';
-import { join, sep } from 'node:path';
 import { describe, it, type TestContext } from 'node:test';
 import { viewProps } from '@repo/astro-intl';
-import type { AstroIntegration, GetStaticPathsOptions } from 'astro';
+import type { GetStaticPathsOptions } from 'astro';
 import {
   astroPaginate,
-  type InjectedRoute,
   intlHooks,
+  nodeAdapter,
+  renderedViews,
   resolvedRoute,
   siteRootRoute,
+  writeViews,
 } from './astro.ts';
 import { type IntlConfigInput, intlConfig } from './fixtures.ts';
 
 /**
  * Static about, a `{slug}` post with fallback view `missing`, and a blog listing.
  * `blog/{page}` has the same section as `blog/{slug}`.
+ * Omitted `viewRendering` is the default, `'build'`.
  */
-function renderingConfig(viewRendering: 'build' | 'request'): IntlConfigInput {
+function renderingConfig(viewRendering?: 'build' | 'request'): IntlConfigInput {
   return intlConfig({
-    viewRendering,
+    ...(viewRendering === undefined ? {} : { viewRendering }),
     routes: [
       { slug: { en: 'about', de: 'ueber' }, view: 'about' },
       {
@@ -39,42 +40,16 @@ function renderingConfig(viewRendering: 'build' | 'request'): IntlConfigInput {
   });
 }
 
-/** Writes the view files those rows name. */
-async function writeViews(root: string): Promise<void> {
-  const viewsDir = join(root, 'src', 'views');
-  await mkdir(viewsDir, { recursive: true });
-  for (const name of ['about.astro', 'post.astro', 'blog.astro', 'missing.astro']) {
-    await writeFile(join(viewsDir, name), '');
-  }
-}
-
-async function prepare(t: TestContext, viewRendering: 'build' | 'request') {
+async function prepare(t: TestContext, viewRendering?: 'build' | 'request') {
   const hooks = await intlHooks(t, renderingConfig(viewRendering));
-  await writeViews(hooks.root);
+  await writeViews(hooks.root, ['about', 'post', 'blog', 'missing']);
   return hooks;
 }
 
 /**
- * Injected routes whose entrypoint is a view file.
- * The build-only sitemap data route is left out.
- * `prerender` is present only when the integration set it.
+ * Same rows with no `prerender` option.
+ * That is omitted `viewRendering`, `'build'`, and `'request'` under `astro dev`.
  */
-function renderedViews(root: string, injected: readonly InjectedRoute[]) {
-  const prefix = `${join(root, 'src', 'views')}${sep}`;
-  return injected.flatMap((route) => {
-    const entrypoint = String(route.entrypoint);
-    if (!entrypoint.startsWith(prefix)) return [];
-    return [
-      {
-        pattern: route.pattern,
-        view: entrypoint.slice(prefix.length),
-        ...(Object.hasOwn(route, 'prerender') ? { prerender: route.prerender } : {}),
-      },
-    ];
-  });
-}
-
-/** Same rows with no `prerender` option: `'build'`, and `'request'` under `astro dev`. */
 const prerenderedRoutes = [
   { pattern: '/en/about/[...index]', view: 'about.astro' },
   { pattern: '/de/ueber/[...index]', view: 'about.astro' },
@@ -86,8 +61,6 @@ const prerenderedRoutes = [
   { pattern: '/en/blog/[page]', view: 'blog.astro' },
   { pattern: '/de/artikel/[page]', view: 'blog.astro' },
 ];
-
-const nodeAdapter = { name: '@astrojs/node', hooks: {} } as AstroIntegration;
 
 describe('view rendering', () => {
   it('injects static, {slug}, and listing routes on demand and leaves fallback routes prerendered', async (t) => {
@@ -109,6 +82,15 @@ describe('view rendering', () => {
 
   it('sets no prerender option when viewRendering is build', async (t) => {
     const hooks = await prepare(t, 'build');
+    await hooks.setup();
+
+    const views = renderedViews(hooks.root, hooks.injected);
+    assert.ok(views.length > 0);
+    assert.deepEqual(views, prerenderedRoutes);
+  });
+
+  it('sets no prerender option when viewRendering is omitted', async (t) => {
+    const hooks = await prepare(t);
     await hooks.setup();
 
     const views = renderedViews(hooks.root, hooks.injected);

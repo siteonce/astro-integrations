@@ -1,18 +1,23 @@
 import assert from 'node:assert/strict';
-import { mkdir, writeFile } from 'node:fs/promises';
 import { join, sep } from 'node:path';
 import { describe, it, type TestContext } from 'node:test';
 import { createIntl } from '@repo/astro-intl';
 import type { AstroIntegration } from 'astro';
-import { type IntlHooks, intlHooks, resolvedRoute, siteRootRoute } from '../astro.ts';
+import {
+  type IntlHooks,
+  intlHooks,
+  nodeAdapter,
+  resolvedRoute,
+  siteRootRoute,
+  viewComponent,
+  writeViews,
+} from '../astro.ts';
 import {
   collectionEntry,
   collectionLoaders,
   type IntlConfigInput,
   intlConfig,
 } from '../fixtures.ts';
-
-const nodeAdapter = { name: '@astrojs/node', hooks: {} } as AstroIntegration;
 
 /**
  * On-demand `/en/blog/[page]` (row 1) has the same shape as `/en/blog/[slug]` (row 0).
@@ -67,14 +72,6 @@ function shapedRoutes(): IntlConfigInput {
   });
 }
 
-async function writeViews(root: string, names: readonly string[]): Promise<void> {
-  const viewsDir = join(root, 'src', 'views');
-  await mkdir(viewsDir, { recursive: true });
-  for (const name of names) {
-    await writeFile(join(viewsDir, `${name}.astro`), '');
-  }
-}
-
 async function boot(
   t: TestContext,
   config: IntlConfigInput,
@@ -115,11 +112,6 @@ function projectFile(pattern: string) {
     isPrerendered: true,
     origin: 'project',
   });
-}
-
-/** Relative view path Astro may report for an injected route. */
-function relativeView(name: string): string {
-  return join('src', 'views', `${name}.astro`);
 }
 
 describe('A (locale, path) is duplicated', () => {
@@ -360,7 +352,7 @@ describe('viewRendering is "request" and an on-demand pagination.slug route has 
       () =>
         hooks.routesResolved([
           resolvedRoute({
-            entrypoint: relativeView('post'),
+            entrypoint: viewComponent('post.astro'),
             pattern: 'en/blog/[page]',
             isPrerendered: false,
           }),

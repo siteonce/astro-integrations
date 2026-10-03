@@ -1,11 +1,12 @@
 import assert from 'node:assert/strict';
 import { existsSync } from 'node:fs';
-import { mkdir, readFile, writeFile } from 'node:fs/promises';
+import { mkdir, writeFile } from 'node:fs/promises';
+import { registerHooks } from 'node:module';
 import { dirname, join } from 'node:path';
 import { describe, it } from 'node:test';
+import { pathToFileURL } from 'node:url';
 import type { SitemapEntry } from '@repo/astro-intl';
-import type { AstroIntegration } from 'astro';
-import { type IntlHooks, intlHooks } from './astro.ts';
+import { type IntlHooks, intlHooks, nodeAdapter, writeViews } from './astro.ts';
 import { intlConfig } from './fixtures.ts';
 
 const enLoc = 'https://example.com/en/blog/hello-world';
@@ -74,6 +75,56 @@ function page(url: string): SitemapPage {
 function sitemapOf(hooks: IntlHooks) {
   assert.ok(hooks.integration);
   return hooks.integration.sitemap;
+}
+
+/** A `data:` URL whose body is this JavaScript module source. */
+function moduleUrl(source: string): string {
+  return `data:text/javascript,${encodeURIComponent(source)}`;
+}
+
+/**
+ * The data route calls `createIntl` with no loaders, so collection and URL reads
+ * are Astro's `astro:content` and `astro:i18n`.
+ * `getCollection('blog')` returns one `en` entry and its `de` sibling.
+ * Locale URLs are `https://example.com/<locale>/<path>` and `/<locale>/<path>/`.
+ */
+function stubAstroModules() {
+  const content = moduleUrl(
+    [
+      'const blog = [',
+      '  {',
+      '    id: "hello-en",',
+      '    collection: "blog",',
+      '    data: { id: "hello-world", locale: "en", slug: "hello-world" },',
+      '  },',
+      '  {',
+      '    id: "hello-de",',
+      '    collection: "blog",',
+      '    data: { id: "hello-world", locale: "de", slug: "hallo-welt" },',
+      '  },',
+      '];',
+      'export async function getCollection(name) {',
+      '  return name === "blog" ? blog : [];',
+      '}',
+    ].join('\n'),
+  );
+  const i18n = moduleUrl(
+    [
+      'export function getAbsoluteLocaleUrl(locale, path = "") {',
+      '  return "https://example.com/" + locale + (path ? "/" + path : "");',
+      '}',
+      'export function getRelativeLocaleUrl(locale, path = "") {',
+      '  return "/" + locale + (path ? "/" + path : "") + "/";',
+      '}',
+    ].join('\n'),
+  );
+  return registerHooks({
+    resolve(specifier, context, nextResolve) {
+      if (specifier === 'astro:content') return { url: content, shortCircuit: true };
+      if (specifier === 'astro:i18n') return { url: i18n, shortCircuit: true };
+      return nextResolve(specifier, context);
+    },
+  });
 }
 
 /** Writes `entries` as that build output, then runs `astro:build:done`. */
@@ -285,34 +336,73 @@ describe('sitemap', () => {
   });
 
   it('injects the data route only during build', async (t) => {
+    const config = intlConfig({
+      routes: [
+        {
+          slug: { en: 'blog/{slug}', de: 'artikel/{slug}' },
+          collection: 'blog',
+          view: 'post',
+        },
+      ],
+      collections: { translated: ['blog'] },
+    });
     for (const command of ['dev', 'preview', 'sync'] as const) {
-      const hooks = await intlHooks(t, intlConfig());
+      const hooks = await intlHooks(t, config);
+      await writeViews(hooks.root, ['post']);
       await hooks.setup({ command });
       assert.deepEqual(
         hooks.injected.map((route) => route.pattern),
-        [],
+        ['/en/blog/[slug]', '/de/artikel/[slug]'],
         command,
       );
     }
 
-    const hooks = await intlHooks(t, intlConfig({ fallbackView: 'missing' }));
+    const hooks = await intlHooks(t, config);
+    await writeViews(hooks.root, ['post']);
     await hooks.setup({ command: 'build' });
     assert.deepEqual(
-      hooks.injected.map((route) => ({ pattern: route.pattern, prerender: route.prerender })),
-      [{ pattern: dataRoute, prerender: true }],
-    );
-    const data = hooks.injected[0];
-    assert.ok(data);
-    const source = await readFile(data.entrypoint, 'utf8');
-    assert.ok(source.includes('export const prerender = true;'));
-    assert.ok(
-      source.includes('return new Response(JSON.stringify(await intl.getSitemapEntries()));'),
-    );
-    assert.ok(
-      source.includes(
-        'createIntl({"locales":["en","de"],"defaultLocale":"en","routing":{"prefixDefaultLocale":true},"fallbackView":"missing"})',
+      hooks.injected.map((route) =>
+        Object.hasOwn(route, 'prerender')
+          ? { pattern: route.pattern, prerender: route.prerender }
+          : { pattern: route.pattern },
       ),
+      [
+        { pattern: '/en/blog/[slug]' },
+        { pattern: '/de/artikel/[slug]' },
+        { pattern: dataRoute, prerender: true },
+      ],
     );
+    const data = hooks.injected.find((route) => route.pattern === dataRoute);
+    assert.ok(data);
+    const astroModules = stubAstroModules();
+    try {
+      const route = (await import(pathToFileURL(String(data.entrypoint)).href)) as {
+        prerender: boolean;
+        GET(): Promise<{ text(): Promise<string> }>;
+      };
+      assert.equal(route.prerender, true);
+      const response = await route.GET();
+      assert.deepEqual(JSON.parse(await response.text()), [
+        {
+          locale: 'de',
+          path: 'artikel/hallo-welt',
+          loc: deLoc,
+          entryId: 'blog/hello-world',
+          alternates: { en: enLoc, de: deLoc },
+          xDefault: enLoc,
+        },
+        {
+          locale: 'en',
+          path: 'blog/hello-world',
+          loc: enLoc,
+          entryId: 'blog/hello-world',
+          alternates: { en: enLoc, de: deLoc },
+          xDefault: enLoc,
+        },
+      ]);
+    } finally {
+      astroModules.deregister();
+    }
   });
 
   it('prerenders the data route when viewRendering is request', async (t) => {
@@ -326,9 +416,7 @@ describe('sitemap', () => {
     const view = join(hooks.root, 'src', 'views', 'about.astro');
     await mkdir(dirname(view), { recursive: true });
     await writeFile(view, '');
-    await hooks.setup({
-      adapter: { name: '@astrojs/node', hooks: {} } as AstroIntegration,
-    });
+    await hooks.setup({ adapter: nodeAdapter });
 
     const data = hooks.injected.find((route) => route.pattern === dataRoute);
     assert.ok(data);

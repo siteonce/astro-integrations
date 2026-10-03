@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 import { createIntl } from '@repo/astro-intl';
+import { byDate, byFlag, byText, sortBy } from '@repo/astro-intl/sorting';
 import { astroPaginate } from '../astro.ts';
 import {
   type CollectionEntry,
@@ -474,5 +475,51 @@ describe('pairing', () => {
       xDefault: 'https://example.com/en/blog/2',
       entryId: 'blog/two',
     });
+  });
+});
+
+describe('sorting', () => {
+  it('orders dates in both directions', () => {
+    const older = { at: new Date('2020-01-01T00:00:00.000Z') };
+    const newer = { at: new Date('2024-06-01T00:00:00.000Z') };
+    const asc = byDate((row: { at: Date }) => row.at, 'asc');
+    const desc = byDate((row: { at: Date }) => row.at, 'desc');
+    assert.deepEqual(
+      [newer, older].toSorted(asc).map((row) => row.at.toISOString()),
+      ['2020-01-01T00:00:00.000Z', '2024-06-01T00:00:00.000Z'],
+    );
+    assert.deepEqual(
+      [older, newer].toSorted(desc).map((row) => row.at.toISOString()),
+      ['2024-06-01T00:00:00.000Z', '2020-01-01T00:00:00.000Z'],
+    );
+    assert.equal(asc(older, older), 0);
+  });
+
+  it('collates by locale', () => {
+    const compare = byText((row: { title: string }) => row.title, 'de', 'asc');
+    assert.equal('Äpfel' > 'Birnen', true);
+    assert.deepEqual(
+      [{ title: 'Birnen' }, { title: 'Äpfel' }].toSorted(compare).map((row) => row.title),
+      ['Äpfel', 'Birnen'],
+    );
+  });
+
+  it('puts true first', () => {
+    const compare = byFlag((row: { on: boolean }) => row.on);
+    assert.deepEqual(
+      [{ on: false }, { on: true }].toSorted(compare).map((row) => row.on),
+      [true, false],
+    );
+    assert.equal(compare({ on: true }, { on: true }), 0);
+  });
+
+  it('falls through on a tie and returns 0 when every comparator ties', () => {
+    type Row = { name: string; n: number };
+    const compare = sortBy(
+      byText((row: Row) => row.name, 'en', 'asc'),
+      (a: Row, b: Row) => a.n - b.n,
+    );
+    assert.equal(compare({ name: 'same', n: 1 }, { name: 'same', n: 2 }), -1);
+    assert.equal(compare({ name: 'same', n: 1 }, { name: 'same', n: 1 }), 0);
   });
 });

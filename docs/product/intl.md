@@ -54,6 +54,8 @@ collections: {
 
 Intl loads each **translated** collection and pairs it on `(pairing id, locale)`. Pairing reads the id and locale fields and prefixes the collection name. Pairing key = collection name + `/` + the pairing `id`. One `PairingIndex` (`byLocalePath`, `byLocaleEntryId`). The fields are `id`, `locale`, and `slug`. `fields` renames them for one collection. Each name is optional: `id` (default `id`), `locale` (default `locale`), `slug` (default `slug`). It only renames. It switches no behavior. Both content sources present these fields. File layout belongs to the app.
 
+Loading aborts when an entry of a **translated** collection has no `id` or no `locale`, or when an entry a `{slug}` row routes has a `slug` that is not one segment. Intl loads collections in the build, and per request for an on-demand view.
+
 Startup fails when a name repeats or sits in both lists, a `fields` key is not in `translated`, a route row names a collection outside `translated`, or a name in either list is not a content collection.
 
 Pairing is on `id`. A `{slug}` row publishes one URL per entry: that locale’s **section** plus the one-segment **slug**. Naming an entry on that row publishes that entry alone. A **translated** collection named on a `{slug}` row is routed, and its entries need the **slug** field.
@@ -94,7 +96,7 @@ The row decides the route’s shape:
 
 Pairing counts the same list as `paginate()`, and a page count that disagrees aborts the build. `order` must return the same entries, and the build aborts when it does not. `listingPaths` aborts when neither `sort` nor `order` is set, when both are set, and when the route row names a collection the call did not pass. Page 1 uses the row’s view. Later pages use `pagination.view`, or the row’s view when that is omitted. Each view calls `listingPaths` once. The helper reads `routePattern` and emits the pages for that route. When `pagination.view` names a second view, both views must pass the same ordering, because each one slices its own pages from its own order. Import one shared `sort` or `order` in both. Intl does not check that they match.
 
-A view is a full Astro page. The view owns its `getStaticPaths`, typed props, and `prerender`, and its `getStaticPaths` lists its URLs. `viewRendering` sets the default for `prerender` ([View rendering](#view-rendering)). It returns intl’s helper for its route: `staticPaths(routePattern)`, `entryPaths(routePattern, collection)`, `listingPaths(routePattern, collection, paginate, ordering)`, or `fallbackPaths(routePattern)`. `entryPaths` and `listingPaths` take the collection, or a list of collections. One view can serve rows of several collections: `entryPaths(routePattern, ['tags', 'categories'])`. A row that names another collection fails the build. A helper returns only what pairing published in that locale. A locale that does not publish a row’s tail gets no page.
+A view is a full Astro page. The view owns its `getStaticPaths`, typed props, and `prerender`, and its `getStaticPaths` lists its URLs. `viewRendering` sets the default for `prerender` ([View rendering](#view-rendering)). It returns intl’s helper for its route: `staticPaths(routePattern)`, `entryPaths(routePattern, collection)`, `listingPaths(routePattern, collection, paginate, ordering)`, or `fallbackPaths(routePattern)`. `entryPaths` throws when `routePattern` is not an injected `{slug}` route. `entryPaths` and `listingPaths` take the collection, or a list of collections. One view can serve rows of several collections: `entryPaths(routePattern, ['tags', 'categories'])`. A row that names another collection fails the build. A helper returns only what pairing published in that locale. A locale that does not publish a row’s tail gets no page.
 
 **Missing translation.** The config may name a **fallback view** (`fallbackView`) for every `{slug}` row. A `{slug}` row may name its own, or `false` for none. In each locale that is not the default, intl injects it for default-locale entries that have no translation. Its props carry that entry and its default-locale URL (`target`). The view chooses what to do: redirect, or show a notice. With none, those URLs 404. Intl never falls back to the same tail in the default locale.
 
@@ -162,16 +164,25 @@ Fail at startup when:
 - Overlapping `i18n` keys are already set on `defineConfig`, or `@astrojs/sitemap`'s `i18n` option is set.
 - The content config directly imports `@repo/astro-intl/runtime`. Read locales from the intl config.
 - `@astrojs/sitemap` is registered before intl.
+- The intl config holds a value JSON can't carry (a function, a `Date`, a `Map`), because intl writes the config into the sitemap data route as JSON. A key set to `undefined` is allowed.
 - A `(locale, path)` is duplicated.
 - A row names a view that has no file under `src/views/`, or that has both `<view>.astro` and `<view>/index.astro`.
-- A row sets `fallbackView` (a view or `false`) without `{slug}`.
+- The keys of one view per locale are not the configured locales.
+- A `view`, `pagination.view`, or `fallbackView` name ends in `.astro`, or has a segment that is empty, `.`, or `..`.
+- A row sets `fallbackView` to `true`, or sets a view or `false` without `{slug}`.
+- A row’s `slug` omits a configured locale.
 - `{page}` is in the row’s `slug`. It belongs in `pagination.slug`.
+- `{slug}` is not the whole final segment of a row’s `slug`, or no section sits in front of it, or `{slug}` is repeated, or a section segment is empty or contains `{`.
+- A `{slug}` row names no collection.
+- Two `{slug}` rows name one collection.
+- Two `{slug}` rows share a section in one locale.
 - `pagination` is on a row with no collection, a row that names an entry, or a row whose `slug` holds `{slug}`.
 - `pagination.slug` and the row’s `slug` name different locales.
 - `pagination.slug` is not a `{page}` tail: not the whole final segment, or beside `{slug}`.
 - `pagination.pageSize` is not a positive integer.
 - `pagination.view` names a missing file, both a file and a folder index, or the wrong locales.
 - A top-level `pageSize`.
+- `viewRendering` is set to something other than `'build'` or `'request'`.
 - `viewRendering` is `'request'` and the site has no adapter, outside `astro dev`.
 - `viewRendering` is `'request'` and a fallback view exports `prerender = false`, outside `astro dev`.
 - `viewRendering` is `'request'` and an on-demand `pagination.slug` route has the same shape as a `{slug}` route, outside `astro dev`.
@@ -179,12 +190,12 @@ Fail at startup when:
 - A file route shaped like an injected route would serve a URL that route emits and win over it.
 - `prefixDefaultLocale` is true and nothing serves `/`.
 - A collection name repeats, or sits in both `translated` and `untranslated`.
-- A `fields` key is not in `translated`.
+- A `fields` key is not in `translated`, or an `id`, `locale`, or `slug` name is empty.
 - A route row names a collection that is not in `translated`.
 - A name in `translated` or `untranslated` is not a content collection.
 - `relation()` names a collection neither `collections.translated` nor `collections.untranslated` lists.
 - A **relation** points at a collection neither `collections.translated` nor `collections.untranslated` lists.
-- A **relation** pairing `id` is missing, a **translated** target has no sibling in the source locale, or a `localized()` map has a missing or extra locale key.
+- A **relation** pairing `id` is missing, the relation’s target entry is missing, or a `localized()` map has a missing or extra locale key.
 
 ## Today
 
@@ -195,7 +206,5 @@ The path helpers do not return a `cacheKey` yet.
 The starter keeps `'build'` and has no adapter.
 
 The starter keeps `blog/{page}` beside `blog/{slug}` on purpose. That is the clashing shape. It keeps the check and its workarounds exercised, so they do not rot. It is not the recommended setup for an on-demand site.
-
-Intl's tests still sit beside their modules in `src/` and import internal modules. `packages/astro-intl/test/` does not exist yet.
 
 Some URLs still exist without a config line that names them. A static row compiles to a hidden `[...index]` spread. Fallback routes are injected for every non-default locale without a row naming them. `viewRendering` is treated as `'build'` under `astro dev`.

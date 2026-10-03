@@ -1,14 +1,15 @@
 /**
- * Temp project directories, `astroIntl` hook runs, and Astro's paginate.
+ * Temp project directories, `astroIntl` hook runs, view files, and Astro's paginate.
  * The hook runner records injected routes, config updates, injected types,
  * logger lines, and thrown errors.
  */
 
+import assert from 'node:assert/strict';
 import { mkdirSync } from 'node:fs';
-import { mkdtemp, rm } from 'node:fs/promises';
+import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { createRequire } from 'node:module';
 import { tmpdir } from 'node:os';
-import { dirname, join } from 'node:path';
+import { dirname, join, sep } from 'node:path';
 import type { TestContext } from 'node:test';
 import { pathToFileURL } from 'node:url';
 import { astroIntl } from '@repo/astro-intl';
@@ -151,6 +152,69 @@ export function siteRootRoute(): ResolvedRoute {
     origin: 'project',
     type: 'redirect',
     patternRegex: /^\/$/u,
+  });
+}
+
+/**
+ * An `@astrojs/node` adapter.
+ * `viewRendering: 'request'` refuses to boot without an adapter, outside `astro dev`.
+ */
+export const nodeAdapter = { name: '@astrojs/node', hooks: {} } as AstroIntegration;
+
+/**
+ * Writes empty `<name>.astro` files under the project `src/views/`.
+ * A name may include directories (`blog/archive` writes `src/views/blog/archive.astro`).
+ */
+export async function writeViews(root: string, names: readonly string[]): Promise<void> {
+  for (const name of names) {
+    const file = join(root, 'src', 'views', `${name}.astro`);
+    await mkdir(dirname(file), { recursive: true });
+    await writeFile(file, '');
+  }
+}
+
+/**
+ * View file path relative to the project root, as Astro reports it.
+ * `missing.astro` is `src/views/missing.astro`.
+ */
+export function viewComponent(file: string): string {
+  return join('src', 'views', file);
+}
+
+function viewsPrefix(root: string): string {
+  return `${join(root, 'src', 'views')}${sep}`;
+}
+
+/**
+ * Pattern plus the view file under the project `views` directory.
+ * Every entrypoint must be a view file.
+ */
+export function injectedViews(root: string, injected: readonly InjectedRoute[]) {
+  const prefix = viewsPrefix(root);
+  return injected.map((route) => {
+    const entrypoint = String(route.entrypoint);
+    assert.ok(entrypoint.startsWith(prefix), entrypoint);
+    return { pattern: route.pattern, view: entrypoint.slice(prefix.length) };
+  });
+}
+
+/**
+ * Injected routes whose entrypoint is a view file.
+ * The build-only sitemap data route is left out.
+ * `prerender` is present only when the integration set it.
+ */
+export function renderedViews(root: string, injected: readonly InjectedRoute[]) {
+  const prefix = viewsPrefix(root);
+  return injected.flatMap((route) => {
+    const entrypoint = String(route.entrypoint);
+    if (!entrypoint.startsWith(prefix)) return [];
+    return [
+      {
+        pattern: route.pattern,
+        view: entrypoint.slice(prefix.length),
+        ...(Object.hasOwn(route, 'prerender') ? { prerender: route.prerender } : {}),
+      },
+    ];
   });
 }
 
@@ -331,4 +395,19 @@ export async function intlHooks(
 ): Promise<IntlHooks> {
   const root = options?.root ?? (await projectRoot(t));
   return new Session(root, config);
+}
+
+/**
+ * Writes `<name>.astro` under `src/views/` and runs `astro:config:setup` under `astro dev`.
+ * Dev skips the build-only sitemap data route, so `injected` is the row routes.
+ */
+export async function inject(
+  t: TestContext,
+  config: IntlConfigInput,
+  views: readonly string[],
+): Promise<{ root: string; injected: InjectedRoute[] }> {
+  const hooks = await intlHooks(t, config);
+  await writeViews(hooks.root, views);
+  await hooks.setup({ command: 'dev' });
+  return { root: hooks.root, injected: hooks.injected };
 }

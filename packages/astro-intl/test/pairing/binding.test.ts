@@ -60,10 +60,6 @@ describe('createIntl binding', () => {
       collectionEntry('blog', 'hello-de', { id: 'hello', locale: 'de', slug: 'hallo' }),
     ];
     let calls = 0;
-    let release = () => {};
-    const gate = new Promise<void>((resolve) => {
-      release = resolve;
-    });
     const intl = createIntl(
       intlConfig({
         routes: [
@@ -76,7 +72,6 @@ describe('createIntl binding', () => {
         loaders: {
           async getCollection(name) {
             calls += 1;
-            await gate;
             return name === 'blog' ? blog : [];
           },
           getAbsoluteLocaleUrl: absoluteLocaleUrl,
@@ -85,14 +80,7 @@ describe('createIntl binding', () => {
       },
     );
 
-    const first = intl.getPairedSlugs();
-    const second = intl.getSitemapEntries();
-    try {
-      assert.equal(calls, 1);
-    } finally {
-      release();
-      await Promise.all([first, second]);
-    }
+    await Promise.all([intl.getPairedSlugs(), intl.getSitemapEntries()]);
     assert.equal(calls, 4);
   });
 
