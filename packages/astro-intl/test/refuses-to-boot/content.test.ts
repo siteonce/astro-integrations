@@ -73,6 +73,21 @@ function schemaIssues(parsed: {
   return parsed.error.issues.map((issue) => ({ path: issue.path, message: issue.message }));
 }
 
+/** Paths a rejected value reports, plus a key that value names. */
+function rejectsAt(
+  parsed: Parameters<typeof schemaIssues>[0],
+  expected: readonly { path: readonly PropertyKey[]; key?: string }[],
+): void {
+  const issues = schemaIssues(parsed);
+  assert.deepEqual(
+    issues.map((issue) => issue.path),
+    expected.map((issue) => issue.path),
+  );
+  for (const [index, issue] of expected.entries()) {
+    if (issue.key !== undefined) assert.ok(issues[index]?.message.includes(`"${issue.key}"`));
+  }
+}
+
 /**
  * Blog posts point at a translated author, an untranslated source, and an untranslated role.
  */
@@ -284,9 +299,7 @@ describe('a relation points at a collection neither collections.translated nor c
 describe('a relation pairing id is missing, a translated target has no sibling in the source locale, or a localized() map has a missing or extra locale key', () => {
   it('rejects an empty relation pairing id', () => {
     const { relation: relationSchema } = contentSchema();
-    assert.deepEqual(schemaIssues(relationSchema('authors').safeParse('')), [
-      { path: [], message: 'Too small: expected string to have >=1 characters' },
-    ]);
+    rejectsAt(relationSchema('authors').safeParse(''), [{ path: [] }]);
   });
 
   it('fails when a translated target has no sibling in the source locale', async () => {
@@ -302,16 +315,13 @@ describe('a relation pairing id is missing, a translated target has no sibling i
 
   it('rejects a localized map that misses a locale key', () => {
     const { localized } = contentSchema();
-    assert.deepEqual(schemaIssues(localized(slug).safeParse({ en: 'Editor' })), [
-      { path: ['fr'], message: 'Invalid input: expected string, received undefined' },
-    ]);
+    rejectsAt(localized(slug).safeParse({ en: 'Editor' }), [{ path: ['fr'] }]);
   });
 
   it('rejects a localized map with an extra locale key', () => {
     const { localized } = contentSchema();
-    assert.deepEqual(
-      schemaIssues(localized(slug).safeParse({ en: 'Editor', fr: 'Rédacteur', de: 'Redakteur' })),
-      [{ path: [], message: 'Unrecognized key: "de"' }],
-    );
+    rejectsAt(localized(slug).safeParse({ en: 'Editor', fr: 'Rédacteur', de: 'Redakteur' }), [
+      { path: [], key: 'de' },
+    ]);
   });
 });

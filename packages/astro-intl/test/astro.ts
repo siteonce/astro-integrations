@@ -137,7 +137,7 @@ export function resolvedRoute(options: {
     segments: [],
     fallbackRoutes: [],
     generate: () => options.pattern,
-  } as ResolvedRoute;
+  };
 }
 
 /**

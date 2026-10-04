@@ -115,7 +115,6 @@ describe('pairing', () => {
             slug: { en: 'blog/{page}', de: 'artikel/seite/{page}' },
           },
         },
-        postRow,
       ],
       [...entries('en', 25), ...entries('de', 12)],
     );
@@ -149,14 +148,13 @@ describe('pairing', () => {
       ['artikel', 'artikel/seite/2'],
     );
 
-    const slugs = await intl.getPairedSlugs();
-    assert.equal(
-      slugs.some(
-        (item) =>
-          item.slug === 'blog/1' || item.slug === 'artikel/1' || item.slug === 'artikel/seite/3',
-      ),
-      false,
-    );
+    assert.deepEqual(await intl.getPairedSlugs(), [
+      { locale: 'de', slug: 'artikel' },
+      { locale: 'de', slug: 'artikel/seite/2' },
+      { locale: 'en', slug: 'blog' },
+      { locale: 'en', slug: 'blog/2' },
+      { locale: 'en', slug: 'blog/3' },
+    ]);
     assert.deepEqual(await intl.getAlternatePathsForPath('en', 'blog/2'), {
       en: 'blog/2',
       de: 'artikel/seite/2',

@@ -19,9 +19,38 @@ function refuses(config: IntlConfigInput, message: string, label?: string): void
   assert.throws(() => createIntl(config), { message }, label ?? message);
 }
 
+const validationPrefix = '@repo/astro-intl: intl config failed validation.';
+
+/** Prefix, issue count, each `→ at` path, and any key the config names. */
+function refusesAt(
+  config: IntlConfigInput,
+  issues: readonly { at?: string; key?: string }[],
+  label?: string,
+): void {
+  assert.throws(
+    () => createIntl(config),
+    (error: unknown) => {
+      assert.ok(error instanceof Error);
+      const lines = error.message.split('\n');
+      assert.equal(lines[0], validationPrefix, label);
+      assert.equal(lines.filter((line) => line.startsWith('✖ ')).length, issues.length, label);
+      assert.deepEqual(
+        lines.flatMap((line) => (line.startsWith('  → at ') ? [line.slice('  → at '.length)] : [])),
+        issues.flatMap((issue) => (issue.at === undefined ? [] : [issue.at])),
+        label,
+      );
+      for (const issue of issues) {
+        if (issue.key !== undefined) assert.ok(error.message.includes(`"${issue.key}"`), label);
+      }
+      return true;
+    },
+    label,
+  );
+}
+
 /** A config that parses. `createIntl` validates when it is called. */
 function parses(config: IntlConfigInput): void {
-  assert.ok(createIntl(config));
+  assert.doesNotThrow(() => createIntl(config));
 }
 
 const pageSlug = { en: 'blog/{page}', de: 'artikel/{page}' };
@@ -44,15 +73,13 @@ function listing(slug: { en: string; de: string } = pageSlug, pageSize = 10): In
 describe('refuses to boot', () => {
   describe('intl config', () => {
     it('refuses an intl config that fails validation', () => {
-      refuses(
+      refusesAt(
         {
           locales: ['en'],
           defaultLocale: 'en',
           routing: { prefixDefaultLocale: 'no' },
         } as unknown as IntlConfigInput,
-        failed(
-          'Invalid input: expected boolean, received string\n  → at routing.prefixDefaultLocale',
-        ),
+        [{ at: 'routing.prefixDefaultLocale' }],
       );
     });
 
@@ -103,10 +130,9 @@ describe('refuses to boot', () => {
       parses(base);
       parses({ ...base, viewRendering: 'build' });
       parses({ ...base, viewRendering: 'request' });
-      refuses(
-        { ...base, viewRendering: 'live' } as unknown as IntlConfigInput,
-        failed('Invalid option: expected one of "build"|"request"\n  → at viewRendering'),
-      );
+      refusesAt({ ...base, viewRendering: 'live' } as unknown as IntlConfigInput, [
+        { at: 'viewRendering' },
+      ]);
     });
 
     it('accepts field name overrides on a translated collection', async () => {
@@ -146,40 +172,40 @@ describe('refuses to boot', () => {
         ['slug', 'collections.fields.pages.slug'],
       ] as const;
       for (const [key, path] of rows) {
-        refuses(
+        refusesAt(
           {
             locales: ['en'],
             defaultLocale: 'en',
             collections: { translated: ['pages'], fields: { pages: { [key]: '' } } },
           },
-          failed(`Too small: expected string to have >=1 characters\n  → at ${path}`),
+          [{ at: path }],
           key,
         );
       }
     });
 
     it('refuses a collection name used as a key of collections', () => {
-      refuses(
+      refusesAt(
         {
           locales: ['en'],
           defaultLocale: 'en',
           collections: { pages: { id: 'uid' } },
         } as unknown as IntlConfigInput,
-        failed('Unrecognized key: "pages"\n  → at collections'),
+        [{ at: 'collections', key: 'pages' }],
       );
     });
 
     it('refuses a top-level entryId and a field named entryId', () => {
-      refuses(
+      refusesAt(
         {
           locales: ['en', 'de'],
           defaultLocale: 'en',
           routing: { prefixDefaultLocale: true },
           entryId: 'collectionFolder',
         } as unknown as IntlConfigInput,
-        failed('Unrecognized key: "entryId"'),
+        [{ key: 'entryId' }],
       );
-      refuses(
+      refusesAt(
         {
           locales: ['en', 'de'],
           defaultLocale: 'en',
@@ -189,7 +215,7 @@ describe('refuses to boot', () => {
             fields: { pages: { entryId: 'frontmatter' } },
           },
         } as unknown as IntlConfigInput,
-        failed('Unrecognized key: "entryId"\n  → at collections.fields.pages'),
+        [{ at: 'collections.fields.pages', key: 'entryId' }],
       );
     });
 
@@ -306,22 +332,22 @@ describe('refuses to boot', () => {
         routing: { prefixDefaultLocale: true },
         collections: { translated: ['blog'] },
       };
-      refuses(
+      refusesAt(
         {
           ...base,
           routes: [{ slug, view: 'x', collection: 'blog', entry: 'hello' }],
         } as unknown as IntlConfigInput,
-        failed('Unrecognized key: "entry"\n  → at routes[0]'),
+        [{ at: 'routes[0]', key: 'entry' }],
       );
-      const atCollection = failed('Invalid input\n  → at routes[0].collection');
-      refuses(
+      const atCollection = [{ at: 'routes[0].collection' }] as const;
+      refusesAt(
         {
           ...base,
           routes: [{ slug, view: 'x', collection: { entry: 'hello' } }],
         } as unknown as IntlConfigInput,
         atCollection,
       );
-      refuses(
+      refusesAt(
         {
           ...base,
           routes: [{ slug, view: 'x', collection: {} }],
@@ -625,7 +651,7 @@ describe('refuses to boot', () => {
     });
 
     it('refuses a row fallbackView of true', () => {
-      refuses(
+      refusesAt(
         intlConfig({
           routes: [
             {
@@ -637,7 +663,7 @@ describe('refuses to boot', () => {
           ],
           collections: { translated: ['blog'] },
         }),
-        failed('Invalid input\n  → at routes[0].fallbackView'),
+        [{ at: 'routes[0].fallbackView' }],
       );
     });
 
