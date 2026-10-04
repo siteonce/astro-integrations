@@ -31,7 +31,7 @@
     "sharp": "0.35.5"
   },
   "scripts": {
-    "test": "node --test \"src/**/*.test.ts\"",
+    "test": "node --test --experimental-test-coverage --test-coverage-include=\"src/**\" --test-coverage-lines=64 --test-coverage-branches=73 --test-coverage-functions=43 \"src/**/*.test.ts\"",
     "typecheck": "tsc --noEmit"
   }
 }

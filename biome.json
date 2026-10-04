@@ -69,6 +69,26 @@
       "formatter": {
         "enabled": false
       }
+    },
+    {
+      "includes": ["packages/*/test/**"],
+      "linter": {
+        "rules": {
+          "style": {
+            "noRestrictedImports": {
+              "level": "error",
+              "options": {
+                "patterns": [
+                  {
+                    "group": ["**/src", "**/src/**"],
+                    "message": "A package test imports the package by name (e.g. @repo/astro-intl), never src/. See docs/agents/tests.md."
+                  }
+                ]
+              }
+            }
+          }
+        }
+      }
     }
   ]
 }
