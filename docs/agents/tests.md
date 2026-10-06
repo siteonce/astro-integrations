@@ -17,6 +17,26 @@ A table or map in source is already the contract. Do not restate it in a test.
 
 Each package's `test` script sets a coverage floor over `src/` (`--test-coverage-lines`, `-branches`, `-functions`), and the run fails below it. Raise a floor when coverage rises. Never lower one to make a change pass. Coverage shows what ran, not what a test checks.
 
+## Mutation testing
+
+Run it only when a human asks or approves, each time. A full `astro-intl` run takes about an hour.
+
+Stryker makes one small edit to `src/` at a time (a mutant) and runs the tests. A mutant that survives is a change no test noticed. `packages/astro-intl/stryker.config.json` holds the setup; reports land in `.scratch/stryker/`. From `packages/astro-intl`:
+
+```sh
+pnpm --package=@stryker-mutator/core --package=typescript@$(node -p "require('../../package.json').devDependencies.typescript") dlx stryker run
+```
+
+`--mutate src/path.ts` (or a range, `src/path.ts:8-12`) limits a run to one file. Ask first all the same.
+
+A survivor is evidence, not a task. Sort it before changing anything:
+
+- A behavior the product file promises and no test checks: add a test at the seam.
+- Code no input through the exports can observe: remove it ([deletion test](builders.md#small-read-surface)).
+- A change to message wording, or one that changes no behavior: leave it.
+
+The score is not a target. No `// Stryker disable` comments.
+
 Tests cover packages and reusable helpers. One-off starter files (pages, endpoints, head components) belong to the customer; `astro build` verifies them.
 
 Starter verification is `astro build` / `astro check`. Page and block templates are verified by that build.

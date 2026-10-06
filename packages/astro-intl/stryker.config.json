@@ -1,0 +1,11 @@
+{
+  "testRunner": "command",
+  "commandRunner": { "command": "node --test 'test/**/*.test.ts'" },
+  "mutate": ["src/**/*.ts"],
+  "reporters": ["clear-text", "progress-append-only", "json", "html"],
+  "jsonReporter": { "fileName": "../../.scratch/stryker/astro-intl.json" },
+  "htmlReporter": { "fileName": "../../.scratch/stryker/astro-intl.html" },
+  "clearTextReporter": { "allowColor": false, "logTests": false },
+  "timeoutMS": 30000,
+  "cleanTempDir": "always"
+}
