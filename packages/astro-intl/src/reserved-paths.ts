@@ -2,9 +2,11 @@ import { resolve } from 'node:path';
 import type { CompiledRoute } from './routing.ts';
 
 /**
- * Startup checks against resolved routes: a project file route shaped like an
- * injected route, a route that serves `/`, and whether a resolved route is one
- * this integration injected.
+ * Checks against resolved routes: a project file route shaped like an injected
+ * route, a route that serves `/`, and whether a resolved route is one this
+ * integration injected. Also finds the literal file routes that sit where a
+ * `[slug]` route publishes entries. Whether an entry publishes that slug is
+ * known only when collections load.
  */
 
 export type RouteLike = {
@@ -65,8 +67,9 @@ export function isIntlRoute(
 
 /**
  * A project file route shaped like an injected route. Less specific file
- * routes, such as `[locale]/[...path]`, are not hits. A literal file route on
- * an entry URL is not a hit: Astro serves that file.
+ * routes, such as `[locale]/[...path]`, are not hits. A literal file route
+ * under a `[slug]` route is not a hit here: `literalEntryRoutes` finds it, and
+ * the build refuses it when an entry publishes that slug.
  * A static route hits the file pattern `<tail>` or `<tail>/[...rest]`.
  * A `[param]` or another literal under that tail does not.
  * `file` is that file route's pattern.
@@ -131,4 +134,35 @@ function spreadCollides(
   const last = fileSegments[fileSegments.length - 1] ?? '';
   if (isRestParam(last)) return true;
   return listing && (/^\d+$/u.test(last) || isSingleParam(last));
+}
+
+/** A literal project file route under an injected `[slug]` route. `slug` is its last segment. */
+export type LiteralEntryRoute = {
+  file: string;
+  route: CompiledRoute;
+  slug: string;
+};
+
+/**
+ * Literal project file routes with the section of an injected entry route and one
+ * more segment. Astro ranks a literal segment above `[slug]`, so that file is
+ * served wherever the entry route would publish an entry with that slug.
+ */
+export function literalEntryRoutes(
+  fileRoutes: RouteLike[],
+  injected: CompiledRoute[],
+): LiteralEntryRoute[] {
+  const found: LiteralEntryRoute[] = [];
+  for (const projectRoute of fileRoutes) {
+    if (projectRoute.pattern.includes('[')) continue;
+    const fileSegments = segments(projectRoute.pattern);
+    for (const route of injected) {
+      if (route.kind !== 'entry') continue;
+      const section = segments(route.pattern).slice(0, -1);
+      if (fileSegments.length !== section.length + 1) continue;
+      if (!sameSegments(fileSegments.slice(0, -1), section)) continue;
+      found.push({ file: projectRoute.pattern, route, slug: fileSegments.at(-1) ?? '' });
+    }
+  }
+  return found;
 }

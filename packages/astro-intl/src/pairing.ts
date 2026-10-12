@@ -83,7 +83,8 @@ export function listingSelection(
   return source.filter((entry) => readString(entry.data, field) === locale);
 }
 
-function describeEntry(collection: string, entry: CollectionEntryLike): string {
+/** The entry's file path, or `<collection>:<id>` when the content source gives none. */
+export function describeEntry(collection: string, entry: CollectionEntryLike): string {
   return entry.filePath ?? `${collection}:${entry.id}`;
 }
 

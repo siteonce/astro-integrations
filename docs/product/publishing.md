@@ -10,7 +10,7 @@ Listing pages come from Astro’s `paginate()`. Intl rebuilds each page’s `pag
 
 A **section** is per locale. On a `{slug}` row the entry `slug` is the leaf after that section. A pathnames map or `routing: "manual"` is an explicit request, not the default.
 
-A file route shaped like an injected route aborts startup. A literal file route on an entry’s URL is served by Astro. The file route wins. `astro build` warns that the `[slug]` route conflicts with the higher-priority route, skips the entry’s page, and exits 0. `astro dev` serves the file route without a warning. The sitemap still lists the URL with the entry’s alternates. The siblings’ hreflang still point at that URL.
+A file route shaped like an injected route aborts startup. A literal file route on an entry’s URL fails the build. Astro would serve the file route there, while the sitemap and the siblings’ hreflang point at the entry. Intl learns entry slugs only when it loads collections, and the build’s data route is the load that knows the file routes. `astro dev` serves the file route without a check.
 
 ## Missing entry
 

@@ -2,8 +2,9 @@ import assert from 'node:assert/strict';
 import { mkdir, writeFile } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 import { describe, it, type TestContext } from 'node:test';
+import { pathToFileURL } from 'node:url';
 import { createIntl, createIntlSchema, defineIntl, slug } from '@repo/astro-intl';
-import { intlHooks } from '../astro.ts';
+import { intlHooks, resolvedRoute, siteRootRoute, stubAstroModules, writeViews } from '../astro.ts';
 import {
   type CollectionEntry,
   collectionEntry,
@@ -323,5 +324,77 @@ describe('a relation pairing id is missing, a translated target has no sibling i
     rejectsAt(localized(slug).safeParse({ en: 'Editor', fr: 'Rédacteur', de: 'Redakteur' }), [
       { path: [], key: 'de' },
     ]);
+  });
+});
+
+describe('a literal file route sits on an entry URL that a {slug} row publishes', () => {
+  /**
+   * Builds `blog/{slug}` (en) and `artikel/{slug}` (de), resolves these literal project
+   * file routes, then runs the build's data route. The stubbed `blog` collection holds
+   * `hello-world` in en and `hallo-welt` in de.
+   */
+  async function dataRoute(t: TestContext, files: readonly string[]) {
+    const hooks = await intlHooks(
+      t,
+      intlConfig({
+        routes: [
+          {
+            slug: { en: 'blog/{slug}', de: 'artikel/{slug}' },
+            collection: 'blog',
+            view: 'post',
+          },
+        ],
+        collections: { translated: ['blog'] },
+      }),
+    );
+    await writeViews(hooks.root, ['post']);
+    await hooks.setup({ command: 'build' });
+    await hooks.routesResolved([
+      ...files.map((pattern) =>
+        resolvedRoute({
+          entrypoint: join('src', 'pages', 'file.astro'),
+          pattern,
+          isPrerendered: true,
+          origin: 'project',
+        }),
+      ),
+      siteRootRoute(),
+    ]);
+    const data = hooks.injected.find((route) => route.pattern === '/_intl/sitemap-entries.json');
+    assert.ok(data);
+    return (await import(pathToFileURL(String(data.entrypoint)).href)) as {
+      GET(): Promise<{ text(): Promise<string> }>;
+    };
+  }
+
+  it('fails the build when a literal file route sits on an entry URL', async (t) => {
+    const route = await dataRoute(t, ['/de/artikel/hallo-welt']);
+    const astroModules = stubAstroModules();
+    try {
+      await assert.rejects(() => route.GET(), {
+        message:
+          '@repo/astro-intl: file route "/de/artikel/hallo-welt" shadows "/de/artikel/hallo-welt/", ' +
+          'the URL that entry blog:hello-de publishes in locale "de". Astro serves the file route there, ' +
+          "while the sitemap and the siblings' hreflang point at the entry. " +
+          "Remove or move the file route, or change the entry's slug.",
+      });
+    } finally {
+      astroModules.deregister();
+    }
+  });
+
+  it('builds when a literal file route sits on no entry URL', async (t) => {
+    // `hallo-welt` is the de slug. The en section publishes `hello-world` only.
+    const route = await dataRoute(t, ['/en/blog/hallo-welt', '/en/blog', '/de/hello-world']);
+    const astroModules = stubAstroModules();
+    try {
+      const response = await route.GET();
+      assert.deepEqual(
+        (JSON.parse(await response.text()) as { loc: string }[]).map((entry) => entry.loc),
+        ['https://example.com/de/artikel/hallo-welt', 'https://example.com/en/blog/hello-world'],
+      );
+    } finally {
+      astroModules.deregister();
+    }
   });
 });

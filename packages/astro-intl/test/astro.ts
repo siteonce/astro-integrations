@@ -1,5 +1,6 @@
 /**
- * Temp project directories, `astroIntl` hook runs, view files, and Astro's paginate.
+ * Temp project directories, `astroIntl` hook runs, view files, Astro's paginate,
+ * and stand-ins for `astro:content` and `astro:i18n`.
  * The hook runner records injected routes, config updates, injected types,
  * logger lines, and thrown errors.
  */
@@ -7,7 +8,7 @@
 import assert from 'node:assert/strict';
 import { mkdirSync } from 'node:fs';
 import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
-import { createRequire } from 'node:module';
+import { createRequire, registerHooks } from 'node:module';
 import { tmpdir } from 'node:os';
 import { dirname, join, sep } from 'node:path';
 import type { TestContext } from 'node:test';
@@ -241,6 +242,56 @@ export async function astroPaginate(
     options?.base ?? '/',
     options?.trailingSlash ?? 'always',
   );
+}
+
+/** A `data:` URL whose body is this JavaScript module source. */
+function moduleUrl(source: string): string {
+  return `data:text/javascript,${encodeURIComponent(source)}`;
+}
+
+/**
+ * The data route calls `createIntl` with no loaders, so collection and URL reads
+ * are Astro's `astro:content` and `astro:i18n`.
+ * `getCollection('blog')` returns one `en` entry and its `de` sibling.
+ * Locale URLs are `https://example.com/<locale>/<path>` and `/<locale>/<path>/`.
+ */
+export function stubAstroModules() {
+  const content = moduleUrl(
+    [
+      'const blog = [',
+      '  {',
+      '    id: "hello-en",',
+      '    collection: "blog",',
+      '    data: { id: "hello-world", locale: "en", slug: "hello-world" },',
+      '  },',
+      '  {',
+      '    id: "hello-de",',
+      '    collection: "blog",',
+      '    data: { id: "hello-world", locale: "de", slug: "hallo-welt" },',
+      '  },',
+      '];',
+      'export async function getCollection(name) {',
+      '  return name === "blog" ? blog : [];',
+      '}',
+    ].join('\n'),
+  );
+  const i18n = moduleUrl(
+    [
+      'export function getAbsoluteLocaleUrl(locale, path = "") {',
+      '  return "https://example.com/" + locale + (path ? "/" + path : "");',
+      '}',
+      'export function getRelativeLocaleUrl(locale, path = "") {',
+      '  return "/" + locale + (path ? "/" + path : "") + "/";',
+      '}',
+    ].join('\n'),
+  );
+  return registerHooks({
+    resolve(specifier, context, nextResolve) {
+      if (specifier === 'astro:content') return { url: content, shortCircuit: true };
+      if (specifier === 'astro:i18n') return { url: i18n, shortCircuit: true };
+      return nextResolve(specifier, context);
+    },
+  });
 }
 
 function recordingLogger(log: IntlLog[]): SetupParams['logger'] {

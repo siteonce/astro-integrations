@@ -21,6 +21,9 @@
  * `sitemap`: `{ customPages, serialize, filter }` bound to this config. During
  * `astro build`, a prerendered data route at `/_intl/sitemap-entries.json`
  * carries pairing to those options. `viewRendering` does not change it.
+ * `astro:routes:resolved` writes the literal project file routes under an
+ * entry route into that data route. It fails the build when one sits on an
+ * entry URL. `astro dev` has no data route and serves the file route.
  * `astro:build:done` reads that route's output, adds its URLs to `customPages`,
  * and deletes the output. `astro:config:done` injects a module augmentation so
  * `Locale` is this config's locale union and `entries` maps each collection name
@@ -39,7 +42,12 @@ import type { AstroIntegration } from 'astro';
 import { contentConfigRuntimeError } from './content-config-runtime.ts';
 import { type IntlConfig, type IntlConfigInput, parseIntlConfig } from './define-intl.ts';
 import { LOCALE_TYPES_FILENAME, localeTypeDeclaration } from './locale-types.ts';
-import { fileRouteCollision, isIntlRoute, servesSiteRoot } from './reserved-paths.ts';
+import {
+  fileRouteCollision,
+  isIntlRoute,
+  literalEntryRoutes,
+  servesSiteRoot,
+} from './reserved-paths.ts';
 import {
   type CompiledRoute,
   compileRoutes,
@@ -47,6 +55,7 @@ import {
   pageSlugClashMessage,
   viewEntrypoint,
 } from './routing.ts';
+import type { ShadowCandidate } from './shadowed-entries.ts';
 import { createSitemapOptions, type IntlSitemapOptions, SITEMAP_DATA_PATH } from './sitemap.ts';
 import { sitemapI18nIsSet } from './sitemap-i18n.ts';
 import { urlFormatMismatch } from './url-format.ts';
@@ -171,14 +180,26 @@ function createIntlModuleUrl(): string {
   return new URL('./create-intl.ts', import.meta.url).href;
 }
 
-function dataRouteSource(config: IntlConfigInput): string {
+function shadowedEntriesModuleUrl(): string {
+  return new URL('./shadowed-entries.ts', import.meta.url).href;
+}
+
+/**
+ * The data route loads collections, refuses a literal file route on an entry URL,
+ * and returns the sitemap entries. `candidates` come from `astro:routes:resolved`.
+ */
+function dataRouteSource(config: IntlConfigInput, candidates: readonly ShadowCandidate[]): string {
   return `import { createIntl } from ${JSON.stringify(createIntlModuleUrl())};
+import { refuseShadowedEntries } from ${JSON.stringify(shadowedEntriesModuleUrl())};
 
 const intl = createIntl(${JSON.stringify(config)});
+
+const shadowCandidates = ${JSON.stringify(candidates)};
 
 export const prerender = true;
 
 export async function GET() {
+  await refuseShadowedEntries(intl, shadowCandidates);
   return new Response(JSON.stringify(await intl.getSitemapEntries()));
 }
 `;
@@ -188,7 +209,7 @@ async function writeSitemapDataRoute(dir: URL, config: IntlConfigInput): Promise
   const directory = dir.href.endsWith('/') ? dir : new URL(`${dir.href}/`);
   await mkdir(fileURLToPath(directory), { recursive: true });
   const entrypointUrl = new URL('sitemap-entries.ts', directory);
-  await writeFile(entrypointUrl, dataRouteSource(config));
+  await writeFile(entrypointUrl, dataRouteSource(config, []));
   return fileURLToPath(entrypointUrl);
 }
 
@@ -208,6 +229,7 @@ export function astroIntl(
   let injected: CompiledRoute[] = [];
   let ownEntrypoints = new Set<string>();
   let dataRoutePatterns = new Set<string>();
+  let dataRouteFile: string | undefined;
   let fallbackEntrypoints = new Set<string>();
   let viewRendering: IntlConfig['viewRendering'];
 
@@ -234,6 +256,7 @@ export function astroIntl(
       }) => {
         sitemapOptions.setBase(config.base);
         dataRoutePatterns = new Set();
+        dataRouteFile = undefined;
         const mismatch = urlFormatMismatch(config.trailingSlash, config.build?.format);
         if (mismatch) logger.warn(mismatch);
 
@@ -315,6 +338,7 @@ export function astroIntl(
             });
             entrypoints.add(entrypoint);
             dataRoutePatterns.add(SITEMAP_DATA_PATH);
+            dataRouteFile = entrypoint;
           }
         } catch (error) {
           const message = error instanceof Error ? error.message : String(error);
@@ -356,7 +380,7 @@ export function astroIntl(
         logger.error(message);
         throw new Error(message);
       },
-      'astro:routes:resolved': ({ routes, logger }) => {
+      'astro:routes:resolved': async ({ routes, logger }) => {
         const injectedPatterns = new Set([
           ...injected.map((route) => route.pattern),
           ...dataRoutePatterns,
@@ -372,16 +396,25 @@ export function astroIntl(
             throw new Error(message);
           }
         }
-        const collision = fileRouteCollision(
-          routes.filter((route) => route.origin === 'project'),
-          injected,
-        );
+        const projectRoutes = routes.filter((route) => route.origin === 'project');
+        const collision = fileRouteCollision(projectRoutes, injected);
         if (collision) {
           const message =
             `@repo/astro-intl: file route "${collision.file}" collides with injected route ` +
             `"${collision.injected.pattern}" (view "${collision.injected.view}").`;
           logger.error(message);
           throw new Error(message);
+        }
+        if (dataRouteFile !== undefined) {
+          const candidates = literalEntryRoutes(projectRoutes, injected).flatMap(
+            ({ file, route, slug }): ShadowCandidate[] => {
+              // Startup refuses a `{slug}` row that names no collection.
+              const collection = intlConfig.routes?.[route.rowIndex]?.collection;
+              if (collection === undefined) return [];
+              return [{ file, pattern: route.pattern, locale: route.locale, collection, slug }];
+            },
+          );
+          await writeFile(dataRouteFile, dataRouteSource(input, candidates));
         }
         if (intlConfig.routing.prefixDefaultLocale) {
           const appRoutes = routes.filter(

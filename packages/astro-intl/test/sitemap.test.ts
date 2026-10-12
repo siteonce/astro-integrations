@@ -1,12 +1,11 @@
 import assert from 'node:assert/strict';
 import { existsSync } from 'node:fs';
 import { mkdir, writeFile } from 'node:fs/promises';
-import { registerHooks } from 'node:module';
 import { dirname, join } from 'node:path';
 import { describe, it } from 'node:test';
 import { pathToFileURL } from 'node:url';
 import type { SitemapEntry } from '@repo/astro-intl';
-import { type IntlHooks, intlHooks, nodeAdapter, writeViews } from './astro.ts';
+import { type IntlHooks, intlHooks, nodeAdapter, stubAstroModules, writeViews } from './astro.ts';
 import { intlConfig } from './fixtures.ts';
 
 const enLoc = 'https://example.com/en/blog/hello-world';
@@ -75,56 +74,6 @@ function page(url: string): SitemapPage {
 function sitemapOf(hooks: IntlHooks) {
   assert.ok(hooks.integration);
   return hooks.integration.sitemap;
-}
-
-/** A `data:` URL whose body is this JavaScript module source. */
-function moduleUrl(source: string): string {
-  return `data:text/javascript,${encodeURIComponent(source)}`;
-}
-
-/**
- * The data route calls `createIntl` with no loaders, so collection and URL reads
- * are Astro's `astro:content` and `astro:i18n`.
- * `getCollection('blog')` returns one `en` entry and its `de` sibling.
- * Locale URLs are `https://example.com/<locale>/<path>` and `/<locale>/<path>/`.
- */
-function stubAstroModules() {
-  const content = moduleUrl(
-    [
-      'const blog = [',
-      '  {',
-      '    id: "hello-en",',
-      '    collection: "blog",',
-      '    data: { id: "hello-world", locale: "en", slug: "hello-world" },',
-      '  },',
-      '  {',
-      '    id: "hello-de",',
-      '    collection: "blog",',
-      '    data: { id: "hello-world", locale: "de", slug: "hallo-welt" },',
-      '  },',
-      '];',
-      'export async function getCollection(name) {',
-      '  return name === "blog" ? blog : [];',
-      '}',
-    ].join('\n'),
-  );
-  const i18n = moduleUrl(
-    [
-      'export function getAbsoluteLocaleUrl(locale, path = "") {',
-      '  return "https://example.com/" + locale + (path ? "/" + path : "");',
-      '}',
-      'export function getRelativeLocaleUrl(locale, path = "") {',
-      '  return "/" + locale + (path ? "/" + path : "") + "/";',
-      '}',
-    ].join('\n'),
-  );
-  return registerHooks({
-    resolve(specifier, context, nextResolve) {
-      if (specifier === 'astro:content') return { url: content, shortCircuit: true };
-      if (specifier === 'astro:i18n') return { url: i18n, shortCircuit: true };
-      return nextResolve(specifier, context);
-    },
-  });
 }
 
 /** Writes `entries` as that build output, then runs `astro:build:done`. */

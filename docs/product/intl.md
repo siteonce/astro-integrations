@@ -199,6 +199,7 @@ Fail when intl loads collections, in the build and per request for an on-demand 
 - A name in `translated` or `untranslated` is not a content collection.
 - A **relation** points at a collection neither `collections.translated` nor `collections.untranslated` lists.
 - A **relation** pairing `id` is missing, the relation’s target entry is missing, or a `localized()` map has a missing or extra locale key.
+- A literal file route sits on an entry URL that a `{slug}` row publishes (`src/pages/blog/hello.astro` beside the entry `hello`). Only the build checks this. `astro dev` serves the file route.
 
 ## Today
 
