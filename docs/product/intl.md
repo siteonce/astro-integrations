@@ -8,7 +8,7 @@ What the starter doesn't show is shown in `packages/astro-intl/test/`, one file 
 
 Sit on Astro i18n. Enhance it.
 
-Astro already owns locale prefixing, `getRelativeLocaleUrl`, `Astro.currentLocale`, automatic routing, and content collections. Where Astro decides, intl does what Astro does: URL matching, trailing slashes, and route priority stay Astro's, and intl adds no rule of its own to them. Intl writes locale list and prefix policy into `defineConfig.i18n`. Callers use `astro:i18n` and `astro:content` under those names. Page code reads `locales` and `defaultLocale` through `src/utils/intl.ts`. That file re-exports them from `@repo/astro-intl/runtime`, which reads `astro:config/server`. Both are server-only. The content config cannot import either.
+Astro already owns locale prefixing, `getRelativeLocaleUrl`, `Astro.currentLocale`, automatic routing, and content collections. Where Astro decides, intl does what Astro does: URL matching, trailing slashes, and route priority stay Astro's. Intl never changes how Astro matches or orders routes. It refuses to run when that ordering would hide a URL intl publishes. Intl writes locale list and prefix policy into `defineConfig.i18n`. Callers use `astro:i18n` and `astro:content` under those names. Page code reads `locales` and `defaultLocale` through `src/utils/intl.ts`. That file re-exports them from `@repo/astro-intl/runtime`, which reads `astro:config/server`. Both are server-only. The content config cannot import either.
 
 The enhancement is what Astro does not own: **catalogs** (`t()`) and **pairing** entries across locales. A routed entry carries `id` (the same entry across locales), `locale` (which sibling this is), and a one-segment `slug`. The **section** in front of that segment is per locale and is not a field on the entry. The public tail comes from the route row. Folders, chrome, and the views are the app’s. Intl injects each view at the URLs its row publishes ([Routes](#routes)).
 
@@ -56,7 +56,7 @@ Intl loads each **translated** collection and pairs it on `(pairing id, locale)`
 
 Loading aborts when an entry of a **translated** collection has no `id` or no `locale`, or when an entry a `{slug}` row routes has a `slug` that is not one segment. Intl loads collections in the build, and per request for an on-demand view.
 
-Startup fails when a name repeats or sits in both lists, a `fields` key is not in `translated`, a route row names a collection outside `translated`, or a name in either list is not a content collection.
+Startup fails when a name repeats or sits in both lists, a `fields` key is not in `translated`, or a route row names a collection outside `translated`. Loading aborts when a name in either list is not a content collection.
 
 Pairing is on `id`. A `{slug}` row publishes one URL per entry: that locale’s **section** plus the one-segment **slug**. Naming an entry on that row publishes that entry alone. A **translated** collection named on a `{slug}` row is routed, and its entries need the **slug** field.
 
@@ -149,7 +149,7 @@ A **translated** target stores the pairing `id`. `getRelated(locale, relation)` 
 
 An **untranslated** target stores the collection entry id and ignores the locale passed to `getRelated`. Locale-free tables and inline locale maps are **untranslated**. A file collection sets that id from the filename. A CMS sets it from its document id.
 
-`getRelated` returns the entry unchanged, as `getCollection` would. The return type is the target collection's `CollectionEntry` through the injected types, so a call site passes no type argument. A `localized()` field stays a locale map. The caller reads it with `localizedValue(field, locale)` from `@repo/astro-intl`. `localizedValue` takes a configured locale and throws when that locale is missing.
+`getRelated` returns the entry unchanged, as `getCollection` would. The return type is the target collection's `CollectionEntry` through the injected types, so a call site passes no type argument. A `localized()` field stays a locale map. The caller reads it with `localizedValue(field, locale)`. `@repo/astro-intl` exports it, and app code imports it through `src/utils/intl.ts`. `localizedValue` takes a configured locale and throws when that locale is missing.
 
 Documents are paired entries (`id` + `locale` on each sibling). Inline locale maps are a lookup-target shape.
 
@@ -165,7 +165,6 @@ Fail at startup when:
 - The content config directly imports `@repo/astro-intl/runtime`. Read locales from the intl config.
 - `@astrojs/sitemap` is registered before intl.
 - The intl config holds a value JSON can't carry (a function, a `Date`, a `Map`), because intl writes the config into the sitemap data route as JSON. A key set to `undefined` is allowed.
-- A `(locale, path)` is duplicated.
 - A row names a view that has no file under `src/views/`, or that has both `<view>.astro` and `<view>/index.astro`.
 - The keys of one view per locale are not the configured locales.
 - A `view`, `pagination.view`, or `fallbackView` name ends in `.astro`, or has a segment that is empty, `.`, or `..`.
@@ -192,8 +191,12 @@ Fail at startup when:
 - A collection name repeats, or sits in both `translated` and `untranslated`.
 - A `fields` key is not in `translated`, or an `id`, `locale`, or `slug` name is empty.
 - A route row names a collection that is not in `translated`.
-- A name in `translated` or `untranslated` is not a content collection.
 - `relation()` names a collection neither `collections.translated` nor `collections.untranslated` lists.
+
+Fail when intl loads collections, in the build and per request for an on-demand view, when:
+
+- A `(locale, path)` is duplicated.
+- A name in `translated` or `untranslated` is not a content collection.
 - A **relation** points at a collection neither `collections.translated` nor `collections.untranslated` lists.
 - A **relation** pairing `id` is missing, the relation’s target entry is missing, or a `localized()` map has a missing or extra locale key.
 
@@ -206,5 +209,3 @@ The path helpers do not return a `cacheKey` yet.
 The starter keeps `'build'` and has no adapter.
 
 The starter keeps `blog/{page}` beside `blog/{slug}` on purpose. That is the clashing shape. It keeps the check and its workarounds exercised, so they do not rot. It is not the recommended setup for an on-demand site.
-
-Some URLs still exist without a config line that names them. A static row compiles to a hidden `[...index]` spread. Fallback routes are injected for every non-default locale without a row naming them. `viewRendering` is treated as `'build'` under `astro dev`.

@@ -38,4 +38,5 @@ The starter shows one setup by example. A package's tests show the rest: each ca
 | [`snapshot.md`](snapshot.md)     | What the customer copies and owns     |
 | [`intl.md`](intl.md)             | Translation on top of Astro           |
 | [`publishing.md`](publishing.md) | Who emits URLs, feeds, and robots     |
+| [`og.md`](og.md)                 | Open issues in Open Graph images      |
 | [`later.md`](later.md)           | Parked, and what this product refuses |

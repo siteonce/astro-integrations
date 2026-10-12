@@ -1,10 +1,10 @@
 # Publishing
 
-Who emits URLs. Intl joins entries and injects one route per row and locale. Each view lists its own URLs. Contract for joining and injection: [`intl.md`](intl.md).
+Who emits URLs. Intl joins entries and injects each row’s routes in each locale ([Routes](intl.md#routes)). Each view lists its own URLs. Contract for joining and injection: [`intl.md`](intl.md).
 
 ## Content URLs
 
-There is no catch-all. A view is a full Astro page. Its `getStaticPaths` returns intl’s helper for its route: one path per URL that locale publishes, including each numbered listing page. A locale that does not publish a row’s tail gets no page: no file in the build, a 404 in dev.
+There is no catch-all page that routes every content URL. Each row gets its own injected routes. A spread in an injected route (`[...index]`, `[...page]`) exists only so Astro calls the view’s `getStaticPaths`. It publishes only its empty value, and a deeper URL answers 404. A view is a full Astro page. Its `getStaticPaths` returns intl’s helper for its route: one path per URL that locale publishes, including each numbered listing page. A locale that does not publish a row’s tail gets no page: no file in the build, a 404 in dev.
 
 Listing pages come from Astro’s `paginate()`. Intl rebuilds each page’s `page.url` through `astro:i18n`, so pager links match every other link.
 
