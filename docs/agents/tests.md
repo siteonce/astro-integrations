@@ -15,6 +15,11 @@ Expected values are literals or worked examples, never computed the way the code
 
 A table or map in source is already the contract. Do not restate it in a test.
 
+## Tests the code can't bend
+
+- Tests for new behavior come first, in their own step, failing. The step that makes them pass does not edit them. When an agent implements against tests another step wrote, `test/` is read-only for it through a permission rule, not an instruction.
+- An expected value changes only with the product file. A change that edits an expected value or drops an assertion, without a matching `docs/product/` change, is wrong. The report lists each test change beside the product line it follows.
+
 Each package's `test` script sets a coverage floor over `src/` (`--test-coverage-lines`, `-branches`, `-functions`), and the run fails below it. Raise a floor when coverage rises. Never lower one to make a change pass. Coverage shows what ran, not what a test checks.
 
 ## Mutation testing

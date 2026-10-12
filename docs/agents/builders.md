@@ -66,3 +66,13 @@ The read surface is what an agent must read to predict what code does.
 - Dead code, unreachable checks, unused exports, and stale comments read as rules. An agent preserves them, copies them, and writes tests for them.
 - Delete them, unless a human asked to keep them; then mark them as kept for reference (see [One way per job](#one-way-per-job)). A check that config validation already guarantees is a duplicate; keep the one at the boundary.
 - Check: if deleting it changes no build, test, or output, it is not a rule.
+
+## Deciding a gap
+
+When the code does something the product file doesn't state, or needs a behavior it doesn't state, the agent decides:
+
+1. Read the owning product file's exact words. A narrow sentence already decides what it leaves out.
+2. Apply [`errors.md`](errors.md), [`docs/product/index.md`](../product/index.md) (No boxing in; Refuse, don't repair; Tests document behavior), and the owning file's own rules.
+3. Write the answer into the product file together with its test, and list it in the report so a human can confirm or reverse it.
+
+Ask a human first only when those rules conflict, or when the answer adds or removes a capability or a public URL.

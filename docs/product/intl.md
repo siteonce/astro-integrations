@@ -8,7 +8,7 @@ What the starter doesn't show is shown in `packages/astro-intl/test/`, one file 
 
 Sit on Astro i18n. Enhance it.
 
-Astro already owns locale prefixing, `getRelativeLocaleUrl`, `Astro.currentLocale`, automatic routing, and content collections. Intl writes locale list and prefix policy into `defineConfig.i18n`. Callers use `astro:i18n` and `astro:content` under those names. Page code reads `locales` and `defaultLocale` through `src/utils/intl.ts`. That file re-exports them from `@repo/astro-intl/runtime`, which reads `astro:config/server`. Both are server-only. The content config cannot import either.
+Astro already owns locale prefixing, `getRelativeLocaleUrl`, `Astro.currentLocale`, automatic routing, and content collections. Where Astro decides, intl does what Astro does: URL matching, trailing slashes, and route priority stay Astro's, and intl adds no rule of its own to them. Intl writes locale list and prefix policy into `defineConfig.i18n`. Callers use `astro:i18n` and `astro:content` under those names. Page code reads `locales` and `defaultLocale` through `src/utils/intl.ts`. That file re-exports them from `@repo/astro-intl/runtime`, which reads `astro:config/server`. Both are server-only. The content config cannot import either.
 
 The enhancement is what Astro does not own: **catalogs** (`t()`) and **pairing** entries across locales. A routed entry carries `id` (the same entry across locales), `locale` (which sibling this is), and a one-segment `slug`. The **section** in front of that segment is per locale and is not a field on the entry. The public tail comes from the route row. Folders, chrome, and the views are the app’s. Intl injects each view at the URLs its row publishes ([Routes](#routes)).
 
