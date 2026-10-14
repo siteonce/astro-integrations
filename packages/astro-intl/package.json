@@ -25,7 +25,7 @@
     "astro": "7.3.5"
   },
   "scripts": {
-    "test": "node --test --experimental-test-coverage --test-coverage-include='src/**' --test-coverage-lines=97 --test-coverage-branches=90 --test-coverage-functions=99 'test/**/*.test.ts'",
+    "test": "node --test --experimental-test-coverage --test-coverage-include='src/**' --test-coverage-lines=99 --test-coverage-branches=95 --test-coverage-functions=100 'test/**/*.test.ts'",
     "typecheck": "tsc --noEmit"
   }
 }

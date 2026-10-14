@@ -4,31 +4,6 @@ import { defineIntl } from '@repo/astro-intl';
 import { intlHooks } from './astro.ts';
 import { intlConfig } from './fixtures.ts';
 
-const localeUnion = `declare module '@repo/astro-intl' {
-  interface IntlRegister {
-    locale: "en" | "de";
-  }
-}
-export {};
-`;
-
-const collectionEntries = `declare module '@repo/astro-intl' {
-  interface IntlRegister {
-    locale: "en" | "de";
-    entries: { [C in "posts" | "sources"]: import('astro:content').CollectionEntry<C> };
-  }
-}
-export {};
-`;
-
-const escapedLocale = `declare module '@repo/astro-intl' {
-  interface IntlRegister {
-    locale: "en" | "a\\"b";
-  }
-}
-export {};
-`;
-
 describe('sit on Astro i18n', () => {
   it('writes an omitted prefixDefaultLocale as false', async (t) => {
     const omittedRouting = await intlHooks(
@@ -103,7 +78,18 @@ describe('sit on Astro i18n', () => {
   it('injects the locale union and omits entries when no collection is named', async (t) => {
     const hooks = await intlHooks(t, defineIntl({ locales: ['en', 'de'], defaultLocale: 'en' }));
     await hooks.configDone();
-    assert.deepEqual(hooks.types, [{ filename: 'intl-locales.d.ts', content: localeUnion }]);
+    assert.deepEqual(hooks.types, [
+      {
+        filename: 'intl-locales.d.ts',
+        content: `declare module '@repo/astro-intl' {
+  interface IntlRegister {
+    locale: "en" | "de";
+  }
+}
+export {};
+`,
+      },
+    ]);
   });
 
   it('injects a CollectionEntry for each named collection', async (t) => {
@@ -116,12 +102,35 @@ describe('sit on Astro i18n', () => {
       }),
     );
     await hooks.configDone();
-    assert.deepEqual(hooks.types, [{ filename: 'intl-locales.d.ts', content: collectionEntries }]);
+    assert.deepEqual(hooks.types, [
+      {
+        filename: 'intl-locales.d.ts',
+        content: `declare module '@repo/astro-intl' {
+  interface IntlRegister {
+    locale: "en" | "de";
+    entries: { [C in "posts" | "sources"]: import('astro:content').CollectionEntry<C> };
+  }
+}
+export {};
+`,
+      },
+    ]);
   });
 
-  it('escapes a quote in an injected locale literal', async (t) => {
+  it('injects a locale that contains a quote', async (t) => {
     const hooks = await intlHooks(t, defineIntl({ locales: ['en', 'a"b'], defaultLocale: 'en' }));
     await hooks.configDone();
-    assert.deepEqual(hooks.types, [{ filename: 'intl-locales.d.ts', content: escapedLocale }]);
+    assert.deepEqual(hooks.types, [
+      {
+        filename: 'intl-locales.d.ts',
+        content: `declare module '@repo/astro-intl' {
+  interface IntlRegister {
+    locale: "en" | "a\\"b";
+  }
+}
+export {};
+`,
+      },
+    ]);
   });
 });

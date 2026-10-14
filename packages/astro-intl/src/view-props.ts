@@ -75,11 +75,9 @@ function paginateRequest<T>(data: readonly T[], args: PaginateArgs = {}) {
 
 export const requestPaginate = paginateRequest as PaginateFunction;
 
-/** One trailing slash is ignored. `/` stays `/`. `undefined` and `''` are the same. */
+/** `undefined` and `''` are the same param. */
 function paramValue(value: string | undefined): string {
-  if (value === undefined || value === '') return '';
-  if (value.length > 1 && value.endsWith('/')) return value.slice(0, -1);
-  return value;
+  return value ?? '';
 }
 
 function sameParams(pathParams: Params, requestParams: Params): boolean {

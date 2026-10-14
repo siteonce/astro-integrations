@@ -2,27 +2,40 @@ import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 import { createIntl } from '@repo/astro-intl';
 import { inject, injectedViews } from '../astro.ts';
-import {
-  blogEntries,
-  blogRoutes,
-  collectionEntry,
-  collectionLoaders,
-  intlConfig,
-  relativeLocaleUrl,
-} from '../fixtures.ts';
+import { collectionEntry, collectionLoaders, intlConfig, relativeLocaleUrl } from '../fixtures.ts';
 
 type UrlCall = { locale: string; path: string | undefined };
 
-/** Blog rows name a fallback view. `solo` is the default-locale entry with no German sibling. */
+/**
+ * `{slug}` is `blog` / `artikel`, fallback view `missing`.
+ * `alpha` is translated: en slug `alpha`, de slug `anders`.
+ * `solo` is the default-locale entry with no German sibling.
+ * `clash` is English slug `mehr`. German `mehr` already publishes `artikel/mehr`.
+ */
 function missingIntl(calls?: UrlCall[]) {
   return createIntl(
     intlConfig({
-      routes: blogRoutes(),
+      routes: [
+        {
+          slug: { en: 'blog/{slug}', de: 'artikel/{slug}' },
+          view: 'post',
+          collection: 'blog',
+          fallbackView: 'missing',
+        },
+      ],
       collections: { translated: ['blog'] },
     }),
     {
       loaders: collectionLoaders(
-        { blog: blogEntries() },
+        {
+          blog: [
+            collectionEntry('blog', 'alpha-en', { id: 'alpha', locale: 'en', slug: 'alpha' }),
+            collectionEntry('blog', 'alpha-de', { id: 'alpha', locale: 'de', slug: 'anders' }),
+            collectionEntry('blog', 'solo-en', { id: 'solo', locale: 'en', slug: 'solo' }),
+            collectionEntry('blog', 'clash-en', { id: 'clash', locale: 'en', slug: 'mehr' }),
+            collectionEntry('blog', 'mehr-de', { id: 'mehr', locale: 'de', slug: 'mehr' }),
+          ],
+        },
         calls === undefined
           ? undefined
           : {

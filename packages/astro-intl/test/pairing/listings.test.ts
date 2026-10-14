@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 import { createIntl } from '@repo/astro-intl';
-import { byDate, byFlag, byText, sortBy } from '@repo/astro-intl/sorting';
+import { byDate, byFlag, byNumber, byText, sortBy } from '@repo/astro-intl/sorting';
 import { astroPaginate } from '../astro.ts';
 import {
   type CollectionEntry,
@@ -14,14 +14,18 @@ import {
 
 type Routes = NonNullable<IntlConfigInput['routes']>;
 
-/** `post-0` is the pairing id in every locale. The slug stays locale-specific (`en-0`, `de-0`). */
-function entries(locale: string, total: number): CollectionEntry[] {
-  return Array.from({ length: total }, (_, index) => {
+/**
+ * `count` blog entries in `locale`, in index order.
+ * Index 0 is pairing id `post-0`, Astro id `post-0-${locale}`, slug `${locale}-0`.
+ */
+function entries(locale: string, count: number): CollectionEntry[] {
+  return Array.from({ length: count }, (_, index) => {
     const id = `post-${index}`;
     return collectionEntry('blog', `${id}-${locale}`, { id, locale, slug: `${locale}-${index}` });
   });
 }
 
+/** Intl for the blog collection and these routes. `routing` replaces the default when passed. */
 function blogIntl(
   routes: Routes,
   posts: readonly CollectionEntry[],
@@ -39,7 +43,7 @@ function blogIntl(
 
 type BlogIntl = ReturnType<typeof blogIntl>;
 
-/** Page-1 route, then the `{page}` route. Paths are the tails that route publishes. */
+/** Tails from the page-1 route, then the `{page}` route. `first` and `rest` are those patterns. */
 async function listingTails(intl: BlogIntl, first: string, rest: string): Promise<string[]> {
   const pageOne = await intl.listingPaths(
     first,
@@ -51,13 +55,33 @@ async function listingTails(intl: BlogIntl, first: string, rest: string): Promis
   return [...pageOne.map((row) => row.props.path), ...later.map((row) => row.props.path)];
 }
 
-const postRow = {
-  slug: { en: 'blog/{slug}', de: 'artikel/{slug}' },
-  view: 'post',
-  collection: 'blog',
-} as const;
+describe('listings', () => {
+  it('omits pagination and publishes the one written tail', async () => {
+    const intl = blogIntl(
+      [{ slug: { en: 'blog', de: 'artikel' }, view: 'index', collection: 'blog' }],
+      entries('en', 2),
+    );
 
-describe('pairing', () => {
+    assert.deepEqual(
+      (await intl.staticPaths('/en/blog/[...index]')).map((row) => ({
+        path: row.props.path,
+        entry: row.props.entry,
+      })),
+      [{ path: 'blog', entry: undefined }],
+    );
+    assert.deepEqual(
+      (await intl.staticPaths('/de/artikel/[...index]')).map((row) => ({
+        path: row.props.path,
+        entry: row.props.entry,
+      })),
+      [{ path: 'artikel', entry: undefined }],
+    );
+    assert.deepEqual(await intl.getPairedSlugs(), [
+      { locale: 'de', slug: 'artikel' },
+      { locale: 'en', slug: 'blog' },
+    ]);
+  });
+
   it('keeps page 1 on the page-1 tail and replaces {page} after that', async () => {
     const intl = blogIntl(
       [
@@ -66,22 +90,21 @@ describe('pairing', () => {
           view: 'index',
           collection: 'blog',
           pagination: {
-            pageSize: 10,
+            pageSize: 1,
             slug: { en: 'blog/page/{page}', de: 'artikel/seite/{page}' },
           },
         },
       ],
-      [...entries('en', 25), ...entries('de', 25)],
+      [...entries('en', 2), ...entries('de', 2)],
     );
 
     assert.deepEqual(await listingTails(intl, '/en/blog/[...page]', '/en/blog/page/[page]'), [
       'blog',
       'blog/page/2',
-      'blog/page/3',
     ]);
     assert.deepEqual(
       await listingTails(intl, '/de/artikel/[...page]', '/de/artikel/seite/[page]'),
-      ['artikel', 'artikel/seite/2', 'artikel/seite/3'],
+      ['artikel', 'artikel/seite/2'],
     );
   });
 
@@ -95,12 +118,12 @@ describe('pairing', () => {
           pagination: { pageSize: 1, slug: { en: '{page}', de: '{page}' } },
         },
       ],
-      entries('en', 2),
+      [...entries('en', 2), ...entries('de', 2)],
       { prefixDefaultLocale: false },
     );
 
     assert.deepEqual(await listingTails(intl, '/[...page]', '/[page]'), ['/', '2']);
-    assert.deepEqual(await listingTails(intl, '/de/[...page]', '/de/[page]'), ['/']);
+    assert.deepEqual(await listingTails(intl, '/de/[...page]', '/de/[page]'), ['/', '2']);
   });
 
   it('publishes three pages for twenty-five entries and two for twelve at page size 10', async () => {
@@ -119,6 +142,29 @@ describe('pairing', () => {
       [...entries('en', 25), ...entries('de', 12)],
     );
 
+    assert.deepEqual(await listingTails(intl, '/en/blog/[...page]', '/en/blog/[page]'), [
+      'blog',
+      'blog/2',
+      'blog/3',
+    ]);
+    assert.deepEqual(
+      await listingTails(intl, '/de/artikel/[...page]', '/de/artikel/seite/[page]'),
+      ['artikel', 'artikel/seite/2'],
+    );
+  });
+
+  it('fills each chunk with pageSize entries', async () => {
+    const intl = blogIntl(
+      [
+        {
+          slug: { en: 'blog', de: 'artikel' },
+          view: 'index',
+          collection: 'blog',
+          pagination: { pageSize: 2, slug: { en: 'blog/{page}', de: 'artikel/{page}' } },
+        },
+      ],
+      entries('en', 5),
+    );
     const first = await intl.listingPaths(
       '/en/blog/[...page]',
       'blog',
@@ -131,44 +177,15 @@ describe('pairing', () => {
       await astroPaginate('page'),
       keepOrder(),
     );
-    assert.deepEqual(
-      [...first, ...later].map((row) => row.props.path),
-      ['blog', 'blog/2', 'blog/3'],
-    );
-    assert.deepEqual(
-      first[0]?.props.page.data.map((entry) => entry.data.slug),
-      ['en-0', 'en-1', 'en-2', 'en-3', 'en-4', 'en-5', 'en-6', 'en-7', 'en-8', 'en-9'],
-    );
-    assert.deepEqual(
-      later[1]?.props.page.data.map((entry) => entry.data.slug),
-      ['en-20', 'en-21', 'en-22', 'en-23', 'en-24'],
-    );
-    assert.deepEqual(
-      await listingTails(intl, '/de/artikel/[...page]', '/de/artikel/seite/[page]'),
-      ['artikel', 'artikel/seite/2'],
-    );
 
-    assert.deepEqual(await intl.getPairedSlugs(), [
-      { locale: 'de', slug: 'artikel' },
-      { locale: 'de', slug: 'artikel/seite/2' },
-      { locale: 'en', slug: 'blog' },
-      { locale: 'en', slug: 'blog/2' },
-      { locale: 'en', slug: 'blog/3' },
-    ]);
-    assert.deepEqual(await intl.getAlternatePathsForPath('en', 'blog/2'), {
-      en: 'blog/2',
-      de: 'artikel/seite/2',
-    });
-    assert.deepEqual(await intl.getAlternatePathsForPath('en', 'blog/3'), { en: 'blog/3' });
-    assert.equal(await intl.getContentByPath('en', 'blog/2'), undefined);
-    const page3 = (await intl.getSitemapEntries()).find((item) => item.path === 'blog/3');
-    assert.deepEqual(page3, {
-      locale: 'en',
-      path: 'blog/3',
-      loc: 'https://example.com/en/blog/3',
-      alternates: { en: 'https://example.com/en/blog/3' },
-      xDefault: 'https://example.com/en/blog/3',
-    });
+    // Five entries fill three pages of two, so the last page holds en-4.
+    assert.deepEqual(
+      [
+        first[0]?.props.page.data.map((entry) => entry.data.slug),
+        ...later.map((row) => row.props.page.data.map((entry) => entry.data.slug)),
+      ],
+      [['en-0', 'en-1'], ['en-2', 'en-3'], ['en-4']],
+    );
   });
 
   it('publishes one page when ten entries fill a page of ten', async () => {
@@ -247,12 +264,91 @@ describe('pairing', () => {
     ]);
   });
 
+  it('gives a listing page the locales that publish that page', async () => {
+    const intl = blogIntl(
+      [
+        {
+          slug: { en: 'blog', de: 'artikel' },
+          view: 'index',
+          collection: 'blog',
+          pagination: { pageSize: 1, slug: { en: 'blog/{page}', de: 'artikel/{page}' } },
+        },
+      ],
+      [...entries('en', 2), ...entries('de', 1)],
+    );
+
+    assert.deepEqual(await intl.getAlternatePathsForPath('en', 'blog'), {
+      en: 'blog',
+      de: 'artikel',
+    });
+    assert.deepEqual(await intl.getAlternatePathsForPath('en', 'blog/2'), { en: 'blog/2' });
+  });
+
+  it('lists a listing page in the sitemap', async () => {
+    const intl = blogIntl(
+      [
+        {
+          slug: { en: 'blog', de: 'artikel' },
+          view: 'index',
+          collection: 'blog',
+          pagination: { pageSize: 1, slug: { en: 'blog/{page}', de: 'artikel/{page}' } },
+        },
+      ],
+      [...entries('en', 2), ...entries('de', 1)],
+    );
+    const shared = {
+      de: 'https://example.com/de/artikel',
+      en: 'https://example.com/en/blog',
+    };
+
+    assert.deepEqual(await intl.getSitemapEntries(), [
+      {
+        locale: 'de',
+        path: 'artikel',
+        loc: shared.de,
+        alternates: shared,
+        xDefault: shared.en,
+      },
+      {
+        locale: 'en',
+        path: 'blog',
+        loc: shared.en,
+        alternates: shared,
+        xDefault: shared.en,
+      },
+      {
+        locale: 'en',
+        path: 'blog/2',
+        loc: 'https://example.com/en/blog/2',
+        alternates: { en: 'https://example.com/en/blog/2' },
+        xDefault: 'https://example.com/en/blog/2',
+      },
+    ]);
+  });
+
+  it('finds no entry on a listing page', async () => {
+    const intl = blogIntl(
+      [
+        {
+          slug: { en: 'blog', de: 'artikel' },
+          view: 'index',
+          collection: 'blog',
+          pagination: { pageSize: 1, slug: { en: 'blog/{page}', de: 'artikel/{page}' } },
+        },
+      ],
+      entries('en', 2),
+    );
+
+    assert.equal(await intl.getContentByPath('en', 'blog'), undefined);
+    assert.equal(await intl.getContentByPath('en', 'blog/2'), undefined);
+  });
+
   it('publishes a literal page-1 tail and leaves the unnumbered tail free', async () => {
     const pageOne = { en: 'blog/1', de: 'artikel/1' };
-    const pagination = { pageSize: 10, slug: { en: 'blog/{page}', de: 'artikel/{page}' } };
-    const posts = entries('en', 12);
+    const pagination = { pageSize: 1, slug: { en: 'blog/{page}', de: 'artikel/{page}' } };
+    const posts = entries('en', 2);
     const alone = blogIntl(
-      [{ slug: pageOne, view: 'index', collection: 'blog', pagination }, postRow],
+      [{ slug: pageOne, view: 'index', collection: 'blog', pagination }],
       posts,
     );
 
@@ -268,7 +364,6 @@ describe('pairing', () => {
       [
         { slug: pageOne, view: 'index', collection: 'blog', pagination },
         { slug: { en: 'blog', de: 'artikel' }, view: 'index' },
-        postRow,
       ],
       posts,
     );
@@ -276,131 +371,48 @@ describe('pairing', () => {
       'blog/1',
       'blog/2',
     ]);
-    const blog = await withStatic.staticPaths('/en/blog/[...index]');
-    const artikel = await withStatic.staticPaths('/de/artikel/[...index]');
     assert.deepEqual(
-      blog.map((row) => ({ path: row.props.path, entry: row.props.entry })),
+      (await withStatic.staticPaths('/en/blog/[...index]')).map((row) => ({
+        path: row.props.path,
+        entry: row.props.entry,
+      })),
       [{ path: 'blog', entry: undefined }],
     );
     assert.deepEqual(
-      artikel.map((row) => ({ path: row.props.path, entry: row.props.entry })),
+      (await withStatic.staticPaths('/de/artikel/[...index]')).map((row) => ({
+        path: row.props.path,
+        entry: row.props.entry,
+      })),
       [{ path: 'artikel', entry: undefined }],
     );
-    assert.equal(await withStatic.getContentByPath('en', 'blog/1'), undefined);
-    const slugs = await withStatic.getPairedSlugs();
-    assert.deepEqual(
-      slugs.filter((item) =>
-        ['blog', 'blog/1', 'blog/2', 'artikel', 'artikel/1'].includes(item.slug),
-      ),
-      [
-        { locale: 'de', slug: 'artikel' },
-        { locale: 'de', slug: 'artikel/1' },
-        { locale: 'en', slug: 'blog' },
-        { locale: 'en', slug: 'blog/1' },
-        { locale: 'en', slug: 'blog/2' },
-      ],
-    );
-  });
-
-  it('counts every entry in that locale toward listing pages', async () => {
-    const posts: CollectionEntry[] = [];
-    for (let index = 0; index < 15; index += 1) {
-      const id = `pub-${index}`;
-      posts.push(collectionEntry('blog', id, { id, locale: 'en', slug: id, status: 'published' }));
-    }
-    for (let index = 0; index < 10; index += 1) {
-      const id = `draft-${index}`;
-      posts.push(collectionEntry('blog', id, { id, locale: 'en', slug: id, status: 'draft' }));
-    }
-    posts.push(
-      collectionEntry('blog', 'de-only', {
-        id: 'de-only',
-        locale: 'de',
-        slug: 'de-only',
-        status: 'published',
-      }),
-    );
-    const intl = blogIntl(
-      [
-        {
-          slug: { en: 'blog', de: 'artikel' },
-          view: 'index',
-          collection: 'blog',
-          pagination: { pageSize: 10, slug: { en: 'blog/{page}', de: 'artikel/{page}' } },
-        },
-        postRow,
-      ],
-      posts,
-    );
-
-    const later = await intl.listingPaths(
-      '/en/blog/[page]',
-      'blog',
-      await astroPaginate('page'),
-      keepOrder(),
-    );
-    assert.deepEqual(await listingTails(intl, '/en/blog/[...page]', '/en/blog/[page]'), [
-      'blog',
-      'blog/2',
-      'blog/3',
+    assert.deepEqual(await withStatic.getPairedSlugs(), [
+      { locale: 'de', slug: 'artikel' },
+      { locale: 'de', slug: 'artikel/1' },
+      { locale: 'en', slug: 'blog' },
+      { locale: 'en', slug: 'blog/1' },
+      { locale: 'en', slug: 'blog/2' },
     ]);
-    assert.deepEqual(
-      later[1]?.props.page.data.map((entry) => entry.data.slug),
-      ['draft-5', 'draft-6', 'draft-7', 'draft-8', 'draft-9'],
-    );
-    assert.equal((await intl.getContentByPath('en', 'blog/draft-0'))?.data.status, 'draft');
-    assert.deepEqual(await listingTails(intl, '/de/artikel/[...page]', '/de/artikel/[page]'), [
-      'artikel',
-    ]);
-    assert.equal((await intl.getContentByPath('de', 'artikel/de-only'))?.data.id, 'de-only');
-  });
-
-  it('omits pagination and publishes the one written tail', async () => {
-    const intl = blogIntl(
-      [{ slug: { en: 'blog', de: 'artikel' }, view: 'index', collection: 'blog' }, postRow],
-      entries('en', 25),
-    );
-
-    const blog = await intl.staticPaths('/en/blog/[...index]');
-    const artikel = await intl.staticPaths('/de/artikel/[...index]');
-    assert.deepEqual(
-      blog.map((row) => ({ path: row.props.path, entry: row.props.entry })),
-      [{ path: 'blog', entry: undefined }],
-    );
-    assert.deepEqual(
-      artikel.map((row) => ({ path: row.props.path, entry: row.props.entry })),
-      [{ path: 'artikel', entry: undefined }],
-    );
-    const slugs = await intl.getPairedSlugs();
-    assert.deepEqual(
-      slugs.filter((item) => ['blog', 'artikel', 'blog/2', 'artikel/2'].includes(item.slug)),
-      [
-        { locale: 'de', slug: 'artikel' },
-        { locale: 'en', slug: 'blog' },
-      ],
-    );
   });
 
   it('aborts the build when an entry slug matches a published page number', async () => {
-    const posts = [
-      collectionEntry('blog', 'page-number', { id: 'page-number', locale: 'en', slug: '2' }),
-      ...entries('en', 10),
-    ];
     const intl = blogIntl(
       [
         {
           slug: { en: 'blog', de: 'artikel' },
           view: 'index',
           collection: 'blog',
-          pagination: { pageSize: 10, slug: { en: 'blog/{page}', de: 'artikel/{page}' } },
+          pagination: { pageSize: 1, slug: { en: 'blog/{page}', de: 'artikel/{page}' } },
         },
-        postRow,
+        { slug: { en: 'blog/{slug}', de: 'artikel/{slug}' }, view: 'post', collection: 'blog' },
       ],
-      posts,
+      [
+        collectionEntry('blog', 'page-number', { id: 'page-number', locale: 'en', slug: '2' }),
+        collectionEntry('blog', 'hello', { id: 'hello', locale: 'en', slug: 'hello' }),
+      ],
     );
     const paginate = await astroPaginate('...page');
 
-    // Eleven entries fill two pages of ten, so the listing publishes blog/2.
+    // Two entries fill two pages of one, so the listing publishes blog/2.
     await assert.rejects(
       () => intl.listingPaths('/en/blog/[...page]', 'blog', paginate, keepOrder()),
       (error: unknown) => {
@@ -415,6 +427,11 @@ describe('pairing', () => {
   });
 
   it('keeps a numeric slug when {page} uses another section', async () => {
+    const pageNumber = collectionEntry('blog', 'page-number', {
+      id: 'page-number',
+      locale: 'en',
+      slug: '2',
+    });
     const intl = blogIntl(
       [
         {
@@ -422,33 +439,47 @@ describe('pairing', () => {
           view: 'index',
           collection: 'blog',
           pagination: {
-            pageSize: 10,
+            pageSize: 1,
             slug: { en: 'blog/page/{page}', de: 'artikel/seite/{page}' },
           },
         },
-        postRow,
+        { slug: { en: 'blog/{slug}', de: 'artikel/{slug}' }, view: 'post', collection: 'blog' },
       ],
-      [
-        collectionEntry('blog', 'page-number', { id: 'page-number', locale: 'en', slug: '2' }),
-        ...entries('en', 10),
-      ],
+      [pageNumber, collectionEntry('blog', 'hello', { id: 'hello', locale: 'en', slug: 'hello' })],
     );
 
     assert.deepEqual(await listingTails(intl, '/en/blog/[...page]', '/en/blog/page/[page]'), [
       'blog',
       'blog/page/2',
     ]);
-    assert.equal((await intl.getContentByPath('en', 'blog/2'))?.data.id, 'page-number');
+    assert.equal(await intl.getContentByPath('en', 'blog/2'), pageNumber);
     assert.equal(await intl.getContentByPath('en', 'blog/page/2'), undefined);
-    const sitemap = await intl.getSitemapEntries();
-    const entry = sitemap.find((item) => item.path === 'blog/2');
-    const page = sitemap.find((item) => item.path === 'blog/page/2');
-    assert.equal(entry?.entryId, 'blog/page-number');
-    assert.equal(page?.entryId, undefined);
-    assert.equal(page?.path, 'blog/page/2');
+    assert.deepEqual(
+      (await intl.getSitemapEntries()).filter(
+        (item) => item.path === 'blog/2' || item.path === 'blog/page/2',
+      ),
+      [
+        {
+          locale: 'en',
+          path: 'blog/2',
+          loc: 'https://example.com/en/blog/2',
+          alternates: { en: 'https://example.com/en/blog/2' },
+          xDefault: 'https://example.com/en/blog/2',
+          entryId: 'blog/page-number',
+        },
+        {
+          locale: 'en',
+          path: 'blog/page/2',
+          loc: 'https://example.com/en/blog/page/2',
+          alternates: { en: 'https://example.com/en/blog/page/2' },
+          xDefault: 'https://example.com/en/blog/page/2',
+        },
+      ],
+    );
   });
 
   it('keeps a numeric slug when that page number is not published', async () => {
+    const two = collectionEntry('blog', 'two', { id: 'two', locale: 'en', slug: '2' });
     const intl = blogIntl(
       [
         {
@@ -457,22 +488,78 @@ describe('pairing', () => {
           collection: 'blog',
           pagination: { pageSize: 10, slug: { en: 'blog/{page}', de: 'artikel/{page}' } },
         },
-        postRow,
+        { slug: { en: 'blog/{slug}', de: 'artikel/{slug}' }, view: 'post', collection: 'blog' },
       ],
-      [collectionEntry('blog', 'two', { id: 'two', locale: 'en', slug: '2' })],
+      [two],
     );
 
     assert.deepEqual(await listingTails(intl, '/en/blog/[...page]', '/en/blog/[page]'), ['blog']);
-    assert.equal((await intl.getContentByPath('en', 'blog/2'))?.id, 'two');
-    const row = (await intl.getSitemapEntries()).find((item) => item.path === 'blog/2');
-    assert.deepEqual(row, {
+    assert.equal(await intl.getContentByPath('en', 'blog/2'), two);
+    assert.deepEqual(
+      (await intl.getSitemapEntries()).find((item) => item.path === 'blog/2'),
+      {
+        locale: 'en',
+        path: 'blog/2',
+        loc: 'https://example.com/en/blog/2',
+        alternates: { en: 'https://example.com/en/blog/2' },
+        xDefault: 'https://example.com/en/blog/2',
+        entryId: 'blog/two',
+      },
+    );
+  });
+
+  it('counts every entry in that locale toward listing pages', async () => {
+    const published = collectionEntry('blog', 'pub-0', {
+      id: 'pub-0',
       locale: 'en',
-      path: 'blog/2',
-      loc: 'https://example.com/en/blog/2',
-      alternates: { en: 'https://example.com/en/blog/2' },
-      xDefault: 'https://example.com/en/blog/2',
-      entryId: 'blog/two',
+      slug: 'pub-0',
+      status: 'published',
     });
+    const draft = collectionEntry('blog', 'draft-0', {
+      id: 'draft-0',
+      locale: 'en',
+      slug: 'draft-0',
+      status: 'draft',
+    });
+    const deOnly = collectionEntry('blog', 'de-only', {
+      id: 'de-only',
+      locale: 'de',
+      slug: 'de-only',
+      status: 'published',
+    });
+    const intl = blogIntl(
+      [
+        {
+          slug: { en: 'blog', de: 'artikel' },
+          view: 'index',
+          collection: 'blog',
+          pagination: { pageSize: 1, slug: { en: 'blog/{page}', de: 'artikel/{page}' } },
+        },
+        { slug: { en: 'blog/{slug}', de: 'artikel/{slug}' }, view: 'post', collection: 'blog' },
+      ],
+      [published, draft, deOnly],
+    );
+    const later = await intl.listingPaths(
+      '/en/blog/[page]',
+      'blog',
+      await astroPaginate('page'),
+      keepOrder(),
+    );
+
+    // A draft still counts, so the two en entries fill blog and blog/2.
+    assert.deepEqual(await listingTails(intl, '/en/blog/[...page]', '/en/blog/[page]'), [
+      'blog',
+      'blog/2',
+    ]);
+    assert.deepEqual(
+      later[0]?.props.page.data.map((entry) => entry.data.slug),
+      ['draft-0'],
+    );
+    assert.equal(await intl.getContentByPath('en', 'blog/draft-0'), draft);
+    assert.deepEqual(await listingTails(intl, '/de/artikel/[...page]', '/de/artikel/[page]'), [
+      'artikel',
+    ]);
+    assert.equal(await intl.getContentByPath('de', 'artikel/de-only'), deOnly);
   });
 });
 
@@ -493,12 +580,33 @@ describe('sorting', () => {
     assert.equal(asc(older, older), 0);
   });
 
-  it('collates by locale', () => {
-    const compare = byText((row: { title: string }) => row.title, 'de', 'asc');
-    assert.equal('Äpfel' > 'Birnen', true);
+  it('orders numbers in both directions', () => {
+    const rows = [{ n: 3 }, { n: 1 }, { n: 2 }];
+    const asc = byNumber((row: { n: number }) => row.n, 'asc');
+    const desc = byNumber((row: { n: number }) => row.n, 'desc');
     assert.deepEqual(
-      [{ title: 'Birnen' }, { title: 'Äpfel' }].toSorted(compare).map((row) => row.title),
+      rows.toSorted(asc).map((row) => row.n),
+      [1, 2, 3],
+    );
+    assert.deepEqual(
+      rows.toSorted(desc).map((row) => row.n),
+      [3, 2, 1],
+    );
+    assert.equal(asc({ n: 1 }, { n: 1 }), 0);
+  });
+
+  it('collates by locale', () => {
+    const titles = [{ title: 'Birnen' }, { title: 'Äpfel' }];
+    const asc = byText((row: { title: string }) => row.title, 'de', 'asc');
+    const desc = byText((row: { title: string }) => row.title, 'de', 'desc');
+    // German collation orders Ä before B. Code-point order puts Äpfel after Birnen.
+    assert.deepEqual(
+      titles.toSorted(asc).map((row) => row.title),
       ['Äpfel', 'Birnen'],
+    );
+    assert.deepEqual(
+      titles.toSorted(desc).map((row) => row.title),
+      ['Birnen', 'Äpfel'],
     );
   });
 

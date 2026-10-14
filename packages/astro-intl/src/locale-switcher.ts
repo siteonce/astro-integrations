@@ -20,10 +20,9 @@ export function localeSwitcherLinks(
   return locales.map((locale) => {
     const current = locale === currentLocale;
     const sibling = Object.hasOwn(alternates, locale);
-    const path = sibling ? alternates[locale] : undefined;
     const item: LocaleSwitcherLink = { locale, current, sibling };
-    if (sibling && !current && path !== undefined) {
-      item.href = hrefFor(locale, localeUrlPath(path));
+    if (sibling && !current) {
+      item.href = hrefFor(locale, localeUrlPath(alternates[locale]));
     }
     return item;
   });

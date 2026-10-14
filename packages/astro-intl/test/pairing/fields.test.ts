@@ -10,38 +10,24 @@ import {
   intlConfig,
   keepOrder,
   relation,
+  warningsFrom,
 } from '../fixtures.ts';
 
 function bind(config: IntlConfigInput, collections: Record<string, readonly CollectionEntry[]>) {
   return createIntl(config, { loaders: collectionLoaders(collections) });
 }
 
-/** Warnings from the first load. Later calls reuse that load and do not warn again. */
-async function warningsFrom(load: () => Promise<unknown>): Promise<string[]> {
-  const lines: string[] = [];
-  const original = console.warn;
-  console.warn = (message?: unknown) => {
-    lines.push(String(message));
-  };
-  try {
-    await load();
-    return lines;
-  } finally {
-    console.warn = original;
-  }
-}
-
-/** Issues `leafSlug` adds for one slug. No issue means the segment is accepted. */
-function leafIssues(value: string, options?: { slugify?: (value: string) => string }): string[] {
+/** Issues `leafSlug` adds. A string is that slug; an object is the entry value. No issue means it is accepted. */
+function leafIssues(
+  value: string | { slug?: string },
+  options?: { slugify?: (value: string) => string },
+): string[] {
   const messages: string[] = [];
-  leafSlug(options)(
-    { slug: value },
-    {
-      addIssue(issue) {
-        messages.push(issue.message);
-      },
+  leafSlug(options)(typeof value === 'string' ? { slug: value } : value, {
+    addIssue(issue) {
+      messages.push(issue.message);
     },
-  );
+  });
   return messages;
 }
 
@@ -67,8 +53,13 @@ const postsRoutes = [
   { slug: { en: 'blog/{slug}', de: 'artikel/{slug}' }, view: 'post', collection: 'posts' },
 ];
 
+/**
+ * Posts with renamed fields: pairing id `uid`, locale `lang`, slug `path`.
+ * `a` is en `alpha` and de `alpha-de`. `b` is en only, slug `beta`.
+ * `locale` on the en entries is a decoy (`de` or absent). Pairing reads `lang`.
+ * Page size is 1, so en publishes `blog` and `blog/2`, and de publishes `artikel`.
+ */
 function renamedPosts() {
-  // `locale` is a decoy. Pairing reads `lang`.
   const enA = collectionEntry('posts', 'a-en', {
     uid: 'a',
     lang: 'en',
@@ -113,6 +104,8 @@ describe('pairing fields', { concurrency: 1 }, () => {
       'slug "artikel/hallo-welt" is not one segment',
     ]);
     assert.deepEqual(leafIssues('/'), ['slug "/" is not one segment']);
+    assert.deepEqual(leafIssues({ slug: '' }), ['slug "" is not one segment']);
+    assert.deepEqual(leafIssues({}), ['slug "" is not one segment']);
   });
 
   it('rejects a slug that slugify would change', () => {
@@ -322,6 +315,112 @@ describe('pairing fields', { concurrency: 1 }, () => {
     });
   });
 
+  it('aborts when an entry locale is not in locales', async () => {
+    const intl = bind(intlConfig({ collections: { translated: ['blog'] } }), {
+      blog: [collectionEntry('blog', 'x', { id: 'x', locale: 'fr' })],
+    });
+
+    await assert.rejects(intl.getPairedSlugs(), {
+      message: '@repo/astro-intl: locale "fr" on blog:x is not in locales.',
+    });
+  });
+
+  it('aborts when the id field is not a string', async () => {
+    const cases: {
+      field: string;
+      data: Record<string, unknown>;
+      fields?: { blog: { id: string } };
+    }[] = [
+      { field: 'id', data: { id: 7, locale: 'en' } },
+      // `id` is a string. Pairing reads `uid`.
+      { field: 'uid', data: { id: 'x', locale: 'en', uid: 7 }, fields: { blog: { id: 'uid' } } },
+    ];
+    for (const item of cases) {
+      const intl = bind(
+        intlConfig({
+          collections: {
+            translated: ['blog'],
+            ...(item.fields === undefined ? {} : { fields: item.fields }),
+          },
+        }),
+        { blog: [collectionEntry('blog', 'x', item.data)] },
+      );
+      await assert.rejects(
+        intl.getPairedSlugs(),
+        {
+          message: `@repo/astro-intl: id field "${item.field}" on blog:x is not a string. Coerce it in the collection schema, for example with z.coerce.string().`,
+        },
+        item.field,
+      );
+    }
+  });
+
+  it('aborts when the locale field is not a string', async () => {
+    const cases: {
+      field: string;
+      data: Record<string, unknown>;
+      fields?: { blog: { locale: string } };
+    }[] = [
+      { field: 'locale', data: { id: 'x', locale: 7 } },
+      // `locale` is a configured locale. Pairing reads `lang`.
+      {
+        field: 'lang',
+        data: { id: 'x', locale: 'en', lang: 7 },
+        fields: { blog: { locale: 'lang' } },
+      },
+    ];
+    for (const item of cases) {
+      const intl = bind(
+        intlConfig({
+          collections: {
+            translated: ['blog'],
+            ...(item.fields === undefined ? {} : { fields: item.fields }),
+          },
+        }),
+        { blog: [collectionEntry('blog', 'x', item.data)] },
+      );
+      await assert.rejects(
+        intl.getPairedSlugs(),
+        {
+          message: `@repo/astro-intl: locale field "${item.field}" on blog:x is not a string. Coerce it in the collection schema, for example with z.coerce.string().`,
+        },
+        item.field,
+      );
+    }
+  });
+
+  it('aborts when (id, locale) is not unique', async () => {
+    const intl = bind(
+      intlConfig({
+        routes: [
+          { slug: { en: 'blog/{slug}', de: 'artikel/{slug}' }, view: 'post', collection: 'blog' },
+        ],
+        collections: { translated: ['blog'] },
+      }),
+      {
+        blog: [
+          collectionEntry(
+            'blog',
+            'hello-a',
+            { id: 'hello', locale: 'en', slug: 'hello' },
+            'src/content/blog/hello-a.md',
+          ),
+          collectionEntry(
+            'blog',
+            'hello-b',
+            { id: 'hello', locale: 'en', slug: 'again' },
+            'src/content/blog/hello-b.md',
+          ),
+        ],
+      },
+    );
+
+    await assert.rejects(intl.getPairedSlugs(), {
+      message:
+        '@repo/astro-intl: (entryId, locale) "blog/hello" / "en" is not unique (blog vs blog).',
+    });
+  });
+
   it('reads a renamed id and locale', async () => {
     const home = collectionEntry('pages', 'home-en', { docId: 'home', lang: 'en' });
     const intl = bind(
@@ -412,6 +511,60 @@ describe('pairing fields', { concurrency: 1 }, () => {
     assert.equal(pageOne[0]?.props.page.data[0], enA);
     assert.equal(pageTwo[0]?.props.page.data[0], enB);
     assert.equal(dePage[0]?.props.page.data[0], deA);
+  });
+
+  it('aborts when the slug field is not a string', async () => {
+    const routes = [
+      { slug: { en: 'blog/{slug}', de: 'artikel/{slug}' }, view: 'post', collection: 'blog' },
+    ];
+    const cases: {
+      field: string;
+      data: Record<string, unknown>;
+      fields?: { blog: { slug: string } };
+    }[] = [
+      { field: 'slug', data: { id: 'x', locale: 'en', slug: 7 } },
+      // `slug` is one segment. The row reads `path`.
+      {
+        field: 'path',
+        data: { id: 'x', locale: 'en', slug: 'kept', path: 7 },
+        fields: { blog: { slug: 'path' } },
+      },
+    ];
+    for (const item of cases) {
+      const intl = bind(
+        intlConfig({
+          routes,
+          collections: {
+            translated: ['blog'],
+            ...(item.fields === undefined ? {} : { fields: item.fields }),
+          },
+        }),
+        { blog: [collectionEntry('blog', 'x', item.data)] },
+      );
+      await assert.rejects(
+        intl.getPairedSlugs(),
+        {
+          message: `@repo/astro-intl: slug field "${item.field}" on blog:x is not a string. Coerce it in the collection schema, for example with z.coerce.string().`,
+        },
+        item.field,
+      );
+    }
+  });
+
+  it('aborts when a routed entry has no slug', async () => {
+    const intl = bind(
+      intlConfig({
+        routes: [
+          { slug: { en: 'blog/{slug}', de: 'artikel/{slug}' }, view: 'post', collection: 'blog' },
+        ],
+        collections: { translated: ['blog'] },
+      }),
+      { blog: [collectionEntry('blog', 'x', { id: 'x', locale: 'en' })] },
+    );
+
+    await assert.rejects(intl.getPairedSlugs(), {
+      message: '@repo/astro-intl: slug is missing on routed entry blog:x.',
+    });
   });
 
   it('aborts when a routed slug is not one segment', async () => {

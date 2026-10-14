@@ -10,6 +10,7 @@ import {
   collectionEntry,
   collectionLoaders,
   intlConfig,
+  linkedCollections,
   relation,
 } from '../fixtures.ts';
 
@@ -74,12 +75,16 @@ function schemaIssues(parsed: {
   return parsed.error.issues.map((issue) => ({ path: issue.path, message: issue.message }));
 }
 
-/** Paths a rejected value reports, plus a key that value names. */
-function rejectsAt(
+/**
+ * Zod issues from `safeParse`: count, paths, and a key the value names.
+ * These issues have no intl prefix. The wording is zod's.
+ */
+function refusesAt(
   parsed: Parameters<typeof schemaIssues>[0],
   expected: readonly { path: readonly PropertyKey[]; key?: string }[],
 ): void {
   const issues = schemaIssues(parsed);
+  assert.equal(issues.length, expected.length);
   assert.deepEqual(
     issues.map((issue) => issue.path),
     expected.map((issue) => issue.path),
@@ -87,30 +92,6 @@ function rejectsAt(
   for (const [index, issue] of expected.entries()) {
     if (issue.key !== undefined) assert.ok(issues[index]?.message.includes(`"${issue.key}"`));
   }
-}
-
-/**
- * Blog posts point at a translated author, an untranslated source, and an untranslated role.
- */
-function linkedEntries(): Record<string, CollectionEntry[]> {
-  const post = (locale: 'en' | 'de', leaf: string) =>
-    collectionEntry('blog', `hello-${locale}`, {
-      id: 'hello-world',
-      locale,
-      slug: leaf,
-      author: relation('authors', 'ada'),
-      source: relation('sources', 'astro'),
-      role: relation('roles', 'editor'),
-    });
-  return {
-    blog: [post('en', 'hello-world'), post('de', 'hallo-welt')],
-    authors: [
-      collectionEntry('authors', 'ada-en', { id: 'ada', locale: 'en', name: 'Ada' }),
-      collectionEntry('authors', 'ada-de', { id: 'ada', locale: 'de', name: 'Ada DE' }),
-    ],
-    sources: [collectionEntry('sources', 'astro', { name: 'Astro' })],
-    roles: [collectionEntry('roles', 'editor', { name: { en: 'Editor', de: 'Redakteur' } })],
-  };
 }
 
 /** `createIntl` over translated blog and authors, and untranslated sources and roles. */
@@ -165,16 +146,18 @@ describe('the content config directly imports @repo/astro-intl/runtime', () => {
     `const spec = '@repo/astro-intl/runtime';`,
     `import { id } from '@repo/astro-intl';\nconst spec = '@repo/astro-intl/runtime';`,
     `import { locales } from "@repo/astro-intl/runtime';`,
+    `const zod = await import('zod');\nconst spec = '@repo/astro-intl/runtime';`,
+    `import { id } from '@repo/astro-intl';\n// locales come from '@repo/astro-intl/runtime'`,
   ];
 
-  it('fails startup when the content config directly imports @repo/astro-intl/runtime', async (t) => {
+  it('refuses when the content config directly imports @repo/astro-intl/runtime', async (t) => {
     for (const source of directImports) {
       const hooks = await contentProject(t, { 'content.config.ts': source });
       await assert.rejects(() => hooks.setup(), { message: contentConfigImportsRuntime }, source);
     }
   });
 
-  it('fails startup when the legacy content config directly imports @repo/astro-intl/runtime', async (t) => {
+  it('refuses when the legacy content config directly imports @repo/astro-intl/runtime', async (t) => {
     const hooks = await contentProject(t, {
       'content/config.mts': `export { locales } from '@repo/astro-intl/runtime';\n`,
     });
@@ -216,7 +199,7 @@ describe('the content config directly imports @repo/astro-intl/runtime', () => {
 });
 
 describe('a name in translated or untranslated is not a content collection', () => {
-  it('fails when a translated name is not a content collection', async () => {
+  it('refuses when a translated name is not a content collection', async () => {
     const intl = createIntl(
       intlConfig({ collections: { translated: ['pages', 'blog', 'authors'] } }),
       { loaders: collectionLoaders({ pages: [], blog: [] }, { strict: true }) },
@@ -226,7 +209,7 @@ describe('a name in translated or untranslated is not a content collection', () 
     });
   });
 
-  it('fails when an untranslated name is not a content collection', async () => {
+  it('refuses when an untranslated name is not a content collection', async () => {
     const intl = createIntl(
       intlConfig({
         collections: {
@@ -245,7 +228,7 @@ describe('a name in translated or untranslated is not a content collection', () 
 });
 
 describe('relation() names a collection neither collections.translated nor collections.untranslated lists', () => {
-  it('throws when relation() names a collection in neither list', () => {
+  it('refuses when relation() names a collection in neither list', () => {
     const { relation: relationSchema } = contentSchema();
     assert.throws(
       () => {
@@ -261,8 +244,8 @@ describe('relation() names a collection neither collections.translated nor colle
 });
 
 describe('a relation points at a collection neither collections.translated nor collections.untranslated lists', () => {
-  it('fails load when entry data holds a relation to a collection in neither list', async () => {
-    const collections = linkedEntries();
+  it('refuses when entry data holds a relation to a collection in neither list', async () => {
+    const collections = linkedCollections();
     collections.blog = [
       collectionEntry('blog', 'hello-en', {
         id: 'hello-world',
@@ -283,9 +266,9 @@ describe('a relation points at a collection neither collections.translated nor c
     });
   });
 
-  it('fails getRelated for a collection in neither list and does not fetch it', async () => {
+  it('refuses getRelated for a collection in neither list and does not fetch it', async () => {
     const loaded: string[] = [];
-    const intl = loadIntl(linkedEntries(), loaded);
+    const intl = loadIntl(linkedCollections(), loaded);
     await intl.getPairedSlugs();
     assert.deepEqual(loaded, ['blog', 'authors', 'sources', 'roles']);
 
@@ -297,14 +280,14 @@ describe('a relation points at a collection neither collections.translated nor c
   });
 });
 
-describe('a relation pairing id is missing, a translated target has no sibling in the source locale, or a localized() map has a missing or extra locale key', () => {
-  it('rejects an empty relation pairing id', () => {
+describe('a relation pairing id is missing, the relation’s target entry is missing, or a localized() map has a missing or extra locale key', () => {
+  it('refuses an empty relation pairing id', () => {
     const { relation: relationSchema } = contentSchema();
-    rejectsAt(relationSchema('authors').safeParse(''), [{ path: [] }]);
+    refusesAt(relationSchema('authors').safeParse(''), [{ path: [] }]);
   });
 
-  it('fails when a translated target has no sibling in the source locale', async () => {
-    const collections = linkedEntries();
+  it('refuses when a translated target has no sibling in the source locale', async () => {
+    const collections = linkedCollections();
     collections.authors = [
       collectionEntry('authors', 'ada-en', { id: 'ada', locale: 'en', name: 'Ada' }),
     ];
@@ -314,14 +297,66 @@ describe('a relation pairing id is missing, a translated target has no sibling i
     });
   });
 
-  it('rejects a localized map that misses a locale key', () => {
-    const { localized } = contentSchema();
-    rejectsAt(localized(slug).safeParse({ en: 'Editor' }), [{ path: ['fr'] }]);
+  it('refuses when an untranslated entry is missing a relation in another locale', async () => {
+    // `locale` is en, and author ada exists only in en. The entry is still checked in de.
+    const intl = loadIntl({
+      blog: [],
+      authors: [collectionEntry('authors', 'ada-en', { id: 'ada', locale: 'en', name: 'Ada' })],
+      sources: [
+        collectionEntry('sources', 'astro', {
+          locale: 'en',
+          author: relation('authors', 'ada'),
+        }),
+      ],
+      roles: [],
+    });
+    await assert.rejects(() => intl.getPairedSlugs(), {
+      message: '@repo/astro-intl: relation authors/ada is missing locale "de" (sources:astro).',
+    });
   });
 
-  it('rejects a localized map with an extra locale key', () => {
+  it('refuses when a list of relations names a missing target', async () => {
+    const intl = createIntl(
+      intlConfig({
+        routes: [
+          {
+            slug: { en: 'blog/{slug}', de: 'artikel/{slug}' },
+            view: 'post',
+            collection: 'blog',
+          },
+        ],
+        collections: { translated: ['blog', 'tags'] },
+      }),
+      {
+        loaders: collectionLoaders(
+          {
+            blog: [
+              collectionEntry('blog', 'hello-en', {
+                id: 'hello-world',
+                locale: 'en',
+                slug: 'hello-world',
+                tags: [relation('tags', 'ghost')],
+              }),
+            ],
+            tags: [],
+          },
+          { strict: true },
+        ),
+      },
+    );
+    await assert.rejects(() => intl.getPairedSlugs(), {
+      message: '@repo/astro-intl: relation tags/ghost is missing locale "en" (blog:hello-en).',
+    });
+  });
+
+  it('refuses a localized map that misses a locale key', () => {
     const { localized } = contentSchema();
-    rejectsAt(localized(slug).safeParse({ en: 'Editor', fr: 'Rédacteur', de: 'Redakteur' }), [
+    refusesAt(localized(slug).safeParse({ en: 'Editor' }), [{ path: ['fr'] }]);
+  });
+
+  it('refuses a localized map with an extra locale key', () => {
+    const { localized } = contentSchema();
+    refusesAt(localized(slug).safeParse({ en: 'Editor', fr: 'Rédacteur', de: 'Redakteur' }), [
       { path: [], key: 'de' },
     ]);
   });
@@ -367,7 +402,7 @@ describe('a literal file route sits on an entry URL that a {slug} row publishes'
     };
   }
 
-  it('fails the build when a literal file route sits on an entry URL', async (t) => {
+  it('refuses when a literal file route sits on an entry URL', async (t) => {
     const route = await dataRoute(t, ['/de/artikel/hallo-welt']);
     const astroModules = stubAstroModules();
     try {

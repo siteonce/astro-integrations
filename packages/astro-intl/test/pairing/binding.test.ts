@@ -3,8 +3,10 @@ import { describe, it } from 'node:test';
 import { createIntl } from '@repo/astro-intl';
 import {
   absoluteLocaleUrl,
+  type CollectionEntry,
   collectionEntry,
   collectionLoaders,
+  type IntlConfigInput,
   intlConfig,
   relativeLocaleUrl,
 } from '../fixtures.ts';
@@ -52,6 +54,50 @@ describe('createIntl binding', () => {
       en: 'news/hello',
       de: 'nachrichten/hallo',
     });
+  });
+
+  it('loads only the collections the config lists', async () => {
+    const blog = [
+      collectionEntry('blog', 'x-en', { id: 'x', locale: 'en', slug: 'x' }),
+      collectionEntry('blog', 'x-de', { id: 'x', locale: 'de', slug: 'x-de' }),
+    ];
+    const cases: {
+      label: string;
+      input: IntlConfigInput;
+      entries: Readonly<Record<string, readonly CollectionEntry[]>>;
+      names: readonly string[];
+    }[] = [
+      {
+        label: 'no untranslated',
+        input: intlConfig({
+          routes: [
+            {
+              slug: { en: 'blog/{slug}', de: 'artikel/{slug}' },
+              view: 'post',
+              collection: 'blog',
+            },
+          ],
+          collections: { translated: ['blog'] },
+        }),
+        entries: { blog },
+        names: ['blog'],
+      },
+      {
+        label: 'no collections',
+        input: intlConfig({
+          routes: [{ slug: { en: 'about', de: 'ueber' }, view: 'about' }],
+        }),
+        entries: {},
+        names: [],
+      },
+    ];
+
+    for (const { label, input, entries, names } of cases) {
+      const loaded: string[] = [];
+      const intl = createIntl(input, { loaders: collectionLoaders(entries, { loaded }) });
+      await intl.getPairedSlugs();
+      assert.deepEqual(loaded, names, label);
+    }
   });
 
   it('loads each collection once across concurrent first calls', async () => {

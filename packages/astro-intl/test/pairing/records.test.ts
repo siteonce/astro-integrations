@@ -2,7 +2,6 @@ import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 import { createIntl } from '@repo/astro-intl';
 import {
-  type CollectionEntry,
   collectionEntry,
   collectionLoaders,
   type IntlConfigInput,
@@ -10,73 +9,73 @@ import {
   relation,
 } from '../fixtures.ts';
 
-function bind(config: IntlConfigInput, collections: Record<string, readonly CollectionEntry[]>) {
+function bind(
+  config: IntlConfigInput,
+  collections: Record<string, readonly ReturnType<typeof collectionEntry>[]>,
+) {
   return createIntl(config, { loaders: collectionLoaders(collections) });
 }
 
+/** `ada` in en (`ada-en`, name Ada) and de (`ada-de`, name Ada). No route names the collection. */
+function authors() {
+  return [
+    collectionEntry('authors', 'ada-en', { id: 'ada', locale: 'en', name: 'Ada' }),
+    collectionEntry('authors', 'ada-de', { id: 'ada', locale: 'de', name: 'Ada' }),
+  ];
+}
+
 describe('records', () => {
-  it('keeps a translated collection with no entry URL as records', async () => {
-    const adaEn = collectionEntry('authors', 'ada-en', { id: 'ada', locale: 'en', name: 'Ada' });
-    const adaDe = collectionEntry('authors', 'ada-de', { id: 'ada', locale: 'de', name: 'Ada' });
-    const intl = bind(
-      intlConfig({
-        routes: [
-          {
-            slug: { en: '/', de: '/' },
-            view: 'home',
-            collection: { name: 'pages', entry: 'home' },
-          },
-          {
-            slug: { en: 'blog', de: 'artikel' },
-            view: 'blog',
-            collection: { name: 'pages', entry: 'blog' },
-          },
-          { slug: { en: 'blog/{slug}', de: 'artikel/{slug}' }, view: 'post', collection: 'blog' },
-        ],
-        collections: { translated: ['pages', 'blog', 'authors'] },
-      }),
-      {
-        pages: [
-          collectionEntry('pages', 'home-en', { id: 'home', locale: 'en' }),
-          collectionEntry('pages', 'home-de', { id: 'home', locale: 'de' }),
-          collectionEntry('pages', 'blog-en', { id: 'blog', locale: 'en' }),
-          collectionEntry('pages', 'blog-de', { id: 'blog', locale: 'de' }),
-        ],
-        blog: [
-          collectionEntry('blog', 'hello-en', {
-            id: 'hello-world',
-            locale: 'en',
-            slug: 'hello-world',
-          }),
-          collectionEntry('blog', 'hello-de', {
-            id: 'hello-world',
-            locale: 'de',
-            slug: 'hallo-welt',
-          }),
-          collectionEntry('blog', 'solo-en', { id: 'solo', locale: 'en', slug: 'solo' }),
-        ],
-        authors: [adaEn, adaDe],
-      },
-    );
+  it('resolves a record in each locale', async () => {
+    const [adaEn, adaDe] = authors();
+    const intl = bind(intlConfig({ collections: { translated: ['authors'] } }), {
+      authors: [adaEn, adaDe],
+    });
 
     assert.equal(await intl.getRelated('en', relation('authors', 'ada')), adaEn);
     assert.equal(await intl.getRelated('de', relation('authors', 'ada')), adaDe);
+  });
+
+  it('publishes no alternate for a record', async () => {
+    const intl = bind(intlConfig({ collections: { translated: ['authors'] } }), {
+      authors: authors(),
+    });
+
     assert.deepEqual(await intl.getAlternatePaths('authors/ada'), {});
+  });
+
+  it('returns no entry URL for a record', async () => {
+    const intl = bind(intlConfig({ collections: { translated: ['authors'] } }), {
+      authors: authors(),
+    });
+
     assert.equal(await intl.getAbsoluteEntryUrl('en', relation('authors', 'ada')), undefined);
     assert.equal(await intl.getRelativeEntryUrl('de', relation('authors', 'ada')), undefined);
+  });
+
+  it('does not find a record by public path', async () => {
+    const intl = bind(intlConfig({ collections: { translated: ['authors'] } }), {
+      authors: authors(),
+    });
+
     assert.equal(await intl.getContentByPath('en', 'authors/ada'), undefined);
+  });
+
+  it('publishes no slug for a record', async () => {
+    const intl = bind(
+      intlConfig({
+        routes: [{ slug: { en: 'about', de: 'ueber' }, view: 'about' }],
+        collections: { translated: ['authors'] },
+      }),
+      { authors: authors() },
+    );
+
     assert.deepEqual(await intl.getPairedSlugs(), [
-      { locale: 'de', slug: '/' },
-      { locale: 'de', slug: 'artikel' },
-      { locale: 'de', slug: 'artikel/hallo-welt' },
-      { locale: 'en', slug: '/' },
-      { locale: 'en', slug: 'blog' },
-      { locale: 'en', slug: 'blog/hello-world' },
-      { locale: 'en', slug: 'blog/solo' },
+      { locale: 'de', slug: 'ueber' },
+      { locale: 'en', slug: 'about' },
     ]);
   });
 
-  it('keeps unnamed entries as records and publishes a named entry at the written tail', async () => {
+  it('publishes the entry a route names at the written tail', async () => {
     const aboutEn = collectionEntry('notes', 'about-en', {
       id: 'about',
       locale: 'en',
@@ -87,6 +86,65 @@ describe('records', () => {
       locale: 'de',
       path: 'ignored',
     });
+    const intl = bind(
+      intlConfig({
+        routes: [
+          {
+            slug: { en: 'about', de: 'ueber' },
+            view: 'about',
+            collection: { name: 'notes', entry: 'about' },
+          },
+        ],
+        collections: {
+          translated: ['notes'],
+          fields: { notes: { slug: 'path' } },
+        },
+      }),
+      { notes: [aboutEn, aboutDe] },
+    );
+
+    assert.deepEqual(await intl.getAlternatePaths('notes/about'), { en: 'about', de: 'ueber' });
+    assert.equal(await intl.getContentByPath('en', 'about'), aboutEn);
+    assert.equal(await intl.getContentByPath('de', 'ueber'), aboutDe);
+    assert.deepEqual(await intl.getPairedSlugs(), [
+      { locale: 'de', slug: 'ueber' },
+      { locale: 'en', slug: 'about' },
+    ]);
+  });
+
+  it("leaves a named entry's slug unused", async () => {
+    const aboutEn = collectionEntry('notes', 'about-en', {
+      id: 'about',
+      locale: 'en',
+      path: 'ignored',
+    });
+    const intl = bind(
+      intlConfig({
+        routes: [
+          {
+            slug: { en: 'about', de: 'ueber' },
+            view: 'about',
+            collection: { name: 'notes', entry: 'about' },
+          },
+        ],
+        collections: {
+          translated: ['notes'],
+          fields: { notes: { slug: 'path' } },
+        },
+      }),
+      {
+        notes: [
+          aboutEn,
+          collectionEntry('notes', 'about-de', { id: 'about', locale: 'de', path: 'ignored' }),
+        ],
+      },
+    );
+
+    assert.equal(await intl.getContentByPath('en', 'about'), aboutEn);
+    assert.equal(await intl.getContentByPath('en', 'ignored'), undefined);
+  });
+
+  it('keeps an unnamed entry as a record', async () => {
     const otherEn = collectionEntry('notes', 'other-en', {
       id: 'other',
       locale: 'en',
@@ -106,19 +164,17 @@ describe('records', () => {
           fields: { notes: { slug: 'path' } },
         },
       }),
-      { notes: [aboutEn, aboutDe, otherEn] },
+      {
+        notes: [
+          collectionEntry('notes', 'about-en', { id: 'about', locale: 'en', path: 'ignored' }),
+          collectionEntry('notes', 'about-de', { id: 'about', locale: 'de', path: 'ignored' }),
+          otherEn,
+        ],
+      },
     );
 
-    assert.deepEqual(await intl.getAlternatePaths('notes/about'), { en: 'about', de: 'ueber' });
-    assert.equal(await intl.getContentByPath('en', 'about'), aboutEn);
-    assert.equal(await intl.getContentByPath('de', 'ueber'), aboutDe);
-    assert.equal(await intl.getContentByPath('en', 'ignored'), undefined);
     assert.equal(await intl.getRelated('en', relation('notes', 'other')), otherEn);
     assert.deepEqual(await intl.getAlternatePaths('notes/other'), {});
     assert.equal(await intl.getAbsoluteEntryUrl('en', relation('notes', 'other')), undefined);
-    assert.deepEqual(await intl.getPairedSlugs(), [
-      { locale: 'de', slug: 'ueber' },
-      { locale: 'en', slug: 'about' },
-    ]);
   });
 });

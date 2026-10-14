@@ -7,6 +7,7 @@ import {
   injectedViews,
   intlHooks,
   nodeAdapter,
+  renderingConfig,
   viewComponent,
 } from '../astro.ts';
 import { type IntlConfigInput, intlConfig } from '../fixtures.ts';
@@ -37,32 +38,6 @@ async function prepare(t: TestContext, config: IntlConfigInput, files: readonly 
   const hooks = await intlHooks(t, config);
   if (files.length > 0) await writeViewFiles(hooks.root, files);
   return hooks;
-}
-
-/**
- * Static about, a `{slug}` post with fallback view `missing`, and a blog listing.
- * `routeSetup` reads the fallback view's `prerender` flag.
- */
-function renderingConfig(): IntlConfigInput {
-  return intlConfig({
-    viewRendering: 'request',
-    routes: [
-      { slug: { en: 'about', de: 'ueber' }, view: 'about' },
-      {
-        slug: { en: 'blog/{slug}', de: 'artikel/{slug}' },
-        collection: 'blog',
-        view: 'post',
-        fallbackView: 'missing',
-      },
-      {
-        slug: { en: 'blog', de: 'artikel' },
-        collection: 'blog',
-        view: 'blog',
-        pagination: { pageSize: 10, slug: { en: 'blog/{page}', de: 'artikel/{page}' } },
-      },
-    ],
-    collections: { translated: ['blog'] },
-  });
 }
 
 function blogListing(view: string): IntlConfigInput {
@@ -171,8 +146,8 @@ describe('pagination.view names a missing file, or both a file and a folder inde
 describe('viewRendering is "request" and a fallback view exports prerender = false, outside astro dev', () => {
   const viewFiles = ['about.astro', 'post.astro', 'blog.astro', 'missing.astro'];
 
-  it('refuses to boot', async (t) => {
-    const hooks = await bootViews(t, renderingConfig(), viewFiles, {
+  it('refuses when the fallback view exports prerender = false', async (t) => {
+    const hooks = await bootViews(t, renderingConfig('request'), viewFiles, {
       adapter: nodeAdapter,
       command: 'build',
     });
@@ -182,8 +157,20 @@ describe('viewRendering is "request" and a fallback view exports prerender = fal
     );
   });
 
+  it('boots when viewRendering is build and the fallback view exports prerender = false', async (t) => {
+    const hooks = await bootViews(t, renderingConfig('build'), viewFiles, { command: 'build' });
+    await hooks.routeSetup({ component: viewComponent('missing.astro'), prerender: false });
+    assert.equal(hooks.error, undefined);
+  });
+
+  it('boots when astro dev runs and the fallback view exports prerender = false', async (t) => {
+    const hooks = await bootViews(t, renderingConfig('request'), viewFiles, { command: 'dev' });
+    await hooks.routeSetup({ component: viewComponent('missing.astro'), prerender: false });
+    assert.equal(hooks.error, undefined);
+  });
+
   it('boots when the fallback view is prerendered and other views are on demand', async (t) => {
-    const hooks = await bootViews(t, renderingConfig(), viewFiles, {
+    const hooks = await bootViews(t, renderingConfig('request'), viewFiles, {
       adapter: nodeAdapter,
       command: 'build',
     });

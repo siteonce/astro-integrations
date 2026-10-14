@@ -14,6 +14,13 @@ import {
 
 type UrlCall = { locale: string; path: string | undefined };
 
+/**
+ * Blog `hello`: en slug `hello`, de slug `hallo`.
+ * Blog `only`: en slug `only`, no German sibling.
+ * Notes `one`: pairing id field `key`, en slug `one`, de slug `eins`.
+ * Pages `home` in both locales. Authors `ada` is English only.
+ * `sources` is untranslated and empty.
+ */
 function entryCollections(): Record<string, CollectionEntry[]> {
   return {
     blog: [
@@ -31,7 +38,6 @@ function entryCollections(): Record<string, CollectionEntry[]> {
     ],
     authors: [collectionEntry('authors', 'ada-en', { id: 'ada', locale: 'en' })],
     sources: [],
-    roles: [],
   };
 }
 
@@ -47,7 +53,7 @@ function open() {
       ],
       collections: {
         translated: ['blog', 'notes', 'pages', 'authors'],
-        untranslated: ['sources', 'roles'],
+        untranslated: ['sources'],
         fields: { notes: { id: 'key' } },
       },
     }),
@@ -145,22 +151,28 @@ describe('url form', () => {
     assert.deepEqual(relativeCalls, []);
   });
 
-  it('throws when the collection is not translated or the entry has no collection', async () => {
+  it('throws when the collection is not translated', async () => {
     const { intl } = open();
-    const notTranslated = {
-      message: '@repo/astro-intl: collection "sources" is not in collections.translated.',
-    };
+    const sources = '@repo/astro-intl: collection "sources" is not in collections.translated.';
     await assert.rejects(
       () => intl.getRelativeEntryUrl('en', relation('sources', 'astro')),
-      notTranslated,
+      { message: sources },
+      'untranslated relation',
     );
-    await assert.rejects(() => intl.getRelativeEntryUrl('en', relation('ghost', 'x')), {
-      message: '@repo/astro-intl: collection "ghost" is not in collections.translated.',
-    });
     await assert.rejects(
       () => intl.getRelativeEntryUrl('en', collectionEntry('sources', 'astro', { id: 'astro' })),
-      notTranslated,
+      { message: sources },
+      'untranslated entry',
     );
+    await assert.rejects(
+      () => intl.getRelativeEntryUrl('en', relation('ghost', 'x')),
+      { message: '@repo/astro-intl: collection "ghost" is not in collections.translated.' },
+      'unknown collection',
+    );
+  });
+
+  it('throws when the entry has no collection', async () => {
+    const { intl } = open();
     await assert.rejects(() => intl.getRelativeEntryUrl('en', { id: 'x', data: { id: 'hello' } }), {
       message: '@repo/astro-intl: entry has no collection.',
     });

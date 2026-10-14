@@ -35,17 +35,14 @@ export type ListingOrder<T> =
 
 /**
  * The compiled route for one pattern and kind.
- * One trailing slash is ignored. `/` stays `/`.
+ * One trailing slash is ignored.
  */
 export function routeFor(
   compiled: readonly CompiledRoute[],
   routePattern: string,
   kind: CompiledRoute['kind'],
 ): CompiledRoute {
-  const pattern =
-    routePattern.length > 1 && routePattern.endsWith('/')
-      ? routePattern.slice(0, -1)
-      : routePattern;
+  const pattern = routePattern.endsWith('/') ? routePattern.slice(0, -1) : routePattern;
   const found = compiled.find((route) => route.pattern === pattern && route.kind === kind);
   if (!found) {
     throw new Error(`@repo/astro-intl: no injected ${kind} route for pattern "${routePattern}".`);
@@ -53,10 +50,7 @@ export function routeFor(
   return found;
 }
 
-/**
- * The collection the route row names, when that name is one of `collection`.
- * A missing collection fails too: a listing row can name none.
- */
+/** The collection the route row names, when that name is one of `collection`. */
 function requireRouteCollection(
   helper: 'entryPaths' | 'listingPaths',
   route: CompiledRoute,
@@ -68,11 +62,6 @@ function requireRouteCollection(
   if (named !== undefined && names.includes(named)) return named;
   const got = names.length === 0 ? 'nothing' : names.map((name) => `"${name}"`).join(', ');
   const where = `${helper} for "${route.pattern}" in view "${route.view}" got ${got}`;
-  if (named === undefined) {
-    throw new Error(
-      `@repo/astro-intl: ${where}, but that route row names no collection. Name a collection on that route row.`,
-    );
-  }
   throw new Error(
     `@repo/astro-intl: ${where}, but that route row names collection "${named}". Pass "${named}" (or add it to the list).`,
   );
@@ -209,7 +198,7 @@ function listingOrder<T>(
     ordered = selected.toSorted(sort(context));
   } else if (typeof order === 'function' && typeof sort !== 'function') {
     ordered = order(selected, context);
-  } else if (typeof sort === 'function' && typeof order === 'function') {
+  } else if (typeof sort === 'function') {
     throw new Error(
       `@repo/astro-intl: listing "${label}" in "${locale}" sets both sort and order.`,
     );
@@ -238,13 +227,7 @@ function sameEntries<T>(selected: readonly T[], ordered: readonly T[]): boolean 
 
 /** `[...page]` is page 1. `[page]` is pages 2 onward. */
 function listingSpan(pattern: string): 'first' | 'rest' {
-  const leaf = pattern
-    .split('/')
-    .filter((part) => part.length > 0)
-    .at(-1);
-  if (leaf === '[...page]') return 'first';
-  if (leaf === '[page]') return 'rest';
-  throw new Error(`@repo/astro-intl: listing route "${pattern}" is not a page pattern.`);
+  return pattern.endsWith('/[...page]') ? 'first' : 'rest';
 }
 
 /**
@@ -301,8 +284,7 @@ export function fallbackPathsFor(
   const paths = [];
   for (const doc of entryDocuments(query, row, config.defaultLocale)) {
     if (query.getAlternatePaths(doc.entryId)[route.locale] !== undefined) continue;
-    const path = entryPath(section, doc.slug);
-    if (!path) continue;
+    const path = compilePath(section, doc.slug);
     const key = localePathKey(route.locale, path);
     if (query.pairing.byLocalePath.has(key) || query.pairing.byLocaleTail.has(key)) continue;
     paths.push({
@@ -335,15 +317,8 @@ function entryDocuments(query: IntlQuery, row: RouteRow, locale: string) {
   if (!section || !collection) return [];
   return query.pairing.routed.filter((doc) => {
     if (doc.locale !== locale || doc.collection !== collection) return false;
-    const path = entryPath(section, doc.slug);
-    return path !== undefined && doc.path === path;
+    return doc.path === compilePath(section, doc.slug);
   });
-}
-
-/** `undefined` when `slug` is not the one segment a `{slug}` row publishes. */
-function entryPath(section: string, slug: string): string | undefined {
-  if (slug === '' || slug.includes('/')) return undefined;
-  return compilePath(section, slug);
 }
 
 /**

@@ -27,7 +27,7 @@ import {
   type LocaleSwitcherLink,
   localeSwitcherLinks as switcherLinks,
 } from './locale-switcher.ts';
-import type { CollectionEntryLike } from './pairing.ts';
+import { type CollectionEntryLike, describeEntry } from './pairing.ts';
 import { localeUrlPath } from './path.ts';
 import { createIntlQuery, type IntlQuery } from './query.ts';
 import { assertRelations, type Relation, resolveRelation } from './relation.ts';
@@ -113,7 +113,7 @@ export function createIntl<const Translated extends string = never>(
       throw new Error('@repo/astro-intl: entry has no collection.');
     }
     const fields = translatedCollection(ref.collection);
-    return resolveEntryId(ref.collection, ref.data, fields.id);
+    return resolveEntryId(ref.collection, ref.data, fields.id, describeEntry(ref.collection, ref));
   }
 
   function compiledRoutes(): CompiledRoute[] {

@@ -12,7 +12,7 @@ type IssueCtx = { addIssue: (issue: { code: 'custom'; message: string }) => void
 export function leafSlug(options?: { slugify?: (value: string) => string }) {
   return (value: { slug?: string }, ctx: IssueCtx) => {
     const slug = value.slug ?? '';
-    if (slug === '' || slug === '/' || slug.includes('/')) {
+    if (slug === '' || slug.includes('/')) {
       ctx.addIssue({
         code: 'custom',
         message: `slug "${slug}" is not one segment`,
@@ -22,7 +22,7 @@ export function leafSlug(options?: { slugify?: (value: string) => string }) {
     const slugify = options?.slugify;
     if (!slugify) return;
     const slugified = slugify(slug);
-    if (slugified === '' || slugified !== slug) {
+    if (slugified !== slug) {
       ctx.addIssue({
         code: 'custom',
         message: `slug "${slug}" is not a slug`,

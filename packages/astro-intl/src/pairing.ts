@@ -1,12 +1,5 @@
-import {
-  fieldsFor,
-  type IntlConfig,
-  missingContentCollection,
-  routeConfigIssues,
-  translatedNames,
-  untranslatedNames,
-} from './define-intl.ts';
-import { resolveEntryId } from './entry-id.ts';
+import { fieldsFor, type IntlConfig, translatedNames } from './define-intl.ts';
+import { NonStringFieldError, readStringField, resolveEntryId } from './entry-id.ts';
 import {
   compilePath,
   listingPageCount,
@@ -51,7 +44,6 @@ export type RouteTail = {
 
 export type PairingIndex = {
   routed: PairedDocument[];
-  records: PairedRecord[];
   tails: RouteTail[];
   byLocalePath: Map<string, PairedDocument>;
   byLocaleTail: Map<string, RouteTail>;
@@ -67,11 +59,6 @@ export function localeEntryKey(locale: string, entryId: string): string {
   return `${locale}\0${entryId}`;
 }
 
-function readString(data: Record<string, unknown>, field: string): string | undefined {
-  const value = data[field];
-  return typeof value === 'string' && value.length > 0 ? value : undefined;
-}
-
 /** Entries in one locale of a collection. `field` selects them. */
 export function listingSelection(
   collections: Readonly<Record<string, readonly CollectionEntryLike[]>>,
@@ -80,7 +67,10 @@ export function listingSelection(
   field: string,
 ): readonly CollectionEntryLike[] {
   const source = collections[collection] ?? [];
-  return source.filter((entry) => readString(entry.data, field) === locale);
+  return source.filter((entry) => {
+    const value = readStringField(entry.data, field, 'locale', describeEntry(collection, entry));
+    return value === locale;
+  });
 }
 
 /** The entry's file path, or `<collection>:<id>` when the content source gives none. */
@@ -109,14 +99,16 @@ type PatternRow = {
   sections: Map<string, string>;
 };
 
+/** A `{slug}` row. A parsed row holds `{slug}` in every locale or in none. */
+function isSlugRow(locales: readonly string[], slug: Readonly<Record<string, string>>): boolean {
+  return locales.some((locale) => (slug[locale] ?? '').includes('{slug}'));
+}
+
 function patternsByCollection(config: IntlConfig): Map<string, PatternRow> {
   const patterns = new Map<string, PatternRow>();
   for (const route of config.routes ?? []) {
     if (!route.collection) continue;
-    const wantsPattern = config.locales.some((locale) =>
-      (route.slug[locale] ?? '').includes('{slug}'),
-    );
-    if (!wantsPattern) continue;
+    if (!isSlugRow(config.locales, route.slug)) continue;
     const sections = new Map<string, string>();
     for (const locale of config.locales) {
       const section = patternSection(route.slug[locale] ?? '');
@@ -132,15 +124,11 @@ function patternsByCollection(config: IntlConfig): Map<string, PatternRow> {
   return patterns;
 }
 
-/** Entries named by a fixed tail. A `{slug}` row does not publish them again. */
+/** `${collection}\\0${id}` for each route row that names an entry. */
 function fixedEntryKeys(config: IntlConfig): Set<string> {
   const keys = new Set<string>();
   for (const route of config.routes ?? []) {
     if (!route.collection || !route.entry) continue;
-    const wantsPattern = config.locales.some((locale) =>
-      (route.slug[locale] ?? '').includes('{slug}'),
-    );
-    if (wantsPattern) continue;
     keys.add(`${route.collection}\0${route.entry}`);
   }
   return keys;
@@ -155,24 +143,17 @@ function fixedEntryKeys(config: IntlConfig): Set<string> {
  * a fixed entry row names. A row with `pagination` publishes page 1 at its
  * `slug`. Later pages replace `{page}` in `pagination.slug`. A row with no
  * collection publishes those tails with no entry and no pairing id.
- * Aborts on route-rule and uniqueness failures.
+ * Aborts on uniqueness failures and on a missing or unusable pairing field.
  */
 export function pairCollections(
   config: IntlConfig,
   collections: Record<string, CollectionEntryLike[]>,
 ): PairingIndex {
-  const issues = routeConfigIssues(config);
-  const firstIssue = issues[0];
-  if (firstIssue) {
-    throw new Error(`@repo/astro-intl: ${firstIssue}`);
-  }
-
   const locales = new Set(config.locales);
   const byLocalePath = new Map<string, PairedDocument>();
   const byLocaleTail = new Map<string, RouteTail>();
   const byLocaleEntryId = new Map<string, PairedDocument | PairedRecord>();
   const routed: PairedDocument[] = [];
-  const records: PairedRecord[] = [];
   const tails: RouteTail[] = [];
   const warnings: string[] = [];
   const leaves: Leaf[] = [];
@@ -180,17 +161,6 @@ export function pairCollections(
   const patterns = patternsByCollection(config);
   const fixedEntries = fixedEntryKeys(config);
   const byDataId = new Map<string, IndexedEntry>();
-
-  for (const name of translatedNames(config.collections)) {
-    if (!(name in collections)) {
-      throw new Error(`@repo/astro-intl: ${missingContentCollection('translated', name)}.`);
-    }
-  }
-  for (const name of untranslatedNames(config.collections)) {
-    if (!(name in collections)) {
-      throw new Error(`@repo/astro-intl: ${missingContentCollection('untranslated', name)}.`);
-    }
-  }
 
   function claim(document: PairedDocument): void {
     const pathKey = localePathKey(document.locale, document.path);
@@ -223,24 +193,24 @@ export function pairCollections(
     const hasSlugRow = patterns.has(name);
 
     for (const entry of collections[name] ?? []) {
-      const locale = readString(entry.data, fields.locale);
+      const where = describeEntry(name, entry);
+      const locale = readStringField(entry.data, fields.locale, 'locale', where);
       if (!locale) {
         throw new Error(
-          `@repo/astro-intl: locale field "${fields.locale}" is missing on ${describeEntry(name, entry)}.`,
+          `@repo/astro-intl: locale field "${fields.locale}" is missing on ${where}.`,
         );
       }
       if (!locales.has(locale)) {
-        throw new Error(
-          `@repo/astro-intl: locale "${locale}" on ${describeEntry(name, entry)} is not in locales.`,
-        );
+        throw new Error(`@repo/astro-intl: locale "${locale}" on ${where} is not in locales.`);
       }
 
       let entryId: string;
       try {
-        entryId = resolveEntryId(name, entry.data, fields.id);
+        entryId = resolveEntryId(name, entry.data, fields.id, where);
       } catch (error) {
+        if (error instanceof NonStringFieldError) throw error;
         const message = error instanceof Error ? error.message : String(error);
-        throw new Error(`${message} (${describeEntry(name, entry)})`);
+        throw new Error(`${message} (${where})`);
       }
 
       const idKey = localeEntryKey(locale, entryId);
@@ -256,11 +226,9 @@ export function pairCollections(
       byDataId.set(`${name}\0${locale}\0${dataId}`, { entryId, locale, entry, dataId });
 
       if (hasSlugRow) {
-        const slug = readString(entry.data, fields.slug);
+        const slug = readStringField(entry.data, fields.slug, 'slug', where);
         if (!slug) {
-          throw new Error(
-            `@repo/astro-intl: slug is missing on routed entry ${describeEntry(name, entry)}.`,
-          );
+          throw new Error(`@repo/astro-intl: slug is missing on routed entry ${where}.`);
         }
         leaves.push({ name, entry, locale, entryId, dataId, slug });
         continue;
@@ -268,14 +236,13 @@ export function pairCollections(
 
       const record: PairedRecord = { collection: name, entryId, locale, entry };
       byLocaleEntryId.set(idKey, record);
-      records.push(record);
     }
   }
 
   const missingEntryRows: string[] = [];
   for (const route of config.routes ?? []) {
     if (!route.entry || !route.collection) continue;
-    if (config.locales.some((locale) => (route.slug[locale] ?? '').includes('{slug}'))) continue;
+    if (isSlugRow(config.locales, route.slug)) continue;
     let published = false;
     for (const locale of config.locales) {
       const found = byDataId.get(`${route.collection}\0${locale}\0${route.entry}`);
@@ -310,9 +277,8 @@ export function pairCollections(
         locale: leaf.locale,
         entry: leaf.entry,
       };
-      records.push(record);
       const key = localeEntryKey(leaf.locale, leaf.entryId);
-      if (!byLocaleEntryId.has(key)) byLocaleEntryId.set(key, record);
+      byLocaleEntryId.set(key, record);
       continue;
     }
     if (!pattern.entry && fixedEntries.has(`${leaf.name}\0${leaf.dataId}`)) continue;
@@ -345,7 +311,7 @@ export function pairCollections(
     if (!pattern.entry) continue;
     const entryId = `${name}/${pattern.entry}`;
     if (routed.some((document) => document.entryId === entryId)) continue;
-    if (!missingEntryRows.includes(entryId)) missingEntryRows.push(entryId);
+    missingEntryRows.push(entryId);
   }
 
   for (const route of config.routes ?? []) {
@@ -361,10 +327,7 @@ export function pairCollections(
 
   for (const route of config.routes ?? []) {
     if (!route.collection || route.entry) continue;
-    const wantsPattern = config.locales.some((locale) =>
-      (route.slug[locale] ?? '').includes('{slug}'),
-    );
-    if (wantsPattern) continue;
+    if (isSlugRow(config.locales, route.slug)) continue;
     const written: Record<string, string> = {};
     for (const locale of config.locales) {
       written[locale] = normalizeSlug(route.slug[locale] ?? '');
@@ -432,5 +395,5 @@ export function pairCollections(
     );
   }
 
-  return { routed, records, tails, byLocalePath, byLocaleTail, byLocaleEntryId, warnings };
+  return { routed, tails, byLocalePath, byLocaleTail, byLocaleEntryId, warnings };
 }

@@ -1,5 +1,5 @@
 import * as z from 'zod';
-import { normalizeSlug, patternSection } from './path.ts';
+import { patternSection, type RouteSlugIssue, routeSlugIssue } from './path.ts';
 
 /** Field names on a translated collection. Each one defaults to the key. */
 export const collectionFieldsSchema = z.strictObject({
@@ -205,13 +205,28 @@ function routeWhere(collection: string, entry?: string): string {
 
 const PAGE_TOKEN = '{page}';
 
-/** `{page}` as the whole final segment, and not beside `{slug}`. */
+/** Leading or trailing `/`, or an empty segment. One issue for this slug value. */
+function slugSeparatorMessage(
+  subject: string,
+  slug: string,
+  locale: string,
+  issue: RouteSlugIssue,
+  home: boolean,
+): string {
+  const where = `${subject} "${slug}" for locale "${locale}"`;
+  if (issue === 'empty') {
+    return `${where} has an empty segment. Remove the doubled "/".`;
+  }
+  const homeNote = home ? '; "/" alone is the home' : '';
+  return `${where} starts or ends with "/". Remove it${homeNote}.`;
+}
+
+/** `{page}` as the whole final segment, and not beside `{slug}`. The slug is not trimmed. */
 function pageTokenTailIssue(slug: string): string | undefined {
   if (slug.includes('{slug}') && slug.includes(PAGE_TOKEN)) {
     return 'a tail cannot hold both {page} and {slug}';
   }
-  const normalized = normalizeSlug(slug);
-  const parts = normalized === '/' ? [] : normalized.split('/');
+  const parts = slug.split('/');
   if (parts.at(-1) !== PAGE_TOKEN) return '{page} must be one whole final segment';
   if (parts.slice(0, -1).some((part) => part.includes('{'))) {
     return '{page} must be one whole final segment';
@@ -227,7 +242,10 @@ function localeList(slug: Readonly<Record<string, string>>): string {
 function paginationIssues(route: RouteRule): string[] {
   const issues: string[] = [];
   for (const [locale, slug] of Object.entries(route.slug)) {
-    if ((slug ?? '').includes(PAGE_TOKEN)) {
+    const value = slug ?? '';
+    // The route loop reports a slash or an empty segment, and nothing else for that value.
+    if (routeSlugIssue(value)) continue;
+    if (value.includes(PAGE_TOKEN)) {
       issues.push(`{page} belongs in pagination.slug in locale "${locale}"`);
     }
   }
@@ -249,7 +267,13 @@ function paginationIssues(route: RouteRule): string[] {
     );
   }
   for (const [locale, slug] of Object.entries(pagination.slug)) {
-    const issue = pageTokenTailIssue(slug ?? '');
+    const value = slug ?? '';
+    const separator = routeSlugIssue(value);
+    if (separator) {
+      issues.push(slugSeparatorMessage('pagination.slug', value, locale, separator, false));
+      continue;
+    }
+    const issue = pageTokenTailIssue(value);
     if (issue) issues.push(`${issue} in locale "${locale}"`);
   }
   return issues;
@@ -319,6 +343,13 @@ export function routeConfigIssues(config: RouteRulesConfig): string[] {
           continue;
         }
         const slug = route.slug[locale] ?? '';
+        const separator = routeSlugIssue(slug);
+        if (separator) {
+          issues.push(
+            slugSeparatorMessage('route with no collection slug', slug, locale, separator, true),
+          );
+          continue;
+        }
         if (slug.includes('{slug}')) {
           issues.push('{slug} pattern has no collection');
           continue;
@@ -354,6 +385,11 @@ export function routeConfigIssues(config: RouteRulesConfig): string[] {
           continue;
         }
         const slug = route.slug[locale] ?? '';
+        const separator = routeSlugIssue(slug);
+        if (separator) {
+          issues.push(slugSeparatorMessage(`route ${where} slug`, slug, locale, separator, true));
+          continue;
+        }
         if (slug === '') {
           issues.push(`route ${where} slug for locale "${locale}" is not a fixed tail`);
         }
@@ -377,6 +413,12 @@ export function routeConfigIssues(config: RouteRulesConfig): string[] {
         continue;
       }
       const slug = route.slug[locale] ?? '';
+      const separator = routeSlugIssue(slug);
+      if (separator) {
+        issues.push(slugSeparatorMessage(`route ${where} slug`, slug, locale, separator, true));
+        patternOk = false;
+        continue;
+      }
       const section = patternSection(slug);
       if (!section) {
         issues.push(

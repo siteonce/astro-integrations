@@ -109,7 +109,7 @@ function sitemapRegisteredBeforeIntl(integrations: readonly { name: string }[]):
   );
   if (sitemapAt === -1) return false;
   const intlAt = integrations.findIndex((integration) => integration.name === '@repo/astro-intl');
-  return intlAt !== -1 && sitemapAt < intlAt;
+  return sitemapAt < intlAt;
 }
 
 function refusedFallbackView(): string {
@@ -133,7 +133,6 @@ function isPlainRecord(value: unknown): value is Record<string, unknown> {
 function jsonRoundTripKey(value: unknown): string | undefined {
   try {
     const encoded = JSON.stringify(value);
-    if (encoded === undefined) return '(root)';
     return jsonDrift(value, JSON.parse(encoded) as unknown, '');
   } catch {
     return '(root)';
@@ -142,10 +141,7 @@ function jsonRoundTripKey(value: unknown): string | undefined {
 
 function jsonDrift(value: unknown, parsed: unknown, path: string): string | undefined {
   if (Object.is(value, parsed)) return undefined;
-  if (Array.isArray(value) || Array.isArray(parsed)) {
-    if (!Array.isArray(value) || !Array.isArray(parsed) || value.length !== parsed.length) {
-      return path || '(root)';
-    }
+  if (Array.isArray(value) && Array.isArray(parsed)) {
     for (let index = 0; index < value.length; index += 1) {
       const found = jsonDrift(
         value[index],
@@ -160,16 +156,9 @@ function jsonDrift(value: unknown, parsed: unknown, path: string): string | unde
     for (const key of Object.keys(value)) {
       const next = path ? `${path}.${key}` : key;
       // JSON drops a key whose value is undefined. The parser treats that as absent.
-      if (value[key] === undefined) {
-        if (Object.hasOwn(parsed, key)) return next;
-        continue;
-      }
-      if (!Object.hasOwn(parsed, key)) return next;
+      if (value[key] === undefined) continue;
       const found = jsonDrift(value[key], parsed[key], next);
       if (found) return found;
-    }
-    for (const key of Object.keys(parsed)) {
-      if (!Object.hasOwn(value, key)) return path ? `${path}.${key}` : key;
     }
     return undefined;
   }
@@ -228,7 +217,6 @@ export function astroIntl(
   let projectRoot = '';
   let injected: CompiledRoute[] = [];
   let ownEntrypoints = new Set<string>();
-  let dataRoutePatterns = new Set<string>();
   let dataRouteFile: string | undefined;
   let fallbackEntrypoints = new Set<string>();
   let viewRendering: IntlConfig['viewRendering'];
@@ -255,7 +243,6 @@ export function astroIntl(
         logger,
       }) => {
         sitemapOptions.setBase(config.base);
-        dataRoutePatterns = new Set();
         dataRouteFile = undefined;
         const mismatch = urlFormatMismatch(config.trailingSlash, config.build?.format);
         if (mismatch) logger.warn(mismatch);
@@ -336,8 +323,6 @@ export function astroIntl(
               entrypoint,
               prerender: true,
             });
-            entrypoints.add(entrypoint);
-            dataRoutePatterns.add(SITEMAP_DATA_PATH);
             dataRouteFile = entrypoint;
           }
         } catch (error) {
@@ -381,10 +366,7 @@ export function astroIntl(
         throw new Error(message);
       },
       'astro:routes:resolved': async ({ routes, logger }) => {
-        const injectedPatterns = new Set([
-          ...injected.map((route) => route.pattern),
-          ...dataRoutePatterns,
-        ]);
+        const injectedPatterns = new Set(injected.map((route) => route.pattern));
         if (viewRendering === 'request') {
           for (const route of routes) {
             if (route.isPrerendered !== false) continue;
@@ -417,10 +399,7 @@ export function astroIntl(
           await writeFile(dataRouteFile, dataRouteSource(input, candidates));
         }
         if (intlConfig.routing.prefixDefaultLocale) {
-          const appRoutes = routes.filter(
-            (route) => !isIntlRoute(route, ownEntrypoints, projectRoot, injectedPatterns),
-          );
-          if (!servesSiteRoot(appRoutes)) {
+          if (!servesSiteRoot(routes)) {
             const message =
               `@repo/astro-intl: prefixDefaultLocale is true, and nothing serves "/". ` +
               `Add a redirect in defineConfig (redirects: { '/': '/${intlConfig.defaultLocale}/' }) or a src/pages/index file.`;

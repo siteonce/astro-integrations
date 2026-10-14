@@ -40,45 +40,6 @@ export function collectionEntry(
   return filePath === undefined ? { id, collection, data } : { id, collection, data, filePath };
 }
 
-/** Blog rows: pin, alpha in en and de, solo, mehr, and an en slug that clashes with mehr. */
-export function blogEntries(): CollectionEntry[] {
-  return [
-    collectionEntry('blog', 'pin-en', { id: 'pin', locale: 'en', slug: 'pin-slug' }),
-    collectionEntry('blog', 'alpha-en', { id: 'alpha', locale: 'en', slug: 'alpha' }),
-    collectionEntry('blog', 'alpha-de', { id: 'alpha', locale: 'de', slug: 'anders' }),
-    collectionEntry('blog', 'solo-en', { id: 'solo', locale: 'en', slug: 'solo' }),
-    collectionEntry('blog', 'mehr-de', { id: 'mehr', locale: 'de', slug: 'mehr' }),
-    collectionEntry('blog', 'clash-en', { id: 'clash', locale: 'en', slug: 'mehr' }),
-  ];
-}
-
-/**
- * About, the featured pin, a blog listing of page size 1, and `blog/{slug}` with a fallback view.
- * The pin row authors `collection` as `{ name, entry }`.
- */
-export function blogRoutes(): NonNullable<IntlConfigInput['routes']> {
-  return [
-    { slug: { en: 'about', de: 'ueber' }, view: 'about' },
-    {
-      slug: { en: 'featured', de: 'hervorgehoben' },
-      view: 'featured',
-      collection: { name: 'blog', entry: 'pin' },
-    },
-    {
-      slug: { en: 'blog', de: 'artikel' },
-      view: 'index',
-      collection: 'blog',
-      pagination: { pageSize: 1, slug: { en: 'blog/{page}', de: 'artikel/{page}' } },
-    },
-    {
-      slug: { en: 'blog/{slug}', de: 'artikel/{slug}' },
-      view: 'post',
-      collection: 'blog',
-      fallbackView: 'missing',
-    },
-  ];
-}
-
 /** Translated `blog` and `authors`. Untranslated `sources` and `roles`. */
 export function pairedCollections(): NonNullable<IntlConfigInput['collections']> {
   return {
@@ -90,6 +51,36 @@ export function pairedCollections(): NonNullable<IntlConfigInput['collections']>
 /** A relation pointer. `target` is the collection name. `id` is the id that collection stores. */
 export function relation<C extends string>(target: C, id: string): Relation<C> {
   return { intlRelationTarget: target, id };
+}
+
+/**
+ * Posts, authors, sources, and roles for relation expectations.
+ * Blog pairing id `hello-world`: en entry `hello-en` slug `hello-world`, de entry `hello-de` slug `hallo-welt`.
+ * Each post points at author `ada`, source `astro`, and role `editor`.
+ * Authors are translated. Pairing id `ada`: en entry `ada-en` name `Ada`, de entry `ada-de` name `Ada DE`.
+ * Source is untranslated. Its collection entry id is `astro`, and its name is `Astro`.
+ * Role is untranslated. Its collection entry id is `editor`. `name` is `{ en: 'Editor', de: 'Redakteur' }`.
+ * A missing source or role is reported on `blog:hello-en`, the first post.
+ */
+export function linkedCollections(): Record<string, CollectionEntry[]> {
+  const post = (locale: 'en' | 'de', leaf: string) =>
+    collectionEntry('blog', `hello-${locale}`, {
+      id: 'hello-world',
+      locale,
+      slug: leaf,
+      author: relation('authors', 'ada'),
+      source: relation('sources', 'astro'),
+      role: relation('roles', 'editor'),
+    });
+  return {
+    blog: [post('en', 'hello-world'), post('de', 'hallo-welt')],
+    authors: [
+      collectionEntry('authors', 'ada-en', { id: 'ada', locale: 'en', name: 'Ada' }),
+      collectionEntry('authors', 'ada-de', { id: 'ada', locale: 'de', name: 'Ada DE' }),
+    ],
+    sources: [collectionEntry('sources', 'astro', { name: 'Astro' })],
+    roles: [collectionEntry('roles', 'editor', { name: { en: 'Editor', de: 'Redakteur' } })],
+  };
 }
 
 /**
@@ -137,4 +128,19 @@ export function collectionLoaders(
 /** Listing order that keeps the loaded order. The comparator returns 0. */
 export function keepOrder() {
   return { sort: () => () => 0 as const };
+}
+
+/** Warnings from the first load. Later calls reuse that load and do not warn again. */
+export async function warningsFrom(load: () => Promise<unknown>): Promise<string[]> {
+  const lines: string[] = [];
+  const original = console.warn;
+  console.warn = (message?: unknown) => {
+    lines.push(String(message));
+  };
+  try {
+    await load();
+    return lines;
+  } finally {
+    console.warn = original;
+  }
 }

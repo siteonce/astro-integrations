@@ -3,17 +3,12 @@ import { writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { describe, it, type TestContext } from 'node:test';
 import type { AstroIntegration } from 'astro';
-import {
-  type IntlHooks,
-  type IntlSetupOptions,
-  intlHooks,
-  resolvedRoute,
-  siteRootRoute,
-} from '../astro.ts';
-import { type IntlConfigInput, intlConfig } from '../fixtures.ts';
+import { boot, type IntlHooks, intlHooks, resolvedRoute, siteRootRoute } from '../astro.ts';
+import { intlConfig } from '../fixtures.ts';
 
 const sitemapIntegration = { name: '@astrojs/sitemap', hooks: {} } as AstroIntegration;
 const intlIntegration = { name: '@repo/astro-intl', hooks: {} } as AstroIntegration;
+const otherIntegration = { name: 'other', hooks: {} } as AstroIntegration;
 
 /** What `intlConfig()` writes into Astro `i18n` when setup finishes. */
 const writtenI18n = {
@@ -52,14 +47,8 @@ async function bootSitemap(
   return hooks;
 }
 
-async function boot(t: TestContext, config: IntlConfigInput, options?: IntlSetupOptions) {
-  const hooks = await intlHooks(t, config);
-  await hooks.setup(options);
-  return hooks;
-}
-
 describe('overlapping i18n keys are already set on defineConfig', () => {
-  it('refuses to boot', async (t) => {
+  it('refuses when i18n keys are already set', async (t) => {
     const hooks = await intlHooks(t, intlConfig());
     await assert.rejects(
       () =>
@@ -81,27 +70,33 @@ describe('overlapping i18n keys are already set on defineConfig', () => {
 });
 
 describe('@astrojs/sitemap is registered before intl', () => {
-  it('refuses to boot', async (t) => {
+  it('refuses when sitemap is registered before intl', async (t) => {
     const hooks = await intlHooks(t, intlConfig());
-    await assert.rejects(
-      () => hooks.setup({ integrations: [sitemapIntegration, intlIntegration] }),
-      {
-        message:
-          '@repo/astro-intl: @astrojs/sitemap is registered before @repo/astro-intl. List intl first.',
-      },
-    );
+    const integration = hooks.integration;
+    assert.ok(integration);
+    await assert.rejects(() => hooks.setup({ integrations: [sitemapIntegration, integration] }), {
+      message:
+        '@repo/astro-intl: @astrojs/sitemap is registered before @repo/astro-intl. List intl first.',
+    });
     assert.deepEqual(hooks.updates, []);
   });
 
   it('boots when intl is listed first and sitemap() sets no i18n', async (t) => {
-    const hooks = await bootSitemap(
-      t,
-      `import sitemap from '@astrojs/sitemap';
+    const source = `import sitemap from '@astrojs/sitemap';
 export default { integrations: [sitemap()] };
-`,
+`;
+    const lists = [
       [intlIntegration, sitemapIntegration],
-    );
-    assert.deepEqual(hooks.updates, [{ i18n: writtenI18n }]);
+      [otherIntegration, intlIntegration, sitemapIntegration],
+    ];
+    for (const integrations of lists) {
+      const hooks = await bootSitemap(t, source, integrations);
+      assert.deepEqual(
+        hooks.updates,
+        [{ i18n: writtenI18n }],
+        integrations.map((integration) => integration.name).join(', '),
+      );
+    }
   });
 });
 
@@ -114,9 +109,12 @@ describe("@astrojs/sitemap's i18n option is set", () => {
 export default { integrations: [sitemap({ i18n: { defaultLocale: 'en', locales: { en: 'en' } } })] };
 `,
     );
-    await assert.rejects(() => hooks.setup({ integrations: [sitemapIntegration] }), {
-      message: '@repo/astro-intl: @astrojs/sitemap i18n option is set.',
-    });
+    await assert.rejects(
+      () => hooks.setup({ integrations: [intlIntegration, sitemapIntegration] }),
+      {
+        message: '@repo/astro-intl: @astrojs/sitemap i18n option is set.',
+      },
+    );
     assert.deepEqual(hooks.updates, []);
   });
 
@@ -132,32 +130,86 @@ export default { integrations: [sitemap({ filter: (page) => true })] };
   });
 
   it('boots when a later i18n binding is not the sitemap option', async (t) => {
-    const hooks = await bootSitemap(
-      t,
+    const sources = [
       `import sitemap from '@astrojs/sitemap';
 export default { integrations: [sitemap()] };
 const i18n = { defaultLocale: 'en' };
 `,
-      [intlIntegration, sitemapIntegration],
-    );
-    assert.deepEqual(hooks.updates, [{ i18n: writtenI18n }]);
+      `import sitemap from '@astrojs/sitemap';
+export default { integrations: [sitemap()] };
+const other = { i18n: { defaultLocale: 'en' } };
+`,
+    ];
+    for (const source of sources) {
+      const hooks = await bootSitemap(t, source, [intlIntegration, sitemapIntegration]);
+      assert.deepEqual(hooks.updates, [{ i18n: writtenI18n }], source);
+    }
   });
 
   it('boots when i18n appears only in a comment', async (t) => {
-    const hooks = await bootSitemap(
-      t,
+    const sources = [
+      // A line comment after another line.
       `import sitemap from '@astrojs/sitemap';
 // sitemap({ i18n: { defaultLocale: 'en', locales: { en: 'en' } } })
 export default { integrations: [sitemap()] };
 `,
-      [intlIntegration, sitemapIntegration],
-    );
-    assert.deepEqual(hooks.updates, [{ i18n: writtenI18n }]);
+      // A block comment.
+      `import sitemap from '@astrojs/sitemap';
+/* sitemap({ i18n: { defaultLocale: 'en', locales: { en: 'en' } } }) */
+export default { integrations: [sitemap()] };
+`,
+      // A line comment with no character before it.
+      `// sitemap({ i18n: { defaultLocale: 'en', locales: { en: 'en' } } })
+import sitemap from '@astrojs/sitemap';
+export default { integrations: [sitemap()] };
+`,
+      // A line comment after code on the same line.
+      `import sitemap from '@astrojs/sitemap';
+export default { integrations: [sitemap()] }; // sitemap({ i18n: { defaultLocale: 'en', locales: { en: 'en' } } })
+`,
+    ];
+    for (const source of sources) {
+      const hooks = await bootSitemap(t, source, [intlIntegration, sitemapIntegration]);
+      assert.deepEqual(hooks.updates, [{ i18n: writtenI18n }], source);
+    }
+  });
+
+  it('refuses when a quoted paren sits before i18n inside sitemap()', async (t) => {
+    // One source per quote. `x)` keeps a character in front of the paren: ending the quote on the next character still leaves the paren to close the call.
+    const sources = [
+      `import sitemap from '@astrojs/sitemap';
+export default { integrations: [sitemap({ filter: (page) => page !== ')', i18n: { defaultLocale: 'en', locales: { en: 'en' } } })] };
+`,
+      `import sitemap from '@astrojs/sitemap';
+export default { integrations: [sitemap({ filter: (page) => page !== ")", i18n: { defaultLocale: 'en', locales: { en: 'en' } } })] };
+`,
+      `import sitemap from '@astrojs/sitemap';
+export default { integrations: [sitemap({ filter: (page) => page !== \`)\`, i18n: { defaultLocale: 'en', locales: { en: 'en' } } })] };
+`,
+      `import sitemap from '@astrojs/sitemap';
+export default { integrations: [sitemap({ filter: (page) => page !== 'x)', i18n: { defaultLocale: 'en', locales: { en: 'en' } } })] };
+`,
+      `import sitemap from '@astrojs/sitemap';
+export default { integrations: [sitemap({ filter: (page) => page !== "x)", i18n: { defaultLocale: 'en', locales: { en: 'en' } } })] };
+`,
+      `import sitemap from '@astrojs/sitemap';
+export default { integrations: [sitemap({ filter: (page) => page !== \`x)\`, i18n: { defaultLocale: 'en', locales: { en: 'en' } } })] };
+`,
+    ];
+    for (const source of sources) {
+      const hooks = await intlHooks(t, intlConfig());
+      await writeAstroConfig(hooks.root, source);
+      await assert.rejects(
+        () => hooks.setup({ integrations: [intlIntegration, sitemapIntegration] }),
+        { message: '@repo/astro-intl: @astrojs/sitemap i18n option is set.' },
+        source,
+      );
+    }
   });
 });
 
 describe('viewRendering is "request" and the site has no adapter, outside astro dev', () => {
-  it('refuses to boot', async (t) => {
+  it('refuses when the site has no adapter', async (t) => {
     const hooks = await intlHooks(t, intlConfig({ viewRendering: 'request' }));
     await assert.rejects(() => hooks.setup({ command: 'build' }), {
       message: '@repo/astro-intl: viewRendering is "request" and the site has no adapter.',

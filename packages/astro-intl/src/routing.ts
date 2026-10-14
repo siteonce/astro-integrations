@@ -37,7 +37,6 @@ export function compileRoutes(config: IntlConfig): CompiledRoute[] {
   for (const [rowIndex, row] of (config.routes ?? []).entries()) {
     const fallbackView = row.fallbackView ?? config.fallbackView;
     for (const locale of locales) {
-      if (!(locale in row.slug)) continue;
       const view = viewForLocale(row.view, locale);
       if (view === undefined) continue;
 
@@ -63,7 +62,6 @@ export function compileRoutes(config: IntlConfig): CompiledRoute[] {
     const pagination = row.pagination;
     if (!pagination) continue;
     for (const locale of locales) {
-      if (!(locale in pagination.slug)) continue;
       const view = viewForLocale(pagination.view ?? row.view, locale);
       if (view === undefined) continue;
       const normalized = normalizeSlug(pagination.slug[locale] ?? '');
@@ -86,7 +84,6 @@ export function compileRoutes(config: IntlConfig): CompiledRoute[] {
 
 function viewForLocale(view: RouteRow['view'], locale: string): string | undefined {
   if (typeof view === 'string') return view;
-  if (!(locale in view)) return undefined;
   return view[locale];
 }
 
@@ -108,25 +105,21 @@ function prefixFor(config: IntlConfig, locale: string): string {
 }
 
 function patternFor(prefix: string, tail: string, spread: 'page' | 'index' | undefined): string {
-  const base = tail === '/' ? prefix || '/' : `${prefix}/${tail}`;
+  const base = tail === '/' ? prefix : `${prefix}/${tail}`;
   if (spread === undefined) return base;
-  const param = `/[...${spread}]`;
-  return base === '/' ? param : `${base}${param}`;
+  return `${base}/[...${spread}]`;
 }
 
 function canonicalPattern(pattern: string): string {
   const stripped = pattern.replace(/^\/+|\/+$/gu, '');
-  return stripped === '' ? '/' : `/${stripped}`;
+  return `/${stripped}`;
 }
 
-/** One dynamic final segment, such as `[page]`. A spread is not one. */
-function singleDynamicLeaf(pattern: string): { head: string; leaf: string } | undefined {
-  const parts = canonicalPattern(pattern)
-    .split('/')
-    .filter((part) => part.length > 0);
-  const leaf = parts.at(-1);
-  if (!leaf || !/^\[[^.\]]+\]$/u.test(leaf)) return undefined;
-  return { head: parts.slice(0, -1).join('/'), leaf };
+/** The text after the last slash, and the text before it. */
+function singleDynamicLeaf(pattern: string): { head: string; leaf: string } {
+  const canonical = canonicalPattern(pattern);
+  const slash = canonical.lastIndexOf('/');
+  return { head: canonical.slice(1, slash), leaf: canonical.slice(slash + 1) };
 }
 
 /**
@@ -139,16 +132,14 @@ export function pageSlugClash(
   pattern: string,
 ): { page: CompiledRoute; entry: CompiledRoute } | undefined {
   const pageLeaf = singleDynamicLeaf(pattern);
-  if (pageLeaf?.leaf !== '[page]') return undefined;
+  if (pageLeaf.leaf !== '[page]') return undefined;
   const page = routes.find(
-    (route) =>
-      route.kind === 'listing' && canonicalPattern(route.pattern) === canonicalPattern(pattern),
+    (route) => canonicalPattern(route.pattern) === canonicalPattern(pattern),
   );
   if (!page) return undefined;
   const entry = routes.find((route) => {
-    if (route.kind !== 'entry') return false;
     const leaf = singleDynamicLeaf(route.pattern);
-    return leaf?.leaf === '[slug]' && leaf.head === pageLeaf.head;
+    return leaf.leaf === '[slug]' && leaf.head === pageLeaf.head;
   });
   if (!entry) return undefined;
   return { page, entry };

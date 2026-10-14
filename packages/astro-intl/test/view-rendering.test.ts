@@ -7,38 +7,11 @@ import {
   intlHooks,
   nodeAdapter,
   renderedViews,
+  renderingConfig,
   resolvedRoute,
   siteRootRoute,
   writeViews,
 } from './astro.ts';
-import { type IntlConfigInput, intlConfig } from './fixtures.ts';
-
-/**
- * Static about, a `{slug}` post with fallback view `missing`, and a blog listing.
- * `blog/{page}` has the same section as `blog/{slug}`.
- * Omitted `viewRendering` is the default, `'build'`.
- */
-function renderingConfig(viewRendering?: 'build' | 'request'): IntlConfigInput {
-  return intlConfig({
-    ...(viewRendering === undefined ? {} : { viewRendering }),
-    routes: [
-      { slug: { en: 'about', de: 'ueber' }, view: 'about' },
-      {
-        slug: { en: 'blog/{slug}', de: 'artikel/{slug}' },
-        collection: 'blog',
-        view: 'post',
-        fallbackView: 'missing',
-      },
-      {
-        slug: { en: 'blog', de: 'artikel' },
-        collection: 'blog',
-        view: 'blog',
-        pagination: { pageSize: 10, slug: { en: 'blog/{page}', de: 'artikel/{page}' } },
-      },
-    ],
-    collections: { translated: ['blog'] },
-  });
-}
 
 async function prepare(t: TestContext, viewRendering?: 'build' | 'request') {
   const hooks = await intlHooks(t, renderingConfig(viewRendering));
@@ -271,30 +244,31 @@ describe('view rendering', () => {
     const items = ['a', 'b', 'c', 'd', 'e'];
     const args = { pageSize: 2, props: { locale: 'en' } };
     const astroPages = (await astroPaginate('...page'))(items, args);
+    const ignored = {
+      locale: 'ignored',
+      page: {
+        data: ['ignored'],
+        start: 0,
+        end: 0,
+        size: 0,
+        total: 0,
+        currentPage: 0,
+        lastPage: 0,
+        url: {
+          current: '/ignored',
+          prev: undefined,
+          next: undefined,
+          first: undefined,
+          last: undefined,
+        },
+      },
+    };
     const getStaticPaths = ({ paginate }: GetStaticPathsOptions) => paginate(items, args);
     const demand = (page: string | undefined) =>
       viewProps(
         {
           isPrerendered: false,
-          props: {
-            locale: 'ignored',
-            page: {
-              data: ['ignored'],
-              start: 0,
-              end: 0,
-              size: 0,
-              total: 0,
-              currentPage: 0,
-              lastPage: 0,
-              url: {
-                current: '/ignored',
-                prev: undefined,
-                next: undefined,
-                first: undefined,
-                last: undefined,
-              },
-            },
-          },
+          props: ignored,
           params: { page },
           routePattern: '/en/blog/[...page]',
         },
@@ -349,5 +323,68 @@ describe('view rendering', () => {
       assert.deepEqual(props, { locale: 'en', page: { ...body, url: spec.url } });
       assert.deepEqual(astro.props, { locale: 'en', page: { ...body, url: spec.astroUrl } });
     }
+
+    // Astro keeps `lang` on the path. The request carries it, so the page matches.
+    const langItems = ['a', 'b'];
+    const langArgs = { params: { lang: 'en' } };
+    const langPaths = ({ paginate }: GetStaticPathsOptions) => paginate(langItems, langArgs);
+    const langAstro = (await astroPaginate('...page'))(langItems, langArgs);
+    const langProps = await viewProps(
+      {
+        isPrerendered: false,
+        props: ignored,
+        params: { lang: 'en', page: undefined },
+        routePattern: '/en/blog/[...page]',
+      },
+      langPaths,
+    );
+    const langPage = {
+      data: ['a', 'b'],
+      start: 0,
+      end: 1,
+      size: 10,
+      total: 2,
+      currentPage: 1,
+      lastPage: 1,
+    };
+    const emptyUrl = {
+      current: '',
+      next: undefined,
+      prev: undefined,
+      first: undefined,
+      last: undefined,
+    };
+    assert.deepEqual(langAstro[0]?.params, { lang: 'en', page: undefined });
+    assert.deepEqual(langProps, { page: { ...langPage, url: emptyUrl } });
+    assert.deepEqual(langAstro[0]?.props, {
+      page: { ...langPage, url: { ...emptyUrl, current: '/' } },
+    });
+
+    // pageSize Infinity is one page of every item, starting at 0.
+    const infPaths = ({ paginate }: GetStaticPathsOptions) =>
+      paginate(items, { pageSize: Infinity });
+    const infAstro = (await astroPaginate('...page'))(items, { pageSize: Infinity });
+    const infProps = await viewProps(
+      {
+        isPrerendered: false,
+        props: ignored,
+        params: { page: undefined },
+        routePattern: '/en/blog/[...page]',
+      },
+      infPaths,
+    );
+    const infPage = {
+      data: ['a', 'b', 'c', 'd', 'e'],
+      start: 0,
+      end: 4,
+      size: Infinity,
+      total: 5,
+      currentPage: 1,
+      lastPage: 1,
+    };
+    assert.deepEqual(infProps, { page: { ...infPage, url: emptyUrl } });
+    assert.deepEqual(infAstro[0]?.props, {
+      page: { ...infPage, url: { ...emptyUrl, current: '/' } },
+    });
   });
 });

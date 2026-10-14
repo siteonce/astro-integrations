@@ -20,8 +20,7 @@ function stripSlashes(value: string): string {
 
 /** Leading slash, no trailing slash. `/` stays `/`. */
 function slashPattern(pattern: string): string {
-  const stripped = stripSlashes(pattern);
-  return stripped === '' ? '/' : `/${stripped}`;
+  return `/${stripSlashes(pattern)}`;
 }
 
 function segments(pattern: string): string[] {
@@ -44,7 +43,6 @@ function isRestParam(segment: string): boolean {
 /**
  * True when a resolved route matches the pathname `/`.
  * `patternRegex` is Astro's matcher, so a root rest route counts.
- * The caller drops intl's own injected routes first.
  */
 export function servesSiteRoot(routes: readonly { patternRegex: RegExp }[]): boolean {
   return routes.some((route) => route.patternRegex.test('/'));
@@ -55,12 +53,11 @@ export function servesSiteRoot(routes: readonly { patternRegex: RegExp }[]): boo
  * Other external routes, such as open-graph images, stay in the tail scan.
  */
 export function isIntlRoute(
-  route: { origin: string; entrypoint: string; pattern: string },
+  route: { entrypoint: string; pattern: string },
   ownEntrypoints: ReadonlySet<string>,
   projectRoot: string,
   injectedPatterns: ReadonlySet<string>,
 ): boolean {
-  if (route.origin !== 'external') return false;
   if (!ownEntrypoints.has(resolve(projectRoot, route.entrypoint))) return false;
   return injectedPatterns.has(slashPattern(route.pattern));
 }
@@ -91,7 +88,7 @@ export function fileRouteCollision(
 function patternsCollide(filePattern: string, route: CompiledRoute): boolean {
   const fileSegments = segments(filePattern);
   const injectedSegments = segments(route.pattern);
-  if (route.kind === 'listing' && injectedSegments.at(-1) === '[page]') {
+  if (injectedSegments.at(-1) === '[page]') {
     return pageParamCollides(fileSegments, injectedSegments);
   }
   if (route.kind === 'static' || route.kind === 'listing') {
@@ -103,7 +100,7 @@ function patternsCollide(filePattern: string, route: CompiledRoute): boolean {
 
 /** A `[page]` listing hits a page number or a `[param]` of that same shape, not the bare tail. */
 function pageParamCollides(fileSegments: string[], injectedSegments: string[]): boolean {
-  if (fileSegments.length !== injectedSegments.length || fileSegments.length === 0) return false;
+  if (fileSegments.length !== injectedSegments.length) return false;
   for (let index = 0; index < injectedSegments.length - 1; index++) {
     const injected = injectedSegments[index];
     if (fileSegments[index] !== injected) return false;
@@ -113,7 +110,7 @@ function pageParamCollides(fileSegments: string[], injectedSegments: string[]): 
 }
 
 function entryCollides(fileSegments: string[], injectedSegments: string[]): boolean {
-  if (fileSegments.length !== injectedSegments.length || fileSegments.length === 0) return false;
+  if (fileSegments.length !== injectedSegments.length) return false;
   for (let index = 0; index < injectedSegments.length - 1; index++) {
     if (fileSegments[index] !== injectedSegments[index]) return false;
   }

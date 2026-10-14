@@ -3,45 +3,47 @@
  * after the locale prefix.
  */
 
+/** Trim slashes at the ends. Lookups use this. Config validation refuses them. */
 export function normalizeSlug(slug: string): string {
   if (slug === '' || slug === '/') return '/';
   return slug.replace(/^\/+/u, '').replace(/\/+$/u, '');
 }
 
-/** Section prefix. `undefined` when the value is empty or `/`. */
-export function normalizePrefix(value: string): string | undefined {
-  if (value === '/') return undefined;
-  const stripped = value.replace(/^\/+|\/+$/gu, '');
-  return stripped === '' ? undefined : stripped;
+export type RouteSlugIssue = 'slash' | 'empty';
+
+/**
+ * A row `slug` or `pagination.slug` config must refuse.
+ * `/` is the home. `''` is left to the fixed-tail check.
+ * A leading or trailing `/` wins over an empty segment.
+ */
+export function routeSlugIssue(slug: string): RouteSlugIssue | undefined {
+  if (slug === '' || slug === '/') return undefined;
+  if (slug.startsWith('/') || slug.endsWith('/')) return 'slash';
+  if (slug.includes('//')) return 'empty';
+  return undefined;
 }
 
 const SLUG_TOKEN = '{slug}';
 
 /**
  * Section in front of a final `{slug}` segment.
- * `undefined` when `{slug}` is missing, repeated, or not the whole last segment.
+ * `undefined` when `{slug}` is missing, not the whole last segment, or a section
+ * segment contains `{`. A leading or trailing `/`, or an empty segment, is
+ * refused in config validation before this runs.
  */
 export function patternSection(slug: string): string | undefined {
-  const normalized = normalizeSlug(slug);
   const marker = `/${SLUG_TOKEN}`;
-  if (!normalized.endsWith(marker)) return undefined;
-  if (normalized.indexOf(SLUG_TOKEN) !== normalized.length - SLUG_TOKEN.length) return undefined;
-  const section = normalizePrefix(normalized.slice(0, -marker.length));
-  if (!section || section.split('/').some((part) => part.length === 0 || part.includes('{'))) {
-    return undefined;
-  }
+  if (!slug.endsWith(marker)) return undefined;
+  const section = slug.slice(0, -marker.length);
+  if (section.split('/').some((part) => part.includes('{'))) return undefined;
   return section;
 }
 
 export function compilePath(prefix: string, slug: string): string {
-  const normalized = normalizePrefix(prefix);
-  if (!normalized) {
-    throw new Error(`@repo/astro-intl: prefix "${prefix}" is empty or "/".`);
-  }
-  if (slug === '' || slug === '/' || slug.includes('/')) {
+  if (slug.includes('/')) {
     throw new Error(`@repo/astro-intl: slug "${slug}" is not one segment.`);
   }
-  return `${normalized}/${slug}`;
+  return `${prefix}/${slug}`;
 }
 
 /**
@@ -60,15 +62,11 @@ export function pageTokenSection(pageTail: string): string {
   const tail = normalizeSlug(pageTail);
   const marker = '/{page}';
   if (tail === '{page}') return '/';
-  if (tail.endsWith(marker)) return tail.slice(0, -marker.length);
-  return tail;
+  return tail.slice(0, -marker.length);
 }
 
 /** How many tails a list fills. The written tail is always page 1. */
 export function listingPageCount(entryCount: number, pageSize: number): number {
-  if (!Number.isInteger(pageSize) || pageSize < 1) {
-    throw new Error(`@repo/astro-intl: pageSize "${pageSize}" must be a positive integer.`);
-  }
   if (entryCount <= 0) return 1;
   return Math.ceil(entryCount / pageSize);
 }

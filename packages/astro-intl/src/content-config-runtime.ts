@@ -39,9 +39,7 @@ function isDirectRuntimeImport(before: string): boolean {
   if (/\bimport\s+$/.test(before)) return true;
   const from = before.match(/\bfrom\s+$/);
   if (from?.index === undefined) return false;
-  const statement = before.slice(0, from.index);
-  const sinceSemicolon = statement.slice(statement.lastIndexOf(';') + 1);
-  return /\b(?:import|export)\b/.test(sinceSemicolon);
+  return /\b(?:import|export)\b/.test(before.slice(before.lastIndexOf(';') + 1));
 }
 
 export function findContentConfig(

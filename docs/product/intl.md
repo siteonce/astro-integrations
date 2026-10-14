@@ -54,7 +54,7 @@ collections: {
 
 Intl loads each **translated** collection and pairs it on `(pairing id, locale)`. Pairing reads the id and locale fields and prefixes the collection name. Pairing key = collection name + `/` + the pairing `id`. One `PairingIndex` (`byLocalePath`, `byLocaleEntryId`). The fields are `id`, `locale`, and `slug`. `fields` renames them for one collection. Each name is optional: `id` (default `id`), `locale` (default `locale`), `slug` (default `slug`). It only renames. It switches no behavior. Both content sources present these fields. File layout belongs to the app.
 
-Loading aborts when an entry of a **translated** collection has no `id` or no `locale`, or when an entry a `{slug}` row routes has a `slug` that is not one segment. Intl loads collections in the build, and per request for an on-demand view.
+Loading aborts when an entry of a **translated** collection has no `id` or no `locale`, when an `id`, `locale`, or `slug` value is not a string, when an entry’s locale is not in `locales`, or when an entry a `{slug}` row routes has a `slug` that is not one segment. Intl loads collections in the build, and per request for an on-demand view.
 
 Startup fails when a name repeats or sits in both lists, a `fields` key is not in `translated`, or a route row names a collection outside `translated`. Loading aborts when a name in either list is not a content collection.
 
@@ -143,7 +143,7 @@ A **relation** is `{ intlRelationTarget, id }` after parse, where `intlRelationT
 
 The content config takes `relation` and `localized` from `createIntlSchema(intlConfig)`. `relation(name)` takes a name in `collections.translated` or `collections.untranslated`. Any other name fails when Astro loads the content config. `localized(value)` uses `locales` from that config.
 
-Intl reads relations through those lists, so an on-demand view needs nothing beyond its `createIntl` binding. An entry holding a relation whose collection is in neither list fails when intl loads collections: in the build, and per request for an on-demand view.
+Intl reads relations through those lists, so an on-demand view needs nothing beyond its `createIntl` binding. An entry holding a relation whose collection is in neither list fails when intl loads collections: in the build, and per request for an on-demand view. An **untranslated** entry’s relations are checked in every locale, whatever fields it has.
 
 A **translated** target stores the pairing `id`. `getRelated(locale, relation)` from the `createIntl` binding resolves it in that locale. Those entries carry `id` and `locale`.
 
@@ -155,7 +155,7 @@ Documents are paired entries (`id` + `locale` on each sibling). Inline locale ma
 
 ## Catalogs
 
-`createT` is pure: the app passes message objects in. Catalog JSON is not loaded into a virtual module. `createT` defaults to the injected `Locale`, so the starter passes no type argument. A missing catalog for a configured locale is a type error. Intl does not check catalog files.
+`createT` is pure: the app passes message objects in. Catalog JSON is not loaded into a virtual module. `createT` defaults to the injected `Locale`, so the starter passes no type argument. A missing catalog for a configured locale is a type error. `createT` throws when a message it is handed is not valid ICU, naming the locale and the key, nested groups included. When a call omits a value the message names, `t()` returns the message as written and logs a warning naming the locale and the key. Intl does not check catalog files.
 
 ## Refuses to boot
 
@@ -170,10 +170,13 @@ Fail at startup when:
 - A `view`, `pagination.view`, or `fallbackView` name ends in `.astro`, or has a segment that is empty, `.`, or `..`.
 - A row sets `fallbackView` to `true`, or sets a view or `false` without `{slug}`.
 - A row’s `slug` omits a configured locale.
+- A row `slug` is `''`. `/` is the home.
 - `{page}` is in the row’s `slug`. It belongs in `pagination.slug`.
-- `{slug}` is not the whole final segment of a row’s `slug`, or no section sits in front of it, or `{slug}` is repeated, or a section segment is empty or contains `{`.
+- `{slug}` is not the whole final segment of a row’s `slug`, or no section sits in front of it, or `{slug}` is repeated, or a section segment contains `{`.
+- A row `slug` or a `pagination.slug` has an empty segment, or a leading or trailing `/`. `/` alone is the home.
 - A `{slug}` row names no collection.
 - Two `{slug}` rows name one collection.
+- Two entry rows name one entry.
 - Two `{slug}` rows share a section in one locale.
 - `pagination` is on a row with no collection, a row that names an entry, or a row whose `slug` holds `{slug}`.
 - `pagination.slug` and the row’s `slug` name different locales.
@@ -188,6 +191,7 @@ Fail at startup when:
 - Two rows compile to the same route pattern.
 - A file route shaped like an injected route would serve a URL that route emits and win over it.
 - `prefixDefaultLocale` is true and nothing serves `/`.
+- A `locales` value repeats.
 - A collection name repeats, or sits in both `translated` and `untranslated`.
 - A `fields` key is not in `translated`, or an `id`, `locale`, or `slug` name is empty.
 - A route row names a collection that is not in `translated`.

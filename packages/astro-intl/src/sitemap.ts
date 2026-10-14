@@ -33,34 +33,26 @@ const MISSING_DATA_ROUTE = '@repo/astro-intl: the sitemap data route was not bui
 const DATA_ROUTE_NOT_A_LIST = '@repo/astro-intl: the sitemap data route did not return a list.';
 
 function normalizeLoc(url: string): string {
-  try {
-    const parsed = new URL(url);
-    const path =
-      parsed.pathname.length > 1 ? parsed.pathname.replace(/\/+$/u, '') : parsed.pathname;
-    return `${parsed.origin}${path}`;
-  } catch {
-    return url.replace(/\/+$/u, '');
-  }
+  const parsed = new URL(url);
+  const path = parsed.pathname.replace(/\/+$/u, '');
+  return `${parsed.origin}${path}`;
 }
 
+/** Astro resolves `base` with a leading slash and at most one trailing slash. */
 function normalizeBase(base: string | undefined): string {
-  if (!base || base === '/') return '/';
-  const withLead = base.startsWith('/') ? base : `/${base}`;
-  const trimmed = withLead.replace(/\/+$/u, '');
+  const trimmed = (base ?? '').replace(/\/$/u, '');
   return trimmed === '' ? '/' : trimmed;
 }
 
 /** Pathname with `base` removed. Undefined when `pathname` is outside `base`. */
 function pathAfterBase(pathname: string, base: string): string | undefined {
   if (base === '/') return pathname;
-  if (pathname === base) return '/';
   if (!pathname.startsWith(`${base}/`)) return undefined;
   return pathname.slice(base.length);
 }
 
 function isDataRoute(pathname: string): boolean {
-  const bare = pathname.length > 1 ? pathname.replace(/\/+$/u, '') : pathname;
-  return bare === SITEMAP_DATA_PATH;
+  return pathname.replace(/\/+$/u, '') === SITEMAP_DATA_PATH;
 }
 
 function intlDir(dir: URL): string {
@@ -100,7 +92,7 @@ function readDataRoute(dir: URL): SitemapEntry[] {
 
 /** Drop the URLs added last time, as one slice, so URLs the app added stay. */
 function removeAdded(pages: string[], previous: readonly string[]): void {
-  if (previous.length === 0 || previous.length > pages.length) return;
+  if (previous.length > pages.length) return;
   let start = -1;
   for (let index = 0; index <= pages.length - previous.length; index += 1) {
     if (previous.every((loc, offset) => pages[index + offset] === loc)) start = index;

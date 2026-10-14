@@ -3,6 +3,7 @@
  * and stand-ins for `astro:content` and `astro:i18n`.
  * The hook runner records injected routes, config updates, injected types,
  * logger lines, and thrown errors.
+ * `renderingConfig` and `boot` are the shared startup for view rendering and refusals.
  */
 
 import assert from 'node:assert/strict';
@@ -15,6 +16,7 @@ import type { TestContext } from 'node:test';
 import { pathToFileURL } from 'node:url';
 import { astroIntl } from '@repo/astro-intl';
 import type { AstroConfig, AstroIntegration, PaginateFunction } from 'astro';
+import { intlConfig } from './fixtures.ts';
 
 type IntlConfigInput = Parameters<typeof astroIntl>[0];
 
@@ -431,6 +433,51 @@ class Session implements IntlHooks {
       } as unknown as BuildDoneParams);
     });
   }
+}
+
+/**
+ * Static about, a `{slug}` post with fallback view `missing`, and a blog listing.
+ * `blog/{page}` has the same section as `blog/{slug}`.
+ * Omitted `viewRendering` is the default, `'build'`.
+ * `routeSetup` reads the fallback view's `prerender` flag.
+ */
+export function renderingConfig(viewRendering?: 'build' | 'request'): IntlConfigInput {
+  return intlConfig({
+    ...(viewRendering === undefined ? {} : { viewRendering }),
+    routes: [
+      { slug: { en: 'about', de: 'ueber' }, view: 'about' },
+      {
+        slug: { en: 'blog/{slug}', de: 'artikel/{slug}' },
+        collection: 'blog',
+        view: 'post',
+        fallbackView: 'missing',
+      },
+      {
+        slug: { en: 'blog', de: 'artikel' },
+        collection: 'blog',
+        view: 'blog',
+        pagination: { pageSize: 10, slug: { en: 'blog/{page}', de: 'artikel/{page}' } },
+      },
+    ],
+    collections: { translated: ['blog'] },
+  });
+}
+
+/**
+ * Builds `astroIntl(config)` and runs `astro:config:setup`.
+ * The project root is a temp directory removed when the test finishes.
+ * `views` are written under `src/views/` before setup, when passed.
+ */
+export async function boot(
+  t: TestContext,
+  config: IntlConfigInput,
+  options?: IntlSetupOptions,
+  views?: readonly string[],
+): Promise<IntlHooks> {
+  const hooks = await intlHooks(t, config);
+  if (views !== undefined) await writeViews(hooks.root, views);
+  await hooks.setup(options);
+  return hooks;
 }
 
 /**

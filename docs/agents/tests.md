@@ -22,6 +22,18 @@ A table or map in source is already the contract. Do not restate it in a test.
 
 Each package's `test` script sets a coverage floor over `src/` (`--test-coverage-lines`, `-branches`, `-functions`), and the run fails below it. Raise a floor when coverage rises. Never lower one to make a change pass. Coverage shows what ran, not what a test checks.
 
+## Shape of a test
+
+An intl test is a specification an agent copies. The named tests are the examples.
+
+1. **Name the behavior**, in [`intl.md`](../product/intl.md) and [`CONTEXT.md`](../../CONTEXT.md) words: what, not how. A refusal's `describe` is the `intl.md` bullet, word for word. Its tests are "refuses …" and "boots when …". Model: `refuses-to-boot/views.test.ts`. A bare bullet, or a name that says how, is the wrong shape.
+2. **Place it** in the file for the section that states the behavior (`intl.md`; sitemap is [`publishing.md`](../product/publishing.md)). `describe` blocks follow that section's order.
+3. **Put the setup on screen.** Write the rows and entries the behavior needs in the test, so each expected value sits against that input. Builders come from `fixtures.ts` and `astro.ts`. A helper two files copy moves there (`warningsFrom`, `linkedEntries` / `linkedCollections`, `renderingConfig`, `boot`). A file-level helper is fine when its doc comment states every fact the expectations rely on (`missingIntl`: "`solo` is the default-locale entry with no German sibling"). Model: `fields` "aborts when a routed slug is not one segment". A test whose rows and entries the reader must look up elsewhere, or that builds more than the behavior needs, hides the check.
+4. **One behavior per test.** Asserts may show it in each locale, or over a list of inputs. A list loops with the input as the assert label (`config` "refuses when {page} is not one whole final segment"). Several behaviors, or many asserts over several exports, is the wrong shape.
+5. **Assert the return value against literals.** `deepEqual` on the object or array the export returns, whole, or projected to the fields the behavior is about (listing tails); `equal` for a single value. Never recomputed. Models: `url-form` `localeSwitcherLinks` tests; `path-helpers` "returns the written tail when the row names no entry".
+6. **Assert a refusal in full** when the message is intl's. It is the fix the reader gets, and the test is its only record. A zod-written issue goes through `refusesAt`: prefix, issue count, paths, named keys. Sit each refusal beside the nearest input that boots or loads (`astro-config`, `content`, and `routes` do). A refusal with no neighboring input that boots hides the boundary. Rewording an intl message is a test change the report lists beside the new message. It needs no product-file line unless the fix the message names changes.
+7. **Comment only a fact a literal depends on.** ("Eleven entries fill two pages of ten, so the listing publishes blog/2.")
+
 ## Mutation testing
 
 Run it only when a human asks or approves, each time. A full `astro-intl` run takes about an hour.

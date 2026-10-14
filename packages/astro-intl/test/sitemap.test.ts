@@ -116,9 +116,7 @@ describe('sitemap', () => {
     await loadEntries(hooks, helloEntries);
 
     const item = page('https://example.com/en/unknown/');
-    const serialized = await sitemapOf(hooks).serialize(item);
-    assert.equal(serialized, item);
-    assert.equal(serialized.links, undefined);
+    assert.equal(await sitemapOf(hooks).serialize(item), item);
   });
 
   it('keeps URLs the app added to customPages across builds', async (t) => {
@@ -143,12 +141,27 @@ describe('sitemap', () => {
     ]);
   });
 
+  it('replaces its own URLs on a second build', async (t) => {
+    const plain = await intlHooks(t, intlConfig());
+    const plainSitemap = sitemapOf(plain);
+    await loadEntries(plain, helloEntries);
+    await loadEntries(plain, helloEntries);
+    assert.deepEqual(plainSitemap.customPages, [enLoc, deLoc]);
+
+    const hooks = await intlHooks(t, intlConfig());
+    const sitemap = sitemapOf(hooks);
+    sitemap.customPages.push(appPage);
+    await loadEntries(hooks, helloEntries);
+    await loadEntries(hooks, helloEntries);
+    assert.deepEqual(sitemap.customPages, [appPage, enLoc, deLoc]);
+  });
+
   it('lists a published tail that has no entry', async (t) => {
     const hooks = await intlHooks(t, intlConfig());
-    await loadEntries(hooks, [...helloEntries, homeTail]);
+    await loadEntries(hooks, [homeTail]);
     const sitemap = sitemapOf(hooks);
 
-    assert.deepEqual(sitemap.customPages, [enLoc, deLoc, 'https://example.com/en']);
+    assert.deepEqual(sitemap.customPages, ['https://example.com/en']);
     assert.deepEqual((await sitemap.serialize(page('https://example.com/en'))).links, [
       { lang: 'en', url: 'https://example.com/en' },
       { lang: 'de', url: 'https://example.com/de' },
@@ -225,9 +238,11 @@ describe('sitemap', () => {
       const sitemap = sitemapOf(hooks);
       await writeSitemapData(hooks.root, body);
 
-      await assert.rejects(() => hooks.buildDone(), {
-        message: '@repo/astro-intl: the sitemap data route did not return a list.',
-      });
+      await assert.rejects(
+        () => hooks.buildDone(),
+        { message: '@repo/astro-intl: the sitemap data route did not return a list.' },
+        JSON.stringify(body),
+      );
       assert.deepEqual(sitemap.customPages, []);
     }
   });
@@ -280,6 +295,8 @@ describe('sitemap', () => {
       assert.equal(filter(`https://example.com${dataRoute}`), true, base);
       assert.equal(filter('https://example.com/docs/sitemap-entries.json'), true, base);
       assert.equal(filter('https://example.com/docs/blog/_intl/sitemap-entries.json'), true, base);
+      // `/blog` is another five-character prefix, so it is not the data route under `/docs`.
+      assert.equal(filter(`https://example.com/blog${dataRoute}`), true, base);
       assert.equal(filter('not a url'), true, base);
     }
   });
@@ -321,8 +338,27 @@ describe('sitemap', () => {
         { pattern: dataRoute, prerender: true },
       ],
     );
+  });
+
+  it('returns the paired entries from the data route', async (t) => {
+    const hooks = await intlHooks(
+      t,
+      intlConfig({
+        routes: [
+          {
+            slug: { en: 'blog/{slug}', de: 'artikel/{slug}' },
+            collection: 'blog',
+            view: 'post',
+          },
+        ],
+        collections: { translated: ['blog'] },
+      }),
+    );
+    await writeViews(hooks.root, ['post']);
+    await hooks.setup({ command: 'build' });
     const data = hooks.injected.find((route) => route.pattern === dataRoute);
     assert.ok(data);
+    // stubAstroModules supplies blog hello-world in en and hallo-welt in de.
     const astroModules = stubAstroModules();
     try {
       const route = (await import(pathToFileURL(String(data.entrypoint)).href)) as {
@@ -330,8 +366,7 @@ describe('sitemap', () => {
         GET(): Promise<{ text(): Promise<string> }>;
       };
       assert.equal(route.prerender, true);
-      const response = await route.GET();
-      assert.deepEqual(JSON.parse(await response.text()), [
+      assert.deepEqual(JSON.parse(await (await route.GET()).text()), [
         {
           locale: 'de',
           path: 'artikel/hallo-welt',

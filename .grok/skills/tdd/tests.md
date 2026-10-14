@@ -1,6 +1,6 @@
 # Good and bad tests
 
-Runner: `node --test`. Assertions: `node:assert/strict`.
+Runner: `node --test`. Assertions: `node:assert/strict`. Intl tests follow [Shape of a test](../../../docs/agents/tests.md#shape-of-a-test).
 
 ## Good tests
 

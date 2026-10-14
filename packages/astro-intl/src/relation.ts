@@ -1,5 +1,5 @@
 import * as z from 'zod';
-import { type EntryFields, missingContentCollection } from './define-intl.ts';
+import type { EntryFields } from './define-intl.ts';
 import type { Locale } from './intl-register.ts';
 import type { CollectionEntryLike } from './pairing.ts';
 
@@ -31,14 +31,7 @@ function isPlainObject(value: unknown): value is Record<string, unknown> {
 
 function isRelation(value: unknown): value is Relation {
   if (!isPlainObject(value)) return false;
-  const keys = Object.keys(value);
-  return (
-    keys.length === 2 &&
-    typeof value.intlRelationTarget === 'string' &&
-    value.intlRelationTarget.length > 0 &&
-    typeof value.id === 'string' &&
-    value.id.length > 0
-  );
+  return typeof value.intlRelationTarget === 'string' && typeof value.id === 'string';
 }
 
 function fail(message: string, where?: string): never {
@@ -104,20 +97,13 @@ export function localizedValue<T>(field: Readonly<Record<string, T>>, locale: Lo
 }
 
 function relationTarget(rel: Relation, options: ResolveRelationOptions): string {
-  const { translated, untranslated, collections, where } = options;
+  const { translated, untranslated, where } = options;
   const target = rel.intlRelationTarget;
   if (!(target in translated) && !untranslated.has(target)) {
     fail(
       `@repo/astro-intl: relation points at "${target}", which neither collections.translated nor collections.untranslated lists`,
       where,
     );
-  }
-  if (!(target in collections)) {
-    const detail =
-      target in translated
-        ? missingContentCollection('translated', target)
-        : missingContentCollection('untranslated', target);
-    fail(`@repo/astro-intl: ${detail}`, where);
   }
   return target;
 }
@@ -163,23 +149,16 @@ export function assertRelations(
   };
 
   for (const [name, entries] of Object.entries(collections)) {
-    const localeField = translated[name]?.locale ?? 'locale';
+    // An untranslated entry is checked in every locale. A locale field on it
+    // does not narrow that. A translated entry is checked in its own locale.
+    const localeField = translated[name]?.locale;
     for (const entry of entries) {
-      const sourceLocale =
-        typeof entry.data[localeField] === 'string' && entry.data[localeField].length > 0
-          ? entry.data[localeField]
-          : undefined;
       const where = describeEntry(name, entry);
+      const localesToCheck = localeField ? [entry.data[localeField] as string] : locales;
 
       for (const rel of collectRelations(entry.data)) {
-        if (rel.intlRelationTarget in translated) {
-          const localesToCheck = sourceLocale ? [sourceLocale] : locales;
-          for (const code of localesToCheck) {
-            resolveRelation(code, rel, { ...resolve, where });
-          }
-        } else {
-          const withWhere = { ...resolve, where };
-          resolveUntranslated(relationTarget(rel, withWhere), rel, withWhere);
+        for (const code of localesToCheck) {
+          resolveRelation(code, rel, { ...resolve, where });
         }
       }
     }
