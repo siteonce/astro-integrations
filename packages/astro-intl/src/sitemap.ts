@@ -38,15 +38,13 @@ function normalizeLoc(url: string): string {
   return `${parsed.origin}${path}`;
 }
 
-/** Astro resolves `base` with a leading slash and at most one trailing slash. */
+/** Site base with no trailing slash. The root base is `''`. */
 function normalizeBase(base: string | undefined): string {
-  const trimmed = (base ?? '').replace(/\/$/u, '');
-  return trimmed === '' ? '/' : trimmed;
+  return (base ?? '').replace(/\/$/u, '');
 }
 
-/** Pathname with `base` removed. Undefined when `pathname` is outside `base`. */
+/** Pathname with `base` removed. A root base of `''` removes nothing. Undefined outside `base`. */
 function pathAfterBase(pathname: string, base: string): string | undefined {
-  if (base === '/') return pathname;
   if (!pathname.startsWith(`${base}/`)) return undefined;
   return pathname.slice(base.length);
 }
@@ -92,7 +90,6 @@ function readDataRoute(dir: URL): SitemapEntry[] {
 
 /** Drop the URLs added last time, as one slice, so URLs the app added stay. */
 function removeAdded(pages: string[], previous: readonly string[]): void {
-  if (previous.length > pages.length) return;
   let start = -1;
   for (let index = 0; index <= pages.length - previous.length; index += 1) {
     if (previous.every((loc, offset) => pages[index + offset] === loc)) start = index;
@@ -109,7 +106,7 @@ export function createSitemapOptions(): {
   const customPages: string[] = [];
   let loaded: SitemapEntry[] | undefined;
   let added: string[] = [];
-  let base = '/';
+  let base = '';
 
   function setBase(next: string | undefined): void {
     base = normalizeBase(next);

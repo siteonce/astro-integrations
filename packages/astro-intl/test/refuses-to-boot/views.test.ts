@@ -69,7 +69,7 @@ async function bootViews(
   return hooks;
 }
 
-describe(`a row names a view that has no file under ${viewsDirectory}/, or that has both <view>.astro and <view>/index.astro`, () => {
+describe('A row names a view that has no file under `src/views/`, or that has both `<view>.astro` and `<view>/index.astro`.', () => {
   it('refuses when the view file is missing', async (t) => {
     const hooks = await prepare(
       t,
@@ -125,7 +125,7 @@ describe(`a row names a view that has no file under ${viewsDirectory}/, or that 
   });
 });
 
-describe('pagination.view names a missing file, or both a file and a folder index', () => {
+describe('`pagination.view` names a missing file, both a file and a folder index, or the wrong locales.', () => {
   it('refuses when the file is missing', async (t) => {
     const hooks = await prepare(t, blogListing('archive'), ['blog.astro']);
     await assert.rejects(() => hooks.setup(), { message: missingViewMessage('archive') });
@@ -143,7 +143,7 @@ describe('pagination.view names a missing file, or both a file and a folder inde
   });
 });
 
-describe('viewRendering is "request" and a fallback view exports prerender = false, outside astro dev', () => {
+describe("`viewRendering` is `'request'` and a fallback view exports `prerender = false`, outside `astro dev`.", () => {
   const viewFiles = ['about.astro', 'post.astro', 'blog.astro', 'missing.astro'];
 
   it('refuses when the fallback view exports prerender = false', async (t) => {

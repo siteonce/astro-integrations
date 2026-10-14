@@ -17,7 +17,7 @@ export type RouteSlugIssue = 'slash' | 'empty';
  * A leading or trailing `/` wins over an empty segment.
  */
 export function routeSlugIssue(slug: string): RouteSlugIssue | undefined {
-  if (slug === '' || slug === '/') return undefined;
+  if (slug === '/') return undefined;
   if (slug.startsWith('/') || slug.endsWith('/')) return 'slash';
   if (slug.includes('//')) return 'empty';
   return undefined;
@@ -35,7 +35,7 @@ export function patternSection(slug: string): string | undefined {
   const marker = `/${SLUG_TOKEN}`;
   if (!slug.endsWith(marker)) return undefined;
   const section = slug.slice(0, -marker.length);
-  if (section.split('/').some((part) => part.includes('{'))) return undefined;
+  if (section.includes('{')) return undefined;
   return section;
 }
 

@@ -117,7 +117,7 @@ function loadIntl(
   );
 }
 
-describe('the content config directly imports @repo/astro-intl/runtime', () => {
+describe('The content config directly imports `@repo/astro-intl/runtime`. Read locales from the intl config.', () => {
   // A direct import is a static import, a side-effect import, export-from, or import().
   const directImports = [
     `import { locales } from '@repo/astro-intl/runtime';`,
@@ -137,6 +137,7 @@ describe('the content config directly imports @repo/astro-intl/runtime', () => {
   ];
 
   // A different specifier, a longer specifier, or a quoted mention is not that import.
+  // Without a semicolon, the next line is a new statement. A quoted mention there is not an import.
   const notDirectImports = [
     `import { id, locale } from '@repo/astro-intl';\nexport { id, locale };\n`,
     `import { id, locale } from '@repo/astro-intl';`,
@@ -148,6 +149,7 @@ describe('the content config directly imports @repo/astro-intl/runtime', () => {
     `import { locales } from "@repo/astro-intl/runtime';`,
     `const zod = await import('zod');\nconst spec = '@repo/astro-intl/runtime';`,
     `import { id } from '@repo/astro-intl';\n// locales come from '@repo/astro-intl/runtime'`,
+    `import { defineCollection } from 'astro:content'\nconst note = '@repo/astro-intl/runtime'`,
   ];
 
   it('refuses when the content config directly imports @repo/astro-intl/runtime', async (t) => {
@@ -198,7 +200,7 @@ describe('the content config directly imports @repo/astro-intl/runtime', () => {
   });
 });
 
-describe('a name in translated or untranslated is not a content collection', () => {
+describe('A name in `translated` or `untranslated` is not a content collection.', () => {
   it('refuses when a translated name is not a content collection', async () => {
     const intl = createIntl(
       intlConfig({ collections: { translated: ['pages', 'blog', 'authors'] } }),
@@ -227,7 +229,7 @@ describe('a name in translated or untranslated is not a content collection', () 
   });
 });
 
-describe('relation() names a collection neither collections.translated nor collections.untranslated lists', () => {
+describe('`relation()` names a collection neither `collections.translated` nor `collections.untranslated` lists.', () => {
   it('refuses when relation() names a collection in neither list', () => {
     const { relation: relationSchema } = contentSchema();
     assert.throws(
@@ -243,7 +245,7 @@ describe('relation() names a collection neither collections.translated nor colle
   });
 });
 
-describe('a relation points at a collection neither collections.translated nor collections.untranslated lists', () => {
+describe('A **relation** points at a collection neither `collections.translated` nor `collections.untranslated` lists.', () => {
   it('refuses when entry data holds a relation to a collection in neither list', async () => {
     const collections = linkedCollections();
     collections.blog = [
@@ -280,7 +282,7 @@ describe('a relation points at a collection neither collections.translated nor c
   });
 });
 
-describe('a relation pairing id is missing, the relation’s target entry is missing, or a localized() map has a missing or extra locale key', () => {
+describe('A **relation** pairing `id` is missing, the relation’s target entry is missing, or a `localized()` map has a missing or extra locale key.', () => {
   it('refuses an empty relation pairing id', () => {
     const { relation: relationSchema } = contentSchema();
     refusesAt(relationSchema('authors').safeParse(''), [{ path: [] }]);
@@ -362,7 +364,7 @@ describe('a relation pairing id is missing, the relation’s target entry is mis
   });
 });
 
-describe('a literal file route sits on an entry URL that a {slug} row publishes', () => {
+describe('A literal file route sits on an entry URL that a `{slug}` row publishes (`src/pages/blog/hello.astro` beside the entry `hello`). Only the build checks this. `astro dev` serves the file route.', () => {
   /**
    * Builds `blog/{slug}` (en) and `artikel/{slug}` (de), resolves these literal project
    * file routes, then runs the build's data route. The stubbed `blog` collection holds
@@ -427,6 +429,61 @@ describe('a literal file route sits on an entry URL that a {slug} row publishes'
       assert.deepEqual(
         (JSON.parse(await response.text()) as { loc: string }[]).map((entry) => entry.loc),
         ['https://example.com/de/artikel/hallo-welt', 'https://example.com/en/blog/hello-world'],
+      );
+    } finally {
+      astroModules.deregister();
+    }
+  });
+
+  it('builds when a literal file route sits under a listing section', async (t) => {
+    // The file carries the entry slug `hello-world` and sits under the listing section `news`.
+    // The entry section is `blog`. One entry per locale fills page 1 only.
+    const hooks = await intlHooks(
+      t,
+      intlConfig({
+        routes: [
+          {
+            slug: { en: 'news', de: 'nachrichten' },
+            view: 'index',
+            collection: 'blog',
+            pagination: { pageSize: 10, slug: { en: 'news/{page}', de: 'nachrichten/{page}' } },
+          },
+          {
+            slug: { en: 'blog/{slug}', de: 'artikel/{slug}' },
+            collection: 'blog',
+            view: 'post',
+          },
+        ],
+        collections: { translated: ['blog'] },
+      }),
+    );
+    await writeViews(hooks.root, ['index', 'post']);
+    await hooks.setup({ command: 'build' });
+    await hooks.routesResolved([
+      resolvedRoute({
+        entrypoint: join('src', 'pages', 'file.astro'),
+        pattern: '/en/news/hello-world',
+        isPrerendered: true,
+        origin: 'project',
+      }),
+      siteRootRoute(),
+    ]);
+    const data = hooks.injected.find((route) => route.pattern === '/_intl/sitemap-entries.json');
+    assert.ok(data);
+    const route = (await import(pathToFileURL(String(data.entrypoint)).href)) as {
+      GET(): Promise<{ text(): Promise<string> }>;
+    };
+    const astroModules = stubAstroModules();
+    try {
+      const response = await route.GET();
+      assert.deepEqual(
+        (JSON.parse(await response.text()) as { loc: string }[]).map((entry) => entry.loc),
+        [
+          'https://example.com/de/artikel/hallo-welt',
+          'https://example.com/de/nachrichten',
+          'https://example.com/en/blog/hello-world',
+          'https://example.com/en/news',
+        ],
       );
     } finally {
       astroModules.deregister();

@@ -155,13 +155,14 @@ Documents are paired entries (`id` + `locale` on each sibling). Inline locale ma
 
 ## Catalogs
 
-`createT` is pure: the app passes message objects in. Catalog JSON is not loaded into a virtual module. `createT` defaults to the injected `Locale`, so the starter passes no type argument. A missing catalog for a configured locale is a type error. `createT` throws when a message it is handed is not valid ICU, naming the locale and the key, nested groups included. When a call omits a value the message names, `t()` returns the message as written and logs a warning naming the locale and the key. Intl does not check catalog files.
+`createT` is pure: the app passes message objects in. Catalog JSON is not loaded into a virtual module. `createT` defaults to the injected `Locale`, so the starter passes no type argument. A missing catalog for a configured locale is a type error. `createT` throws when a message it is handed is not valid ICU, naming the locale and the key, nested groups included. When a call omits a value the message names, or passes a value its placeholder can't format, `t()` returns the message as written and logs a warning naming the locale and the key. Intl does not check catalog files.
 
 ## Refuses to boot
 
 Fail at startup when:
 
-- Overlapping `i18n` keys are already set on `defineConfig`, or `@astrojs/sitemap`'s `i18n` option is set.
+- Overlapping `i18n` keys are already set on `defineConfig`.
+- `@astrojs/sitemap`'s `i18n` option is set.
 - The content config directly imports `@repo/astro-intl/runtime`. Read locales from the intl config.
 - `@astrojs/sitemap` is registered before intl.
 - The intl config holds a value JSON can't carry (a function, a `Date`, a `Map`), because intl writes the config into the sitemap data route as JSON. A key set to `undefined` is allowed.
@@ -195,6 +196,7 @@ Fail at startup when:
 - A collection name repeats, or sits in both `translated` and `untranslated`.
 - A `fields` key is not in `translated`, or an `id`, `locale`, or `slug` name is empty.
 - A route row names a collection that is not in `translated`.
+- The intl config doesn't match its schema: a value of the wrong type or shape, or a key the schema doesn't know.
 - `relation()` names a collection neither `collections.translated` nor `collections.untranslated` lists.
 
 Fail when intl loads collections, in the build and per request for an on-demand view, when:

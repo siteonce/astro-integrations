@@ -82,6 +82,35 @@ describe('catalogs', { concurrency: 1 }, () => {
     ]);
   });
 
+  it('returns the message as written and warns when a value has the wrong type', async () => {
+    const cases: { key: string; message: string; values: Record<string, string> }[] = [
+      { key: 'when', message: '{d, date}', values: { d: 'not a date' } },
+      { key: 'count', message: '{n, number}', values: { n: 'many' } },
+      { key: 'items', message: '{n, plural, other {# items}}', values: { n: 'many' } },
+    ];
+    for (const { key, message, values } of cases) {
+      const { t } = createT({ en: { [key]: message } });
+      const warnings = await warningsFrom(async () => {
+        assert.equal(t('en', key, values), message, message);
+      });
+      assert.deepEqual(
+        warnings,
+        [
+          `@repo/astro-intl: message "${key}" in locale "en" could not format a value; returned as written.`,
+        ],
+        message,
+      );
+    }
+  });
+
+  it('formats a numeric string as a number', async () => {
+    const { t } = createT({ en: { count: '{n, number}' } });
+    const warnings = await warningsFrom(async () => {
+      assert.equal(t('en', 'count', { n: '3' }), '3');
+    });
+    assert.deepEqual(warnings, []);
+  });
+
   it('reads a key in a bound locale and namespace', () => {
     const { useTranslations } = createT({
       de: { Auth: { SignUp: { title: 'Konto anlegen' } } },

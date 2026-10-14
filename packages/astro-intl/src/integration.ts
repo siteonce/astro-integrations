@@ -155,8 +155,6 @@ function jsonDrift(value: unknown, parsed: unknown, path: string): string | unde
   if (isPlainRecord(value) && isPlainRecord(parsed)) {
     for (const key of Object.keys(value)) {
       const next = path ? `${path}.${key}` : key;
-      // JSON drops a key whose value is undefined. The parser treats that as absent.
-      if (value[key] === undefined) continue;
       const found = jsonDrift(value[key], parsed[key], next);
       if (found) return found;
     }

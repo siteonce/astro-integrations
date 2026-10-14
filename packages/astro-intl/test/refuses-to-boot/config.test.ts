@@ -103,6 +103,15 @@ describe("The intl config holds a value JSON can't carry (a function, a `Date`, 
     await refusesJson(
       t,
       {
+        locales: ['en'],
+        defaultLocale: 'en',
+        routing: { prefixDefaultLocale: { toJSON: () => ['x'] } },
+      } as unknown as IntlConfigInput,
+      'routing.prefixDefaultLocale',
+    );
+    await refusesJson(
+      t,
+      {
         locales: ['en', 'de'],
         defaultLocale: 'en',
         routing: { prefixDefaultLocale: true },
@@ -524,6 +533,65 @@ describe('A row `slug` or a `pagination.slug` has an empty segment, or a leading
         }),
         failed(message),
         slug,
+      );
+    }
+    for (const [slug, message] of [
+      [
+        '/blog/',
+        'route collection "blog" slug "/blog/" for locale "en" starts or ends with "/". Remove it; "/" alone is the home.',
+      ],
+      [
+        'blog/',
+        'route collection "blog" slug "blog/" for locale "en" starts or ends with "/". Remove it; "/" alone is the home.',
+      ],
+      [
+        'blog//news',
+        'route collection "blog" slug "blog//news" for locale "en" has an empty segment. Remove the doubled "/".',
+      ],
+    ] as const) {
+      refuses(
+        intlConfig({
+          routes: [
+            {
+              slug: { en: slug, de: 'artikel' },
+              view: 'x',
+              collection: 'blog',
+              pagination: { pageSize: 10, slug: pageSlug },
+            },
+          ],
+          collections: { translated: ['blog'] },
+        }),
+        failed(message),
+        `listing ${slug}`,
+      );
+    }
+    for (const [slug, message] of [
+      [
+        '/blog/',
+        'route collection "blog" entry "hello" slug "/blog/" for locale "en" starts or ends with "/". Remove it; "/" alone is the home.',
+      ],
+      [
+        'blog/',
+        'route collection "blog" entry "hello" slug "blog/" for locale "en" starts or ends with "/". Remove it; "/" alone is the home.',
+      ],
+      [
+        'blog//news',
+        'route collection "blog" entry "hello" slug "blog//news" for locale "en" has an empty segment. Remove the doubled "/".',
+      ],
+    ] as const) {
+      refuses(
+        intlConfig({
+          routes: [
+            {
+              slug: { en: slug, de: 'hallo' },
+              view: 'x',
+              collection: { name: 'blog', entry: 'hello' },
+            },
+          ],
+          collections: { translated: ['blog'] },
+        }),
+        failed(message),
+        `entry ${slug}`,
       );
     }
   });
@@ -1134,7 +1202,7 @@ describe('A route row names a collection that is not in `translated`.', () => {
   });
 });
 
-describe('a route collection is not a name or { name, entry }', () => {
+describe("The intl config doesn't match its schema: a value of the wrong type or shape, or a key the schema doesn't know.", () => {
   it('refuses when collection is not a name or { name, entry }', () => {
     const slug = { en: 'blog', de: 'artikel' };
     const base = {
@@ -1211,9 +1279,7 @@ describe('a route collection is not a name or { name, entry }', () => {
       },
     ]);
   });
-});
 
-describe('the intl config fails validation', () => {
   it('refuses when prefixDefaultLocale is not a boolean', () => {
     refusesAt(
       {

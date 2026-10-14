@@ -156,7 +156,6 @@ export function literalEntryRoutes(
     for (const route of injected) {
       if (route.kind !== 'entry') continue;
       const section = segments(route.pattern).slice(0, -1);
-      if (fileSegments.length !== section.length + 1) continue;
       if (!sameSegments(fileSegments.slice(0, -1), section)) continue;
       found.push({ file: projectRoute.pattern, route, slug: fileSegments.at(-1) ?? '' });
     }

@@ -47,7 +47,7 @@ async function bootSitemap(
   return hooks;
 }
 
-describe('overlapping i18n keys are already set on defineConfig', () => {
+describe('Overlapping `i18n` keys are already set on `defineConfig`.', () => {
   it('refuses when i18n keys are already set', async (t) => {
     const hooks = await intlHooks(t, intlConfig());
     await assert.rejects(
@@ -69,7 +69,7 @@ describe('overlapping i18n keys are already set on defineConfig', () => {
   });
 });
 
-describe('@astrojs/sitemap is registered before intl', () => {
+describe('`@astrojs/sitemap` is registered before intl.', () => {
   it('refuses when sitemap is registered before intl', async (t) => {
     const hooks = await intlHooks(t, intlConfig());
     const integration = hooks.integration;
@@ -100,7 +100,7 @@ export default { integrations: [sitemap()] };
   });
 });
 
-describe("@astrojs/sitemap's i18n option is set", () => {
+describe("`@astrojs/sitemap`'s `i18n` option is set.", () => {
   it('refuses when astro.config.mjs calls sitemap({ i18n })', async (t) => {
     const hooks = await intlHooks(t, intlConfig());
     await writeAstroConfig(
@@ -208,7 +208,7 @@ export default { integrations: [sitemap({ filter: (page) => page !== \`x)\`, i18
   });
 });
 
-describe('viewRendering is "request" and the site has no adapter, outside astro dev', () => {
+describe("`viewRendering` is `'request'` and the site has no adapter, outside `astro dev`.", () => {
   it('refuses when the site has no adapter', async (t) => {
     const hooks = await intlHooks(t, intlConfig({ viewRendering: 'request' }));
     await assert.rejects(() => hooks.setup({ command: 'build' }), {
@@ -218,7 +218,7 @@ describe('viewRendering is "request" and the site has no adapter, outside astro 
   });
 });
 
-describe('prefixDefaultLocale is true and nothing serves /', () => {
+describe('`prefixDefaultLocale` is true and nothing serves `/`.', () => {
   it('refuses when no route serves /', async (t) => {
     const hooks = await boot(t, intlConfig());
     await assert.rejects(() => hooks.routesResolved([]), { message: nothingServesRoot });
