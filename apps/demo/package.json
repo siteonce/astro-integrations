@@ -4,12 +4,12 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "astro dev",
-    "build": "astro build",
-    "preview": "astro preview",
-    "astro": "astro",
-    "typecheck": "astro check",
-    "test": "node --test src/utils/*.test.ts"
+    "dev": "node --conditions=source ./node_modules/astro/bin/astro.mjs dev",
+    "build": "node --conditions=source ./node_modules/astro/bin/astro.mjs build",
+    "preview": "node --conditions=source ./node_modules/astro/bin/astro.mjs preview",
+    "astro": "node --conditions=source ./node_modules/astro/bin/astro.mjs",
+    "typecheck": "node --conditions=source ./node_modules/astro/bin/astro.mjs check",
+    "test": "node --conditions=source --test src/utils/*.test.ts"
   },
   "dependencies": {
     "@astrojs/mdx": "^8.0.2",

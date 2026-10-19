@@ -69,6 +69,12 @@ function requireRouteCollection(
   );
 }
 
+/** One `getStaticPaths` row for an injected `{slug}` route. */
+export type EntryPath<C extends string> = {
+  params: { slug: string };
+  props: { locale: Locale; route: RouteRow; path: string; entry: EntryOf<C> };
+};
+
 /**
  * Leaf documents for one `{slug}` route. A fixed entry's written tail is left out.
  * Throws when the route row's collection is not one of `collection`.
@@ -78,10 +84,7 @@ export function entryPathsFor<C extends string>(
   query: IntlQuery,
   route: CompiledRoute,
   collection: C | readonly C[],
-): {
-  params: { slug: string };
-  props: { locale: Locale; route: RouteRow; path: string; entry: EntryOf<C> };
-}[] {
+): EntryPath<C>[] {
   const row = routeRow(config, route);
   requireRouteCollection('entryPaths', route, row, collection);
   return entryDocuments(query, row, route.locale).map((doc) => ({

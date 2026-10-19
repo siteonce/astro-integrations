@@ -1,5 +1,9 @@
 {
   "$schema": "https://json.schemastore.org/tsconfig",
   "extends": "../../tsconfig.json",
+  "compilerOptions": {
+    // `tsc --noEmit` resolves this package's `source` condition to src/.
+    "customConditions": ["source"]
+  },
   "include": ["src", "test"]
 }

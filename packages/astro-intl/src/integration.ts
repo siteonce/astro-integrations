@@ -165,21 +165,22 @@ function jsonDrift(value: unknown, parsed: unknown, path: string): string | unde
   return path || '(root)';
 }
 
-function createIntlModuleUrl(): string {
-  return new URL('./create-intl.ts', import.meta.url).href;
-}
-
-function shadowedEntriesModuleUrl(): string {
-  return new URL('./shadowed-entries.ts', import.meta.url).href;
-}
+/**
+ * The data route is a file written into the app, so it cannot import a sibling
+ * of this module. A relative `./create-intl.ts` URL would miss the emitted
+ * file under `dist/`. These specifiers resolve through the app's dependency
+ * on the package.
+ */
+const createIntlSpecifier = '@siteonce/astro-intl/create-intl';
+const shadowedEntriesSpecifier = '@siteonce/astro-intl/shadowed-entries';
 
 /**
  * The data route loads collections, refuses a literal file route on an entry URL,
  * and returns the sitemap entries. `candidates` come from `astro:routes:resolved`.
  */
 function dataRouteSource(config: IntlConfigInput, candidates: readonly ShadowCandidate[]): string {
-  return `import { createIntl } from ${JSON.stringify(createIntlModuleUrl())};
-import { refuseShadowedEntries } from ${JSON.stringify(shadowedEntriesModuleUrl())};
+  return `import { createIntl } from ${JSON.stringify(createIntlSpecifier)};
+import { refuseShadowedEntries } from ${JSON.stringify(shadowedEntriesSpecifier)};
 
 const intl = createIntl(${JSON.stringify(config)});
 

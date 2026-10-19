@@ -1,0 +1,46 @@
+---
+// One paired post. Imports the runtime and sorting subpaths, and the catalogs.
+import { createT, type Locale, viewProps } from '@siteonce/astro-intl';
+import { defaultLocale, locales } from '@siteonce/astro-intl/runtime';
+import { byText, sortBy } from '@siteonce/astro-intl/sorting';
+import type { GetStaticPathsOptions, InferGetStaticPropsType } from 'astro';
+import { entryPaths } from '../intl.ts';
+import de from '../messages/de.json' with { type: 'json' };
+import en from '../messages/en.json' with { type: 'json' };
+
+// Fails astro check when the injected Locale union is not the config's locales.
+type LocaleMatchesConfig = 'en' | 'de' extends Locale
+  ? Locale extends 'en' | 'de'
+    ? true
+    : never
+  : never;
+export const localeMatchesConfig = true satisfies LocaleMatchesConfig;
+
+const { useTranslations } = createT({ en, de });
+
+export async function getStaticPaths({ routePattern }: GetStaticPathsOptions) {
+  const paths = await entryPaths(routePattern, 'posts');
+  return paths.toSorted(sortBy(byText((item) => item.props.entry.data.title, 'en', 'asc')));
+}
+
+type Props = InferGetStaticPropsType<typeof getStaticPaths>;
+
+const props = await viewProps(Astro, getStaticPaths);
+if (!props) return new Response(null, { status: 404 });
+const { locale, path, entry } = props;
+const t = useTranslations(locale);
+---
+
+<html lang={locale}>
+  <head>
+    <meta charset="utf-8" />
+    <title>{entry.data.title}</title>
+  </head>
+  <body>
+    <p>{t('post.intro')}</p>
+    <p>{path}</p>
+    <p>{entry.data.title}</p>
+    <p>{locales.join(',')}</p>
+    <p>{defaultLocale}</p>
+  </body>
+</html>

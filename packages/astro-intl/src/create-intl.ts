@@ -32,6 +32,7 @@ import { localeUrlPath } from './path.ts';
 import { createIntlQuery, type IntlQuery } from './query.ts';
 import { assertRelations, type Relation, resolveRelation } from './relation.ts';
 import {
+  type EntryPath,
   entryPathsFor,
   fallbackPathsFor,
   type ListingOrder,
@@ -202,10 +203,11 @@ export function createIntl<const Translated extends string = never>(
    * `collection` is one translated collection, or a list when one view serves
    * several rows. The route row must name one of them.
    */
+  // Named so declaration emit keeps `EntryOf<C>`. Inferred, it writes `EntryOf<C_1>`.
   async function entryPaths<C extends Translated>(
     routePattern: string,
     collection: C | readonly C[],
-  ) {
+  ): Promise<EntryPath<C>[]> {
     const query = await loadQuery();
     const route = routeFor(compiledRoutes(), routePattern, 'entry');
     return entryPathsFor(config, query, route, collection);

@@ -1,4 +1,4 @@
-import * as z from 'zod';
+import * as z from 'astro/zod';
 import { patternSection, type RouteSlugIssue, routeSlugIssue } from './path.ts';
 
 /** Field names on a translated collection. Each one defaults to the key. */

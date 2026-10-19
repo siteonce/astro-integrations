@@ -1,0 +1,6 @@
+# Installed on its own, outside the monorepo, by scripts/smoke.mjs.
+# allowBuilds matches the monorepo.
+allowBuilds:
+  '@parcel/watcher': true
+  esbuild: true
+  sharp: true

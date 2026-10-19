@@ -1,0 +1,15 @@
+{
+  "name": "intl-smoke",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Fixture the pack-and-install smoke test builds from the @siteonce/astro-intl tarball. scripts/smoke.mjs replaces the intl dependency with that tarball before install.",
+  "type": "module",
+  "dependencies": {
+    "@siteonce/astro-intl": "0.1.0",
+    "astro": "7.3.5"
+  },
+  "devDependencies": {
+    "@astrojs/check": "0.9.10",
+    "typescript": "6.0.3"
+  }
+}

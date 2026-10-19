@@ -1,4 +1,4 @@
-import * as z from 'zod';
+import * as z from 'astro/zod';
 import type { EntryFields } from './define-intl.ts';
 import type { Locale } from './intl-register.ts';
 import type { CollectionEntryLike } from './pairing.ts';

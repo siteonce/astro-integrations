@@ -1,6 +1,6 @@
 {
   "testRunner": "command",
-  "commandRunner": { "command": "node --test 'test/**/*.test.ts'" },
+  "commandRunner": { "command": "node --conditions=source --test 'test/**/*.test.ts'" },
   "mutate": ["src/**/*.ts"],
   "reporters": ["clear-text", "progress-append-only", "json", "html"],
   "jsonReporter": { "fileName": "../../.scratch/stryker/astro-intl.json" },

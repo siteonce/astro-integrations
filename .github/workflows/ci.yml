@@ -2,21 +2,31 @@ name: CI
 
 # Lean backstop for what reaches `main`. The local pre-commit (lint-staged) is
 # the primary gate; this re-verifies the *whole* tree non-mutatively and adds
-# the checks lint-staged can't scope per file (typecheck, package tests, starter build).
+# the checks lint-staged can't scope per file (typecheck, package tests, the
+# demo build, and the pack-and-install smoke test).
+#
+# `release` runs only after `verify` succeeds. With pending changesets it opens
+# or updates the "Version Packages" pull request. With none, `pnpm release`
+# builds `@siteonce/astro-intl` and publishes it. `changeset publish` calls
+# `pnpm publish`, which exchanges this job's OIDC token for a short-lived npm
+# token. There is no `NPM_TOKEN`. Provenance is attached when the repository
+# is public.
 on:
   push:
     branches: [main]
-  # Forward-note (Phase 10): when the repo moves to PR-only from a designated
-  # branch, swap this trigger to `pull_request`. The steps below stay as-is.
 
-# A newer push to the same ref supersedes an in-flight run.
-concurrency:
-  group: ci-${{ github.ref }}
-  cancel-in-progress: true
-
+# Concurrency is on each job, not the workflow. A workflow-level
+# `cancel-in-progress: true` would cancel `release` when a newer push arrives,
+# including a publish that has already started.
 jobs:
   verify:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    # A newer push to the same ref supersedes an in-flight verify.
+    concurrency:
+      group: ci-verify-${{ github.ref }}
+      cancel-in-progress: true
     steps:
       - uses: actions/checkout@v7
 
@@ -40,3 +50,44 @@ jobs:
       - run: pnpm typecheck
       - run: pnpm test
       - run: pnpm build
+      - run: pnpm smoke
+
+  release:
+    needs: verify
+    # Off until the repository variable RELEASE_ENABLED is `true`. Until then
+    # nothing publishes and no Version Packages pull request opens.
+    if: vars.RELEASE_ENABLED == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+      id-token: write
+    # Publish and the Version Packages pull request run to completion. A newer
+    # push waits in this group instead of cancelling the in-flight job.
+    concurrency:
+      group: ci-release-${{ github.ref }}
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v7
+
+      # pnpm before setup-node so `cache: pnpm` can find it. Version comes from
+      # the root package.json `packageManager` field — no need to pin it here.
+      # Exact tag: v6.1.0 is the first release that runs pnpm 12, and the
+      # floating `v6` tag still points at v6.0.10.
+      - uses: pnpm/action-setup@v6.1.0
+
+      # No `registry-url`. That writes an `.npmrc` auth token and would take
+      # precedence over the OIDC exchange `pnpm publish` performs itself.
+      # Node 22's bundled npm is unused: pnpm 12 publishes without it.
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Create Release Pull Request or Publish
+        uses: changesets/action@v2.1.2
+        with:
+          publish-script: pnpm release
+          version-script: pnpm version-packages

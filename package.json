@@ -7,6 +7,7 @@
   "scripts": {
     "dev": "pnpm --filter demo dev",
     "build": "pnpm --filter demo build",
+    "smoke": "node scripts/smoke.mjs",
     "preview": "pnpm --filter demo preview",
     "test": "pnpm -r --if-present test",
     "format": "biome format --write . && prettier --write \"**/*.{astro,md,mdx}\"",
@@ -15,6 +16,9 @@
     "lint:fix": "biome lint --write .",
     "check": "biome check --write . && prettier --write \"**/*.{astro,md,mdx}\"",
     "typecheck": "pnpm -r typecheck",
+    "changeset": "changeset",
+    "version-packages": "changeset version && pnpm install --lockfile-only --no-frozen-lockfile",
+    "release": "pnpm --filter @siteonce/astro-intl build && changeset publish",
     "prepare": "husky"
   },
   "packageManager": "pnpm@12.6.0",
@@ -24,6 +28,8 @@
   },
   "devDependencies": {
     "@biomejs/biome": "2.5.14",
+    "@changesets/changelog-github": "1.0.1",
+    "@changesets/cli": "3.0.3",
     "husky": "9.1.7",
     "lint-staged": "17.6.0",
     "prettier": "3.9.9",

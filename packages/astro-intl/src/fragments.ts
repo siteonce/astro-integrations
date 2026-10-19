@@ -1,4 +1,4 @@
-import * as z from 'zod';
+import * as z from 'astro/zod';
 
 /** Translation group key when pairing from a document field. Not Astro's collection `id`. */
 export const id = z.string().min(1);

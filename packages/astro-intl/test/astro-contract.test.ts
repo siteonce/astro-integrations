@@ -6,7 +6,14 @@ import { dirname, join } from 'node:path';
 import { describe, it } from 'node:test';
 import { astroIntl } from '@siteonce/astro-intl';
 import { type AstroIntegration, build } from 'astro';
-import { projectRoot, type ResolvedRoute, viewComponent, writeViews } from './astro.ts';
+import {
+  intlSourceCondition,
+  linkIntlPackage,
+  projectRoot,
+  type ResolvedRoute,
+  viewComponent,
+  writeViews,
+} from './astro.ts';
 import { intlConfig } from './fixtures.ts';
 
 /** Installed `astro`. The temp project resolves `astro/entrypoints/prerender` from its own `node_modules`. */
@@ -32,6 +39,7 @@ describe('a real Astro build', () => {
     const root = realpathSync(await projectRoot(t));
     await mkdir(join(root, 'node_modules'));
     await symlink(astroPackage, join(root, 'node_modules', 'astro'));
+    await linkIntlPackage(root);
     await writeViews(root, ['about']);
     await writeFile(join(root, 'src', 'views', 'about.astro'), aboutView);
 
@@ -54,6 +62,7 @@ describe('a real Astro build', () => {
         configFile: false,
         outDir: join(root, 'dist'),
         redirects: { '/': '/en/' },
+        vite: { plugins: [intlSourceCondition()] },
         integrations: [
           astroIntl(
             intlConfig({

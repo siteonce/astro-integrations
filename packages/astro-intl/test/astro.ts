@@ -7,13 +7,13 @@
  */
 
 import assert from 'node:assert/strict';
-import { mkdirSync } from 'node:fs';
-import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
+import { mkdirSync, realpathSync } from 'node:fs';
+import { mkdir, mkdtemp, rm, symlink, writeFile } from 'node:fs/promises';
 import { createRequire, registerHooks } from 'node:module';
 import { tmpdir } from 'node:os';
 import { dirname, join, sep } from 'node:path';
 import type { TestContext } from 'node:test';
-import { pathToFileURL } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 import { astroIntl } from '@siteonce/astro-intl';
 import type { AstroConfig, AstroIntegration, PaginateFunction } from 'astro';
 import { intlConfig } from './fixtures.ts';
@@ -249,6 +249,54 @@ export async function astroPaginate(
 /** A `data:` URL whose body is this JavaScript module source. */
 function moduleUrl(source: string): string {
   return `data:text/javascript,${encodeURIComponent(source)}`;
+}
+
+/**
+ * The sitemap data route is written outside this package and imports
+ * `@siteonce/astro-intl/create-intl` and `@siteonce/astro-intl/shadowed-entries`.
+ * Resolve those specifiers from this file so `--conditions=source` still selects `src/`.
+ */
+const dataRouteSpecifiers = new Set([
+  '@siteonce/astro-intl/create-intl',
+  '@siteonce/astro-intl/shadowed-entries',
+]);
+
+registerHooks({
+  resolve(specifier, context, nextResolve) {
+    if (!dataRouteSpecifiers.has(specifier)) return nextResolve(specifier, context);
+    return nextResolve(specifier, {
+      conditions: context.conditions,
+      importAttributes: context.importAttributes,
+      parentURL: import.meta.url,
+    });
+  },
+});
+
+/**
+ * A temp Astro app does not depend on this package. The data route imports it
+ * by name, so the app needs the package on its module path.
+ */
+export async function linkIntlPackage(root: string): Promise<void> {
+  const packageDir = realpathSync(fileURLToPath(new URL('..', import.meta.url)));
+  const scope = join(root, 'node_modules', '@siteonce');
+  await mkdir(scope, { recursive: true });
+  await symlink(packageDir, join(scope, 'astro-intl'));
+}
+
+/**
+ * Adds `source` in front of the conditions Vite and Astro already set, so a
+ * temp build loads this package from `src/`.
+ */
+export function intlSourceCondition() {
+  return {
+    name: 'intl-source-condition',
+    enforce: 'post' as const,
+    configEnvironment(_name: string, environment: { resolve?: { conditions?: string[] } }) {
+      const conditions = environment.resolve?.conditions;
+      if (conditions == null || conditions.includes('source')) return;
+      conditions.unshift('source');
+    },
+  };
 }
 
 /**

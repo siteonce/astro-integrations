@@ -1,21 +1,63 @@
 {
   "name": "@siteonce/astro-intl",
-  "version": "0.0.1",
-  "private": true,
-  "description": "Astro integration for catalogs, collection pairing, query helpers, and sorting helpers.",
+  "version": "0.1.0",
+  "description": "Pairs content entries across locales and injects localized routes on top of Astro's i18n.",
+  "keywords": [
+    "astro-integration",
+    "astro",
+    "i18n",
+    "multilingual"
+  ],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/siteonce/astro-integrations.git",
+    "directory": "packages/astro-intl"
+  },
+  "homepage": "https://github.com/siteonce/astro-integrations/tree/main/packages/astro-intl#readme",
+  "bugs": "https://github.com/siteonce/astro-integrations/issues",
   "type": "module",
   "exports": {
-    ".": "./src/integration.ts",
-    "./runtime": "./src/runtime.ts",
-    "./sorting": "./src/sorting.ts",
+    ".": {
+      "source": "./src/integration.ts",
+      "types": "./dist/integration.d.ts",
+      "default": "./dist/integration.js"
+    },
+    "./runtime": {
+      "source": "./src/runtime.ts",
+      "types": "./dist/runtime.d.ts",
+      "default": "./dist/runtime.js"
+    },
+    "./sorting": {
+      "source": "./src/sorting.ts",
+      "types": "./dist/sorting.d.ts",
+      "default": "./dist/sorting.js"
+    },
+    "./create-intl": {
+      "source": "./src/create-intl.ts",
+      "types": "./dist/create-intl.d.ts",
+      "default": "./dist/create-intl.js"
+    },
+    "./shadowed-entries": {
+      "source": "./src/shadowed-entries.ts",
+      "types": "./dist/shadowed-entries.d.ts",
+      "default": "./dist/shadowed-entries.js"
+    },
     "./package.json": "./package.json"
   },
   "files": [
-    "src"
+    "dist",
+    "src",
+    "!src/env.d.ts"
   ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "engines": {
+    "node": ">=22.12.0"
+  },
   "dependencies": {
-    "intl-messageformat": "12.1.2",
-    "zod": "4.6.5"
+    "intl-messageformat": "^12.1.2"
   },
   "peerDependencies": {
     "astro": "^7.0.0"
@@ -25,7 +67,9 @@
     "astro": "7.3.5"
   },
   "scripts": {
-    "test": "node --test --experimental-test-coverage --test-coverage-include='src/**' --test-coverage-lines=99 --test-coverage-branches=95 --test-coverage-functions=100 'test/**/*.test.ts'",
+    "build": "tsc -p tsconfig.build.json",
+    "prepack": "pnpm run build",
+    "test": "node --conditions=source --test --experimental-test-coverage --test-coverage-include='src/**' --test-coverage-lines=99 --test-coverage-branches=95 --test-coverage-functions=100 'test/**/*.test.ts'",
     "typecheck": "tsc --noEmit"
   }
 }

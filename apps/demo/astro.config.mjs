@@ -6,6 +6,22 @@ import { defineConfig } from 'astro/config';
 import intlConfig from './src/intl.config.ts';
 import { siteConfig } from './src/site.config.ts';
 
+// The demo runs intl from src/ so edits show without a build. The smoke test
+// covers dist/. `source` is added in front of the conditions Vite and Astro
+// already set for each environment, including client and SSR. Replacing the
+// list would drop conditions such as `astro`.
+function sourceCondition() {
+  return {
+    name: 'intl-source-condition',
+    enforce: 'post',
+    configEnvironment(_name, environment) {
+      const conditions = environment.resolve?.conditions;
+      if (conditions == null || conditions.includes('source')) return;
+      conditions.unshift('source');
+    },
+  };
+}
+
 // Pages the sitemap leaves out: feeds and robots.txt.
 function sitemapFilter(page) {
   const path = new URL(page).pathname;
@@ -34,6 +50,9 @@ export default defineConfig({
   trailingSlash: 'always',
   image: {
     remotePatterns: mediaRemotePatterns(),
+  },
+  vite: {
+    plugins: [sourceCondition()],
   },
   integrations: [
     intl,
