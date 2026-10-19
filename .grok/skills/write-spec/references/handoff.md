@@ -11,7 +11,7 @@ Use the plan name the user gave. Otherwise use the only file in `.scratch/plans/
 ```markdown
 # <title>
 
-Consumer: visitor | the customer who copies the snapshot | the app calling <package> Touches: docs/product/<file>.md
+Consumer: visitor | the customer who installs the package | the app calling <package> Touches: docs/product/<file>.md
 
 ## Agreement
 

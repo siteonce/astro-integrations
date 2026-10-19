@@ -1,8 +1,8 @@
 {
-  "name": "astro-stack",
+  "name": "astro-integrations",
   "version": "0.0.0",
   "private": true,
-  "description": "Snapshot monorepo for Astro content sites.",
+  "description": "Astro integrations for multilingual content sites.",
   "type": "module",
   "scripts": {
     "dev": "pnpm --filter demo dev",

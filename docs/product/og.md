@@ -4,6 +4,8 @@ Open issues in `@repo/astro-og-image`. What the visitor gets from Open Graph liv
 
 ## Today
 
+OG is parked: outside the pnpm workspace, unbuilt, unpublished, and not wired into the demo. Reviving it is its own project with its own plan. `site.md` below is astro-stack’s, which promises the images.
+
 A build stops in Open Graph:
 
 ```

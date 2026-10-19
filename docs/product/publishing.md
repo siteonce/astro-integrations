@@ -16,15 +16,15 @@ A file route shaped like an injected route aborts startup. A literal file route 
 
 The config names the app’s fallback view (`fallbackView`) for every `{slug}` row, or none. A `{slug}` row may name its own, or `false` for none. In each locale that is not the default, intl injects it for default-locale entries that have no translation, and passes the default-locale entry and its URL. The app chooses the redirect or a notice. With none, those URLs 404.
 
-The starter redirects to the default-locale entry. A static build writes a meta refresh with `noindex` and a canonical to the target. Dev answers with a 302.
+The demo redirects to the default-locale entry. A static build writes a meta refresh with `noindex` and a canonical to the target. Dev answers with a 302.
 
 A published tail with no entry is still a URL.
 
 ## URL form
 
-The starter sets `trailingSlash: "always"`. Intl builds every URL through `astro:i18n`, so links follow `trailingSlash` and `build.format`. Intl warns at startup when the two disagree.
+The demo sets `trailingSlash: "always"`. Intl builds every URL through `astro:i18n`, so links follow `trailingSlash` and `build.format`. Intl warns at startup when the two disagree.
 
-A URL typed in the other form is the host’s to redirect. Customers’ hosts are unknown, so the snapshot ships no redirect rules. Dev answers it with Astro’s 404 page, which links to the right form. Every page names its address with a canonical link, so a host that serves both forms creates no duplicate pages for search engines.
+A URL typed in the other form is the host’s to redirect. Customers’ hosts are unknown, so intl ships no redirect rules. Dev answers it with Astro’s 404 page, which links to the right form. Every page names its address with a canonical link, so a host that serves both forms creates no duplicate pages for search engines.
 
 ## Sitemap
 
@@ -34,32 +34,32 @@ The app installs and registers `@astrojs/sitemap`. Intl hands the app `customPag
 - `serialize` adds each URL's alternates and `x-default`. It leaves URLs pairing does not know unchanged.
 - `filter` drops intl's build-only data route and nothing else. The app combines it with its own filter. An app that replaces it lists that route.
 
-The starter combines intl's filter with its own. Its own filter drops `rss.xml`, `robots.txt`, and `/_og`.
+The demo combines intl's filter with its own. Its own filter drops `rss.xml` and `robots.txt`.
 
 Intl builds one hidden data route under `/_intl/` during `astro build`. It carries pairing from the content collections to the sitemap options. Intl removes its output before the build ends, so the deployed site does not serve it. No app route has to feed the sitemap.
 
 Intl does not call `sitemap()`, does not enable the sitemap `i18n` option, and does not emit extra URLs.
 
-An app may build its sitemap without `@astrojs/sitemap`. The sitemap entries intl hands page code carry each URL, its alternates, and `x-default`: the same data `serialize` prints. The starter uses `@astrojs/sitemap`.
+An app may build its sitemap without `@astrojs/sitemap`. The sitemap entries intl hands page code carry each URL, its alternates, and `x-default`: the same data `serialize` prints. The demo uses `@astrojs/sitemap`.
 
 A published tail with no entry is still a URL. The sitemap lists it. Its alternates are the locales that publish that tail.
 
 Alternates and `x-default` for an entry come from pairing. `x-default` is the default locale.
 
-Alternate-language tags are the app’s to print. For a tail with no entry they use the locales that publish that tail. Switcher data for an entry is pairing. Chrome policy is the app’s. See [`site.md`](site.md).
+Alternate-language tags are the app’s to print. For a tail with no entry they use the locales that publish that tail. Switcher data for an entry is pairing. Chrome policy is the app’s.
 
 Drafts stay out of the production sitemap because those routes are not built.
 
 ## RSS
 
-RSS stays in the app. Each locale’s feed is `rss.xml` under that locale’s home. With `prefixDefaultLocale: false`, the default locale’s feed is `/rss.xml`. Other locales’ feeds are `/<locale>/rss.xml`. It is not a mixed-language root feed.
+RSS stays in the app. In the demo, each locale’s feed is `rss.xml` under that locale’s home. With `prefixDefaultLocale: false`, the default locale’s feed is `/rss.xml`. Other locales’ feeds are `/<locale>/rss.xml`. It is not a mixed-language root feed.
 
 Channel copy comes from catalogs. Item links come from pairing. Items are excerpts.
 
 ## Robots
 
-The starter owns `robots.txt` as a prerendered endpoint. The customer edits it directly.
+Robots stays in the app. The demo owns `robots.txt` as a prerendered endpoint.
 
 Preview emits `Disallow: /`. Production and local emit scraper rules, `Allow: /`, and the sitemap URL.
 
-**Seo** `noindex` is per page. It does not feed robots rules.
+The layout’s `noindex` is per page. It does not feed robots rules.

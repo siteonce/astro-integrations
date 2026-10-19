@@ -1,6 +1,6 @@
 # Primary builders
 
-Agents are the primary builders of this snapshot and of content sites built from it. Prefer well-supported tools with small setup and low lookup over human-authoring comfort; the right tool still wins.
+Agents are the primary builders of these packages and of content sites built on them. Prefer well-supported tools with small setup and low lookup over human-authoring comfort; the right tool still wins.
 
 Humans are indirect builders. They steer agents through conversation: they decide what gets built, judge the result from the agent's answers, and keep the product's agreements (`docs/product/`). They don't need to read the code or its diffs.
 

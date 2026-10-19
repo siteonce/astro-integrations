@@ -38,7 +38,7 @@ Handoff format: [../write-spec/references/handoff.md](../write-spec/references/h
 
    When a `.scratch` handoff is also open, apply its `Agreement`. Add a `Refuse` line only when that refusal stays true after this change. Do not write the same sentence twice.
 
-   When `docs/product/` does not exist, create the directory and an index. The index says these files are what the snapshot does. When the target product file does not exist, create it and link it from the index.
+   When `docs/product/` does not exist, create the directory and an index. The index says these files are what the packages do. When the target product file does not exist, create it and link it from the index.
 
    Done when those sentences are in the owning files.
 

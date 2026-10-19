@@ -3,7 +3,7 @@
   "compilerOptions": {
     // Shared strict baseline for the monorepo. Framework-agnostic on
     // purpose: no `jsx`/`include` here so packages layer their own on top
-    // (e.g. starter extends astro/tsconfigs/strict + this file).
+    // (e.g. the demo extends astro/tsconfigs/strict + this file).
     "target": "ESNext",
     "module": "ESNext",
     "moduleResolution": "Bundler",

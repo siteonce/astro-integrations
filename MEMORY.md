@@ -51,19 +51,19 @@ Walk a GitHub milestone with the issue-loop skill (`.grok/skills/issue-loop/`), 
 
 Each view stays its own injected Astro route: per-view render mode (prerender vs on demand) and per-page CSS splitting are non-negotiable. A single catch-all dispatcher (`[...path]` rendering views via `import.meta.glob`) was rejected on 2026-09-26 for losing both.
 
-Listing pages stay at the same depth as entry slugs (`blog/2`, not `blog/page/2`). The starter keeps `blog/{page}` beside `blog/{slug}` on purpose; the on-demand `{page}`/`{slug}` startup clash stays as a case users will hit and learn from (stated 2026-09-28).
+Listing pages stay at the same depth as entry slugs (`blog/2`, not `blog/page/2`). The demo keeps `blog/{page}` beside `blog/{slug}` on purpose; the on-demand `{page}`/`{slug}` startup clash stays as a case users will hit and learn from (stated 2026-09-28).
 
 **Why:** Simplifying routing must not sacrifice these — "optimizing in the wrong direction."
 
 **How to apply:** When routes overlap, change the patterns so they no longer overlap; don't collapse routes.
 
-## Leave ogImage() commented out
+## OG's open build break
 
-`ogImage()` is commented out in `apps/starter/astro.config.mjs`. Restoring it breaks `astro build` in `packages/astro-og-image/src/route-data.ts`: Open Graph generation requires a collection entry, and paired tails with no entry (home, listings) have none. The planned fix is `.scratch/plans/og-image-update.md`.
+`packages/astro-og-image` is parked, and the demo doesn't register `ogImage()`. Registering it breaks `astro build` in `packages/astro-og-image/src/route-data.ts`: Open Graph generation requires a collection entry, and paired tails with no entry (home, listings) have none. The planned fix is `.scratch/plans/og-image-update.md`, for when OG is revived.
 
-**Why:** Marc disabled it until that fix lands.
+**Why:** Marc disabled it until that fix lands, then parked OG when intl moved here.
 
-**How to apply:** Don't restore it, fix it, or clean its now-unused imports inside unrelated work. Skipping the throw in `route-data.ts` is not a fix.
+**How to apply:** Don't wire OG into the demo, fix it, or touch its files inside unrelated work. Skipping the throw in `route-data.ts` is not a fix.
 
 ## Intl stays bundler-neutral
 
@@ -87,15 +87,14 @@ Hidden plumbing is fine. Injected hidden routes, files, or folders (such as `_in
 
 These were removed or rejected on purpose; agents kept bringing them back:
 
-- `apps/marketing`, `packages/astro` (`siteonce()`, `virtual:app/*`)
 - `src/routes/`, `src/pages/_pages`, the locale catch-all, and a two-row `{page}` listing (listings are one row with `pagination`)
 - `src/content/relations.ts` (relations are inline in `content.config.ts`), a `clients` relation
 - `setListingEntries` / `listingQuery` (views pass `sort` or `order` to `listingPaths`), an intl `messages` dir or catalog-file check
 - A sibling `entry` key on a route row (it lives in `collection: { name, entry? }`)
 - Pairing keyed by `filePath` or Astro `entry.id` (the key is `<collection>/<data.id>`)
 - A redirect to the locale home for a missing translation (disable the switcher link; use `fallbackView`)
-- Starter tests for pageName, the slugify German map, or localeFolder
-- `setIntlConfig`, a global intl runtime, `reservedPaths`, and a separate `@repo/astro-intl-sitemap` package
+- Demo tests for pageName, the slugify German map, or localeFolder
+- `setIntlConfig`, a global intl runtime, `reservedPaths`, and a separate intl sitemap package (once `@repo/astro-intl-sitemap`)
 
 **How to apply:** Before reintroducing any of these, ask Marc.
 
@@ -103,17 +102,20 @@ These were removed or rejected on purpose; agents kept bringing them back:
 
 The public astro-intl.dev package is an unrelated message library (`[lang]` segment, request-scoped translations, middleware rewrites). It doesn't pair translations, inject routes, or emit hreflang.
 
-**How to apply:** Don't borrow its patterns for `@repo/astro-intl`.
+**How to apply:** Don't borrow its patterns for `@siteonce/astro-intl`.
 
 ## Gotchas
 
 - **Stopping `astro dev`:** Astro 7's `astro dev` detaches. Stop it with `astro dev stop`, and read its output with `astro dev logs`.
-- **`@repo/astro-intl/runtime` in the content config:** `@repo/astro-intl/runtime` can't be imported from `src/content.config.ts`. The `astro` Vite environment lacks `virtual:astro:pages`. Intl fails startup on a direct import. A transitive import still shows Astro's raw error.
+- **`@siteonce/astro-intl/runtime` in the content config:** `@siteonce/astro-intl/runtime` can't be imported from `src/content.config.ts`. The `astro` Vite environment lacks `virtual:astro:pages`. Intl fails startup on a direct import. A transitive import still shows Astro's raw error.
 - **Editing `intl.config.ts` or `routes.config.ts`:** Stop and start `astro dev` after editing `intl.config.ts` or `routes.config.ts`. A restart keeps the old config.
-- **`astro check` hides type errors in `intl.config.ts`:** `astroIntl(intlConfig)` in `astro.config.mjs` parses the config while Astro loads it, so an invalid config stops with `Unable to load your Astro config`. `tsc --noEmit -p apps/starter` shows the type error, next to the existing `getCollection(name)` errors in intl's source.
+- **`astro check` hides type errors in `intl.config.ts`:** `astroIntl(intlConfig)` in `astro.config.mjs` parses the config while Astro loads it, so an invalid config stops with `Unable to load your Astro config`. `tsc --noEmit -p apps/demo` shows the type error, next to the existing `getCollection(name)` errors in intl's source.
 - **Zod 4 nested defaults:** `.default({})` doesn't apply inner defaults; use `.prefault({})`.
 - **Prerendered 404s still emit a file** (Astro 7.3.4): returning `new Response(null, { status: 404 })` from a prerendered route doesn't drop it.
 - **Temporary adapter experiments:** revert the Node adapter, `viewRendering: 'request'`, and any test content before staging; `@astrojs/node` isn't a standing dependency.
 - **`pnpm install` fails on sharp:** `--ignore-scripts` still links the workspace.
 - **`biome.json` is strict JSON:** no comments.
 - **No `.md` under `src/pages/`:** it becomes a route, so no nested `AGENTS.md` there.
+- **Intl's `source` condition:** everything in the repo resolves `@siteonce/astro-intl` to `src/` through the `source` export condition: package tests, Stryker, both tsconfigs (`customConditions`), and the demo's scripts and Vite plugin. A new entry point (a script, a test harness, a Vite config) must add it, or it resolves `dist/`, which doesn't exist until a build. `pnpm smoke` is the only check on `dist/`.
+- **Zod in intl:** intl imports `astro/zod`, never `zod`. Its own `zod` would put intl's schema pieces from one zod copy into schemas the app builds with Astro's copy.
+- **No changeset for `0.1.0`:** the manifest already says `0.1.0`, and the first publish is by hand. A changeset would turn the first release into a version-bump pull request.

@@ -21,8 +21,8 @@ Examples: [tests.md](tests.md). Mocking: [mocking.md](mocking.md).
 
 A **seam** is the public boundary a test calls: where you observe behavior without reaching inside. Tests sit at seams, never against internals.
 
-- **Package:** its seam is its exports (`package.json` `exports`). Tests live in the package's `test/` folder and import the package by name (`@repo/astro-intl`), so they cannot reach an internal module. Each test file covers one section of the package's product file.
-- **Single-module helper** (an app util, an `astro-site` util): its seam is the module. The test sits beside it.
+- **Package:** its seam is its exports (`package.json` `exports`). Tests live in the package's `test/` folder and import the package by name (`@siteonce/astro-intl`), so they cannot reach an internal module. Each test file covers one section of the package's product file.
+- **Single-module helper** (a demo util): its seam is the module. The test sits beside it.
 
 **Test only at agreed seams.** The handoff's agreement names the seams and the test names. With no handoff, write the seams and test names down and confirm them with Marc before writing a test. You can't test everything; agreeing up front puts the effort on the critical paths and the complex logic.
 

@@ -8,7 +8,7 @@ Runner: `node --test`. Assertions: `node:assert/strict`. Intl tests follow [Shap
 
 ```ts
 // GOOD: observable behavior through the package's exports
-import { createIntl, defineIntl } from '@repo/astro-intl';
+import { createIntl, defineIntl } from '@siteonce/astro-intl';
 
 it('omits href when a sibling is missing', async () => {
   const intl = createIntl(config, { loaders });

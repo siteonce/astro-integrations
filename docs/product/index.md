@@ -1,18 +1,18 @@
 # Product
 
-Agreements about this snapshot. They change when we change our mind. A rename or a new helper does not get a paragraph. Where the tree lags, the owning file says so under **Today**. Delete that note when the gap closes.
+Agreements about these packages. They change when we change our mind. A rename or a new helper does not get a paragraph. Where the tree lags, the owning file says so under **Today**. Delete that note when the gap closes.
 
 Glossary: [`CONTEXT.md`](../../CONTEXT.md). How we build: [`docs/agents/`](../agents/).
 
 ## Who
 
-The **customer** copies the repo and owns every file. They ship a directory, magazine, or blog. They are a developer.
+The **customer** installs a package into their Astro site and builds on it. They ship a directory, magazine, or blog. They are a developer.
 
-The **visitor** reads that site. Locale, the document they land on, and the search and social tags are the product they meet.
+The **visitor** reads that site. Locale, the document they land on, and the alternate-language links search engines read are the product they meet.
 
 ## Promise
 
-A **snapshot** for Astro **content sites**. No promised upgrades. Workspace packages stay in-tree. The visitor gets documents in their language, a locale switch that lands on the same document, and head tags driven by that document.
+Astro integrations for **content sites**, published to npm under `@siteonce/*`. Each sits on what Astro already does and adds what it doesn't. A breaking change ships as a new version with a changelog entry, never inside a patch. The visitor gets documents in their language and a locale switch that lands on the same document.
 
 ## No boxing in
 
@@ -28,15 +28,12 @@ A package uses its input as written, or fails with an error that names the fix. 
 
 ## Tests document behavior
 
-The starter shows one setup by example. A package's tests show the rest: each capability and each refusal its product file names, run through the package's public calls. Tests are written before the code, so the record exists before the behavior does. When a product file and a test disagree, one of them is wrong; fix both in the same change. A refusal the code makes and the product file doesn't name stays when it stops silently wrong output, and the product file names it. A check that only repeats another one goes ([No false rules](../agents/builders.md#no-false-rules)).
+The demo shows one setup by example. A package's tests show the rest: each capability and each refusal its product file names, run through the package's public calls. Tests are written before the code, so the record exists before the behavior does. When a product file and a test disagree, one of them is wrong; fix both in the same change. A refusal the code makes and the product file doesn't name stays when it stops silently wrong output, and the product file names it. A check that only repeats another one goes ([No false rules](../agents/builders.md#no-false-rules)).
 
 ## Reading order
 
-| File                             | Agreement                             |
-| -------------------------------- | ------------------------------------- |
-| [`site.md`](site.md)             | What the visitor gets                 |
-| [`snapshot.md`](snapshot.md)     | What the customer copies and owns     |
-| [`intl.md`](intl.md)             | Translation on top of Astro           |
-| [`publishing.md`](publishing.md) | Who emits URLs, feeds, and robots     |
-| [`og.md`](og.md)                 | Open issues in Open Graph images      |
-| [`later.md`](later.md)           | Parked, and what this product refuses |
+| File                             | Agreement                                 |
+| -------------------------------- | ----------------------------------------- |
+| [`intl.md`](intl.md)             | Translation on top of Astro               |
+| [`publishing.md`](publishing.md) | Who emits URLs, feeds, and robots         |
+| [`og.md`](og.md)                 | Open issues in Open Graph images (parked) |

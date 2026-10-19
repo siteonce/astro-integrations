@@ -4,10 +4,10 @@ A unit test is for a function that can return the wrong value while types, schem
 
 Tests also document behavior: [Tests document behavior](../product/index.md#tests-document-behavior). Write them test-first with the `tdd` skill (`.grok/skills/tdd/`).
 
-A test sits at its seam, the public boundary it calls. It asserts on the return value. The runner is `node --test`.
+A test sits at its seam, the public boundary it calls. It asserts on the return value. The runner is `node --test`, started with `--conditions=source` so tests import the package's `src/` without a build.
 
-- **Package:** the seam is the package's exports. Tests live in the package's `test/` folder and import the package by name (`@repo/astro-intl`), never `src/`. Biome's `noRestrictedImports` enforces this in `packages/*/test/`. Each test file covers one section of the package's product file.
-- **Single-module helper** (an app util, an `astro-site` util): the seam is the module. The test sits beside it and imports that function (or schema `.parse()`, or map).
+- **Package:** the seam is the package's exports. Tests live in the package's `test/` folder and import the package by name (`@siteonce/astro-intl`), never `src/`. Biome's `noRestrictedImports` enforces this in `packages/*/test/`. Each test file covers one section of the package's product file.
+- **Single-module helper** (a demo util): the seam is the module. The test sits beside it and imports that function (or schema `.parse()`, or map).
 
 Tests stand on their own. They never import from an app. Fixtures are written in the test or built by the package's `test/fixtures.ts`.
 
@@ -54,6 +54,8 @@ A survivor is evidence, not a task. Sort it before changing anything:
 
 The score is not a target. No `// Stryker disable` comments.
 
-Tests cover packages and reusable helpers. One-off starter files (pages, endpoints, head components) belong to the customer; `astro build` verifies them.
+Tests cover packages and reusable helpers. One-off demo files (pages, endpoints, head components) are verified by `astro build` and `astro check`.
 
-Starter verification is `astro build` / `astro check`. Page and block templates are verified by that build.
+## Smoke test
+
+`pnpm smoke` (`scripts/smoke.mjs`) is the only check on `dist/`. It packs intl, installs the tarball into a copy of `fixtures/intl-smoke/` outside the repo, then runs `astro build` and `astro check` there. Change the fixture when a published subpath or the install line changes.

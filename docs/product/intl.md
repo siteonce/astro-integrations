@@ -1,14 +1,14 @@
 # Intl
 
-How this snapshot builds multilingual **content sites** on Astro’s own i18n. Yardstick for `@repo/astro-intl` and for **starter**. Glossary: `CONTEXT.md` (`slug`, pairing `id`, `section`, **content source**).
+How `@siteonce/astro-intl` builds multilingual **content sites** on Astro’s own i18n. Yardstick for the package and for the **demo**. Glossary: `CONTEXT.md` (`slug`, pairing `id`, `section`, **content source**).
 
-What the starter doesn't show is shown in `packages/astro-intl/test/`, one file per section of this page, plus the sitemap from [`publishing.md`](publishing.md#sitemap) ([Tests document behavior](index.md#tests-document-behavior)).
+What the demo doesn't show is shown in `packages/astro-intl/test/`, one file per section of this page, plus the sitemap from [`publishing.md`](publishing.md#sitemap) ([Tests document behavior](index.md#tests-document-behavior)).
 
 ## Sit on Astro i18n
 
 Sit on Astro i18n. Enhance it.
 
-Astro already owns locale prefixing, `getRelativeLocaleUrl`, `Astro.currentLocale`, automatic routing, and content collections. Where Astro decides, intl does what Astro does: URL matching, trailing slashes, and route priority stay Astro's. Intl never changes how Astro matches or orders routes. It refuses to run when that ordering would hide a URL intl publishes. Intl writes locale list and prefix policy into `defineConfig.i18n`. Callers use `astro:i18n` and `astro:content` under those names. Page code reads `locales` and `defaultLocale` through `src/utils/intl.ts`. That file re-exports them from `@repo/astro-intl/runtime`, which reads `astro:config/server`. Both are server-only. The content config cannot import either.
+Astro already owns locale prefixing, `getRelativeLocaleUrl`, `Astro.currentLocale`, automatic routing, and content collections. Where Astro decides, intl does what Astro does: URL matching, trailing slashes, and route priority stay Astro's. Intl never changes how Astro matches or orders routes. It refuses to run when that ordering would hide a URL intl publishes. Intl writes locale list and prefix policy into `defineConfig.i18n`. Callers use `astro:i18n` and `astro:content` under those names. Page code reads `locales` and `defaultLocale` through `src/utils/intl.ts`. That file re-exports them from `@siteonce/astro-intl/runtime`, which reads `astro:config/server`. Both are server-only. The content config cannot import either.
 
 The enhancement is what Astro does not own: **catalogs** (`t()`) and **pairing** entries across locales. A routed entry carries `id` (the same entry across locales), `locale` (which sibling this is), and a one-segment `slug`. The **section** in front of that segment is per locale and is not a field on the entry. The public tail comes from the route row. Folders, chrome, and the views are the app’s. Intl injects each view at the URLs its row publishes ([Routes](#routes)).
 
@@ -22,8 +22,8 @@ Stop and start `astro dev` after editing `intl.config.ts` or `routes.config.ts`.
 
 ## Two jobs
 
-- **intl** (`@repo/astro-intl`) — locales written through to Astro `i18n`, catalogs, pairing, route injection, lookup by id and by locale and public tail. It does not own folders or views. Who emits which URLs: [`publishing.md`](publishing.md).
-- **starter** — an example **content site** using intl. Its **content source** is Astro content collections. It writes the route rows, the views, and RSS. The app registers `@astrojs/sitemap` with `intl.sitemap` and combines intl’s `filter` with its own. The app’s fallback view decides what a missing translation does.
+- **intl** (`@siteonce/astro-intl`) — locales written through to Astro `i18n`, catalogs, pairing, route injection, lookup by id and by locale and public tail. It does not own folders or views. Who emits which URLs: [`publishing.md`](publishing.md).
+- **demo** — an example **content site** using intl. Its **content source** is Astro content collections. It writes the route rows, the views, and RSS. The app registers `@astrojs/sitemap` with `intl.sitemap` and combines intl’s `filter` with its own. The app’s fallback view decides what a missing translation does.
 
 The test: if deleting a piece would make the site look more like ordinary Astro and pairing still works, it was cost.
 
@@ -68,7 +68,7 @@ A collection named without `{slug}` supplies its entries to the written tail and
 
 Pairing counts that locale’s entries. A CMS page size stays separate from `pageSize`.
 
-The view passes the collection, or a list of collections, and a required `sort` or `order` to `listingPaths`. Intl has no default order, because `getCollection()` order is non-deterministic. `@repo/astro-intl/sorting` supplies comparators for `sort` (`byDate`, `byNumber`, `byText`, `byFlag`) and `sortBy` to chain them. `byText` takes the listing’s locale from the `sort` context. Intl ships no helpers for `order`, because an `order` depends on entry metadata.
+The view passes the collection, or a list of collections, and a required `sort` or `order` to `listingPaths`. Intl has no default order, because `getCollection()` order is non-deterministic. `@siteonce/astro-intl/sorting` supplies comparators for `sort` (`byDate`, `byNumber`, `byText`, `byFlag`) and `sortBy` to chain them. `byText` takes the listing’s locale from the `sort` context. Intl ships no helpers for `order`, because an `order` depends on entry metadata.
 
 The content source decides which drafts exist. Outside local and preview, drafts never enter the collection, so no page, listing, sitemap URL, or alternate sees them. A CMS does this with its published view of the content. The view orders the list. Intl filters by locale.
 
@@ -149,13 +149,13 @@ A **translated** target stores the pairing `id`. `getRelated(locale, relation)` 
 
 An **untranslated** target stores the collection entry id and ignores the locale passed to `getRelated`. Locale-free tables and inline locale maps are **untranslated**. A file collection sets that id from the filename. A CMS sets it from its document id.
 
-`getRelated` returns the entry unchanged, as `getCollection` would. The return type is the target collection's `CollectionEntry` through the injected types, so a call site passes no type argument. A `localized()` field stays a locale map. The caller reads it with `localizedValue(field, locale)`. `@repo/astro-intl` exports it, and app code imports it through `src/utils/intl.ts`. `localizedValue` takes a configured locale and throws when that locale is missing.
+`getRelated` returns the entry unchanged, as `getCollection` would. The return type is the target collection's `CollectionEntry` through the injected types, so a call site passes no type argument. A `localized()` field stays a locale map. The caller reads it with `localizedValue(field, locale)`. `@siteonce/astro-intl` exports it, and app code imports it through `src/utils/intl.ts`. `localizedValue` takes a configured locale and throws when that locale is missing.
 
 Documents are paired entries (`id` + `locale` on each sibling). Inline locale maps are a lookup-target shape.
 
 ## Catalogs
 
-`createT` is pure: the app passes message objects in. Catalog JSON is not loaded into a virtual module. `createT` defaults to the injected `Locale`, so the starter passes no type argument. A missing catalog for a configured locale is a type error. `createT` throws when a message it is handed is not valid ICU, naming the locale and the key, nested groups included. When a call omits a value the message names, or passes a value its placeholder can't format, `t()` returns the message as written and logs a warning naming the locale and the key. Intl does not check catalog files.
+`createT` is pure: the app passes message objects in. Catalog JSON is not loaded into a virtual module. `createT` defaults to the injected `Locale`, so the demo passes no type argument. A missing catalog for a configured locale is a type error. `createT` throws when a message it is handed is not valid ICU, naming the locale and the key, nested groups included. When a call omits a value the message names, or passes a value its placeholder can't format, `t()` returns the message as written and logs a warning naming the locale and the key. Intl does not check catalog files.
 
 ## Refuses to boot
 
@@ -163,7 +163,7 @@ Fail at startup when:
 
 - Overlapping `i18n` keys are already set on `defineConfig`.
 - `@astrojs/sitemap`'s `i18n` option is set.
-- The content config directly imports `@repo/astro-intl/runtime`. Read locales from the intl config.
+- The content config directly imports `@siteonce/astro-intl/runtime`. Read locales from the intl config.
 - `@astrojs/sitemap` is registered before intl.
 - The intl config holds a value JSON can't carry (a function, a `Date`, a `Map`), because intl writes the config into the sitemap data route as JSON. A key set to `undefined` is allowed.
 - A row names a view that has no file under `src/views/`, or that has both `<view>.astro` and `<view>/index.astro`.
@@ -209,10 +209,10 @@ Fail when intl loads collections, in the build and per request for an on-demand 
 
 ## Today
 
-Starter’s content source is Astro content collections. A CMS that presents the same entry fields is the other source this contract requires. The starter does not demonstrate that source.
+The demo’s content source is Astro content collections. A CMS that presents the same entry fields is the other source this contract requires. The demo does not demonstrate that source.
 
 The path helpers do not return a `cacheKey` yet.
 
-The starter keeps `'build'` and has no adapter.
+The demo keeps `'build'` and has no adapter.
 
-The starter keeps `blog/{page}` beside `blog/{slug}` on purpose. That is the clashing shape. It keeps the check and its workarounds exercised, so they do not rot. It is not the recommended setup for an on-demand site.
+The demo keeps `blog/{page}` beside `blog/{slug}` on purpose. That is the clashing shape. It keeps the check and its workarounds exercised, so they do not rot. It is not the recommended setup for an on-demand site.

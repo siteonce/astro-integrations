@@ -14,7 +14,7 @@ Write the handoff a later session implements. Format: [references/handoff.md](re
 1. **Read the agreement.** Read `CONTEXT.md`, `docs/product/index.md`, and the product files that cover this area. Use those terms. Done when those files have been read.
 
 2. **Ask, then wait.** When the user passes an existing document, ask whether to overwrite it or create a new file. For each question below, try to answer it from the sentences already in the product files. Phrase the question around those sentences, quote the lines, and put that answer in front of the user. Ask them to confirm or correct it. When the product files do not cover a question, ask it with no answer filled in. A plan and the tree are not answers. Do not write the handoff in the turn you ask.
-   1. Which consumer: the visitor, the customer who copies the snapshot, or the app calling a package?
+   1. Which consumer: the visitor, the customer who installs the package, or the app calling a package?
    2. Which file in `docs/product/` owns this, and which sentence is missing or now wrong?
    3. What does Astro, or the current package, already do here?
    4. After this change, what can that consumer rely on?

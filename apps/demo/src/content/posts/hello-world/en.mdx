@@ -5,22 +5,20 @@ slug: hello-world
 pubDate: 2026-01-01
 status: published
 seoTitle: Hello world
-seoDesc: The first post on a site built with Site Once — proof the content pipeline runs end to end.
-# Co-located demo image so preview needs no cloud account — not the B2 path.
+seoDesc: The first sample post in the @siteonce/astro-intl demo.
+# Co-located so the demo renders offline.
 featImage: ./feat.png
-featImageAlt: Placeholder feature image — replace with your own.
+featImageAlt: Placeholder feature image.
 tags:
   - announcements
 author: demo
 source: astro
 role: editor
-excerpt: This sample post ships with the starter so the blog routes, sitemap, and RSS feed work the moment degit finishes. Delete it and write your own.
+excerpt: This sample post gives the blog routes, the sitemap, and the RSS feed something to render in both locales.
 ---
 
 # Hello world
 
-This is the example entry that ships with the starter. It exists so the content pipeline is reachable out of the box — the collection landing page, the entry detail route, the sitemap, and the RSS feed all have something to render.
+This is the first sample post in the `@siteonce/astro-intl` demo. It gives the listing, the post route, the tag pages, the sitemap, and the RSS feed something to render in both locales.
 
-Each entry is its own folder (`blog/<slug>/index.md` or `index.mdx`). Production feature images are URLs in frontmatter; the co-located `feat.png` here is only so preview works without a cloud account.
-
-Replace this with your first real post.
+Each post is a folder with one file per locale (`src/content/posts/<id>/en.mdx` and `de.mdx`). The co-located `feat.png` keeps the demo offline.

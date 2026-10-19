@@ -1,6 +1,6 @@
 # Upstream Astro i18n
 
-Status: upstream research only. Not an implementation spec. Does not describe this snapshot’s `astro` package.
+Status: upstream research only. Not an implementation spec. Does not describe `@siteonce/astro-intl`.
 
 Researched: 2026-09-15. Docs and GitHub pages as fetched that day. Current public docs describe Astro 7 (advanced routing marked **Added in:** `astro@7.0.0`). i18n routing itself has been stable since Astro 4.0.
 

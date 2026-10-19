@@ -7,12 +7,8 @@
     "de": "Deutsch"
   },
   "home": {
-    "description": "Eine neue Site, gebaut mit Site Once.",
-    "intro": "Dieser Platzhalter liegt im Starter. Ersetze ihn durch die Startseite.",
-    "muted": {
-      "title": "Gedämpfte Fläche",
-      "body": "Vollflächige gedämpfte Farbe auf dem Landmark; Measure begrenzt den Text."
-    }
+    "description": "Ein zweisprachiger Blog, gebaut mit @siteonce/astro-intl.",
+    "intro": "Beiträge, Listen und Schlagworte auf Englisch und Deutsch. Wechsle auf jeder Seite die Sprache und lande auf demselben Dokument."
   },
   "blog": {
     "title": "Blog",
