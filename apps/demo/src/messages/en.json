@@ -17,7 +17,6 @@
   "blog": {
     "title": "Blog",
     "description": "Latest posts from this site.",
-    "related": "Related",
     "previous": "Previous",
     "next": "Next"
   },

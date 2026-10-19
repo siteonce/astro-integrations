@@ -20,7 +20,7 @@ function assertMessages(locale: string, tree: unknown, key: string): void {
       new IntlMessageFormat(tree, locale);
     } catch {
       throw new Error(
-        `@repo/astro-intl: message "${key}" in locale "${locale}" is not valid ICU. Fix it in the "${locale}" catalog.`,
+        `@siteonce/astro-intl: message "${key}" in locale "${locale}" is not valid ICU. Fix it in the "${locale}" catalog.`,
       );
     }
     return;
@@ -70,7 +70,7 @@ function valueCannotFormat(nodes: readonly MessageNode[], values: CatalogValues)
 function warnReturned(locale: string, key: string, missing: boolean): void {
   const detail = missing ? 'is missing a value' : 'could not format a value';
   console.warn(
-    `@repo/astro-intl: message "${key}" in locale "${locale}" ${detail}; returned as written.`,
+    `@siteonce/astro-intl: message "${key}" in locale "${locale}" ${detail}; returned as written.`,
   );
 }
 

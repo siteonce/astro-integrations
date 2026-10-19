@@ -5,9 +5,9 @@
   "description": "Snapshot monorepo for Astro content sites.",
   "type": "module",
   "scripts": {
-    "dev": "pnpm --filter starter dev",
-    "build": "pnpm --filter starter build",
-    "preview": "pnpm --filter starter preview",
+    "dev": "pnpm --filter demo dev",
+    "build": "pnpm --filter demo build",
+    "preview": "pnpm --filter demo preview",
     "test": "pnpm -r --if-present test",
     "format": "biome format --write . && prettier --write \"**/*.{astro,md,mdx}\"",
     "format:check": "biome format . && prettier --check \"**/*.{astro,md,mdx}\"",

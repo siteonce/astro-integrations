@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
-import { createIntl } from '@repo/astro-intl';
+import { createIntl } from '@siteonce/astro-intl';
 import {
   collectionEntry,
   collectionLoaders,
@@ -95,7 +95,7 @@ describe('entry rows', { concurrency: 1 }, () => {
 
     const warnings = await warningsFrom(() => intl.getPairedSlugs());
     assert.deepEqual(warnings, [
-      '@repo/astro-intl: default-locale sibling missing for entryId "pages/home" (defaultLocale "en").',
+      '@siteonce/astro-intl: default-locale sibling missing for entryId "pages/home" (defaultLocale "en").',
     ]);
     assert.deepEqual(await intl.staticPaths('/en/[...index]'), []);
     const homeDe = await intl.staticPaths('/de/[...index]');
@@ -124,7 +124,7 @@ describe('entry rows', { concurrency: 1 }, () => {
 
     const warnings = await warningsFrom(() => intl.getPairedSlugs());
     assert.deepEqual(warnings, [
-      '@repo/astro-intl: default-locale sibling missing for entryId "pages/home" (defaultLocale "en").',
+      '@siteonce/astro-intl: default-locale sibling missing for entryId "pages/home" (defaultLocale "en").',
     ]);
     assert.deepEqual(await intl.staticPaths('/en/[...index]'), []);
     assert.deepEqual(await intl.staticPaths('/de/[...index]'), []);
@@ -195,7 +195,7 @@ describe('entry rows', { concurrency: 1 }, () => {
 
     const warnings = await warningsFrom(() => intl.getPairedSlugs());
     assert.deepEqual(warnings, [
-      '@repo/astro-intl: default-locale sibling missing for entryId "blog/ghost" (defaultLocale "en").',
+      '@siteonce/astro-intl: default-locale sibling missing for entryId "blog/ghost" (defaultLocale "en").',
     ]);
     assert.deepEqual(await intl.getAlternatePaths('blog/ghost'), {});
     assert.deepEqual(await intl.getPairedSlugs(), [

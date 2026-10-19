@@ -45,7 +45,9 @@ export function routeFor(
   const pattern = routePattern.endsWith('/') ? routePattern.slice(0, -1) : routePattern;
   const found = compiled.find((route) => route.pattern === pattern && route.kind === kind);
   if (!found) {
-    throw new Error(`@repo/astro-intl: no injected ${kind} route for pattern "${routePattern}".`);
+    throw new Error(
+      `@siteonce/astro-intl: no injected ${kind} route for pattern "${routePattern}".`,
+    );
   }
   return found;
 }
@@ -63,7 +65,7 @@ function requireRouteCollection(
   const got = names.length === 0 ? 'nothing' : names.map((name) => `"${name}"`).join(', ');
   const where = `${helper} for "${route.pattern}" in view "${route.view}" got ${got}`;
   throw new Error(
-    `@repo/astro-intl: ${where}, but that route row names collection "${named}". Pass "${named}" (or add it to the list).`,
+    `@siteonce/astro-intl: ${where}, but that route row names collection "${named}". Pass "${named}" (or add it to the list).`,
   );
 }
 
@@ -120,7 +122,9 @@ export function listingPathsFor<C extends string>(
   const pageTail = normalizeSlug(pagination?.slug[route.locale] ?? '');
   const label = span === 'rest' ? pageTail : written;
   if (!pagination) {
-    throw new Error(`@repo/astro-intl: listing "${label}" in "${route.locale}" has no pagination.`);
+    throw new Error(
+      `@siteonce/astro-intl: listing "${label}" in "${route.locale}" has no pagination.`,
+    );
   }
   const pathFor = (page: number) => listingPagePath(written, pageTail, page);
   const localeField = fieldsFor(config.collections, named).locale;
@@ -167,14 +171,14 @@ export function listingPathsFor<C extends string>(
     const key = localePathKey(route.locale, item.props.path);
     if (!query.pairing.byLocaleTail.has(key)) {
       throw new Error(
-        `@repo/astro-intl: listing "${label}" in "${route.locale}" emits page ${item.props.page.currentPage}, which pairing did not publish.`,
+        `@siteonce/astro-intl: listing "${label}" in "${route.locale}" emits page ${item.props.page.currentPage}, which pairing did not publish.`,
       );
     }
   }
   const published = publishedListingPages(query, route.locale, pathFor, span);
   if (results.length !== published) {
     throw new Error(
-      `@repo/astro-intl: listing "${label}" in "${route.locale}" emits ${results.length} pages; pairing published ${published}.`,
+      `@siteonce/astro-intl: listing "${label}" in "${route.locale}" emits ${results.length} pages; pairing published ${published}.`,
     );
   }
   return results;
@@ -200,14 +204,14 @@ function listingOrder<T>(
     ordered = order(selected, context);
   } else if (typeof sort === 'function') {
     throw new Error(
-      `@repo/astro-intl: listing "${label}" in "${locale}" sets both sort and order.`,
+      `@siteonce/astro-intl: listing "${label}" in "${locale}" sets both sort and order.`,
     );
   } else {
-    throw new Error(`@repo/astro-intl: listing "${label}" in "${locale}" needs sort or order.`);
+    throw new Error(`@siteonce/astro-intl: listing "${label}" in "${locale}" needs sort or order.`);
   }
   if (!Array.isArray(ordered) || !sameEntries(selected, ordered)) {
     throw new Error(
-      `@repo/astro-intl: listing "${label}" in "${locale}" order must keep every entry and only reorder.`,
+      `@siteonce/astro-intl: listing "${label}" in "${locale}" order must keep every entry and only reorder.`,
     );
   }
   return ordered;
@@ -305,7 +309,7 @@ function routeRow(config: IntlConfig, route: CompiledRoute): RouteRow {
   const row = config.routes?.[route.rowIndex];
   if (!row) {
     throw new Error(
-      `@repo/astro-intl: no route row ${route.rowIndex} for pattern "${route.pattern}".`,
+      `@siteonce/astro-intl: no route row ${route.rowIndex} for pattern "${route.pattern}".`,
     );
   }
   return row;

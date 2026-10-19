@@ -37,7 +37,7 @@ export async function refuseShadowedEntries(
     const entry = shadowed.props.entry;
     const url = await intl.getRelativeEntryUrl(candidate.locale, entry);
     throw new Error(
-      `@repo/astro-intl: file route "${candidate.file}" shadows "${url}", ` +
+      `@siteonce/astro-intl: file route "${candidate.file}" shadows "${url}", ` +
         `the URL that entry ${describeEntry(candidate.collection, entry)} publishes in locale "${candidate.locale}". ` +
         'Astro serves the file route there, ' +
         "while the sitemap and the siblings' hreflang point at the entry. " +

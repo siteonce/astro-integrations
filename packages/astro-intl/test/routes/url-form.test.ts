@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { describe, it, type TestContext } from 'node:test';
-import { createIntl } from '@repo/astro-intl';
+import { createIntl } from '@siteonce/astro-intl';
 import { type IntlSetupOptions, intlHooks } from '../astro.ts';
 import {
   absoluteLocaleUrl,
@@ -153,7 +153,7 @@ describe('url form', () => {
 
   it('throws when the collection is not translated', async () => {
     const { intl } = open();
-    const sources = '@repo/astro-intl: collection "sources" is not in collections.translated.';
+    const sources = '@siteonce/astro-intl: collection "sources" is not in collections.translated.';
     await assert.rejects(
       () => intl.getRelativeEntryUrl('en', relation('sources', 'astro')),
       { message: sources },
@@ -166,7 +166,7 @@ describe('url form', () => {
     );
     await assert.rejects(
       () => intl.getRelativeEntryUrl('en', relation('ghost', 'x')),
-      { message: '@repo/astro-intl: collection "ghost" is not in collections.translated.' },
+      { message: '@siteonce/astro-intl: collection "ghost" is not in collections.translated.' },
       'unknown collection',
     );
   });
@@ -174,7 +174,7 @@ describe('url form', () => {
   it('throws when the entry has no collection', async () => {
     const { intl } = open();
     await assert.rejects(() => intl.getRelativeEntryUrl('en', { id: 'x', data: { id: 'hello' } }), {
-      message: '@repo/astro-intl: entry has no collection.',
+      message: '@siteonce/astro-intl: entry has no collection.',
     });
   });
 

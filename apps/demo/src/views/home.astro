@@ -1,11 +1,8 @@
 ---
 // Home. The site name and the catalog intro. No collection entry.
 // `staticPaths` emits the locale root, and nothing for a locale that doesn't publish it.
-import { ogImageFor } from '@repo/astro-og-image/utils/og-image-for';
-import { Hero, Schema, Seo } from '@repo/astro-site/components';
 import type { GetStaticPathsOptions, InferGetStaticPropsType } from 'astro';
 import SiteLayout from '../layouts/site-layout.astro';
-import { ogConfig } from '../og.config.ts';
 import { siteConfig } from '../site.config.ts';
 import { staticPaths, viewProps } from '../utils/intl.ts';
 import { useTranslations } from '../utils/t.ts';
@@ -20,26 +17,11 @@ const props = await viewProps(Astro, getStaticPaths);
 if (!props) return new Response(null, { status: 404 });
 const { locale, path } = props;
 const t = useTranslations(locale);
-
-const description = t('home.description');
-const ogImage = ogImageFor(Astro.url.pathname, ogConfig);
 ---
 
-<SiteLayout locale={locale} path={path}>
-  <Fragment slot="head">
-    <Seo
-      siteConfig={siteConfig}
-      lang={locale}
-      description={description}
-      {...ogImage}
-      imageAlt={siteConfig.siteName}
-    />
-    <Schema siteConfig={siteConfig} lang={locale} description={description} />
-  </Fragment>
-
-  <main class="measure measure-size-wide mx-auto flow flow-4">
-    <Hero title={siteConfig.siteName}>
-      <p>{t('home.intro')}</p>
-    </Hero>
+<SiteLayout locale={locale} path={path} description={t('home.description')}>
+  <main>
+    <h1>{siteConfig.siteName}</h1>
+    <p>{t('home.intro')}</p>
   </main>
 </SiteLayout>

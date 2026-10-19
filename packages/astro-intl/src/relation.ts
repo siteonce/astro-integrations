@@ -69,7 +69,7 @@ export function createIntlSchema<
     ]);
     if (!names.has(name)) {
       throw new Error(
-        `@repo/astro-intl: relation("${name}") is in neither collections.translated nor collections.untranslated.`,
+        `@siteonce/astro-intl: relation("${name}") is in neither collections.translated nor collections.untranslated.`,
       );
     }
     return z
@@ -91,7 +91,7 @@ export function createIntlSchema<
 
 export function localizedValue<T>(field: Readonly<Record<string, T>>, locale: Locale): T {
   if (!(locale in field)) {
-    throw new Error(`@repo/astro-intl: localized field missing locale "${locale}".`);
+    throw new Error(`@siteonce/astro-intl: localized field missing locale "${locale}".`);
   }
   return field[locale] as T;
 }
@@ -101,7 +101,7 @@ function relationTarget(rel: Relation, options: ResolveRelationOptions): string 
   const target = rel.intlRelationTarget;
   if (!(target in translated) && !untranslated.has(target)) {
     fail(
-      `@repo/astro-intl: relation points at "${target}", which neither collections.translated nor collections.untranslated lists`,
+      `@siteonce/astro-intl: relation points at "${target}", which neither collections.translated nor collections.untranslated lists`,
       where,
     );
   }
@@ -117,7 +117,7 @@ function resolveUntranslated(
   // A glob loader derives it from the filename.
   const entry = options.collections[target]?.find((item) => item.id === rel.id);
   if (!entry) {
-    fail(`@repo/astro-intl: relation ${target}/${rel.id} is missing`, options.where);
+    fail(`@siteonce/astro-intl: relation ${target}/${rel.id} is missing`, options.where);
   }
   return entry;
 }
@@ -132,7 +132,7 @@ export function resolveRelation(
   if (!(target in translated)) return resolveUntranslated(target, rel, options);
   const entry = getContentById(locale, `${target}/${rel.id}`);
   if (!entry) {
-    fail(`@repo/astro-intl: relation ${target}/${rel.id} is missing locale "${locale}"`, where);
+    fail(`@siteonce/astro-intl: relation ${target}/${rel.id} is missing locale "${locale}"`, where);
   }
   return entry;
 }

@@ -60,7 +60,7 @@ function localeFolder(entry: { id: string; filePath?: string }): string {
   const parts = entry.id.replaceAll('\\', '/').split('/').filter(Boolean);
   const fromId = parts.length >= 2 ? parts[parts.length - 2] : parts[0];
   if (!fromId) {
-    throw new Error(`starter: locale folder missing on ${entry.id}`);
+    throw new Error(`demo: locale folder missing on ${entry.id}`);
   }
   return fromId;
 }
@@ -72,13 +72,13 @@ function parentDir(filePath: string | undefined): string | undefined {
 }
 
 // Dates, feat images, tag links, and list items for one locale's posts.
-// A term, related post, or list item with no URL in this locale is omitted.
+// A term or list item with no URL in this locale is omitted.
 export function createPosts(locale: Locale) {
   const t = useTranslations(locale);
   const dateFmt = new Intl.DateTimeFormat(locale, { dateStyle: 'long' });
 
   function omit(ref: string): undefined {
-    console.warn(`starter: no url for "${ref}" in "${locale}".`);
+    console.warn(`demo: no url for "${ref}" in "${locale}".`);
     return undefined;
   }
 
@@ -132,23 +132,10 @@ export function createPosts(locale: Locale) {
     return (await Promise.all(list.map((post) => item(post)))).filter((post) => post !== undefined);
   }
 
-  /** Related-post links. An entry with no URL in this locale is omitted. */
-  async function related(entries: readonly (EntryRef & { data: { seoTitle: string } })[]) {
-    return (
-      await Promise.all(
-        entries.map(async (entry) => {
-          const link = await href(entry);
-          if (link === undefined) return omit(`${entry.collection}/${entry.data.id}`);
-          return { href: link, title: entry.data.seoTitle };
-        }),
-      )
-    ).filter((entry) => entry !== undefined);
-  }
-
   /** That locale's posts, in no order. */
   async function list() {
     return (await getCollection('posts')).filter((post) => post.data.locale === locale);
   }
 
-  return { list, items, image, dateLabel, terms, related };
+  return { list, items, image, dateLabel, terms };
 }

@@ -4,7 +4,7 @@ import { mkdir, writeFile } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 import { describe, it } from 'node:test';
 import { pathToFileURL } from 'node:url';
-import type { SitemapEntry } from '@repo/astro-intl';
+import type { SitemapEntry } from '@siteonce/astro-intl';
 import { type IntlHooks, intlHooks, nodeAdapter, stubAstroModules, writeViews } from './astro.ts';
 import { intlConfig } from './fixtures.ts';
 
@@ -213,7 +213,7 @@ describe('sitemap', () => {
     sitemap.customPages.push(appPage);
 
     await assert.rejects(() => hooks.buildDone(), {
-      message: '@repo/astro-intl: the sitemap data route was not built.',
+      message: '@siteonce/astro-intl: the sitemap data route was not built.',
     });
     assert.deepEqual(sitemap.customPages, [appPage]);
   });
@@ -240,7 +240,7 @@ describe('sitemap', () => {
 
       await assert.rejects(
         () => hooks.buildDone(),
-        { message: '@repo/astro-intl: the sitemap data route did not return a list.' },
+        { message: '@siteonce/astro-intl: the sitemap data route did not return a list.' },
         JSON.stringify(body),
       );
       assert.deepEqual(sitemap.customPages, []);

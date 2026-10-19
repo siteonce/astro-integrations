@@ -1,24 +1,12 @@
 ---
-// Post. One entry in the posts collection: the article, its byline, and related posts.
+// Post. One entry in the posts collection: the article, its byline, its source, and its tag links.
 // `entryPaths` emits one path per translated entry.
 import { render } from 'astro:content';
-import { ogImageFor } from '@repo/astro-og-image/utils/og-image-for';
-import { Article, RelatedPosts, Schema, Seo } from '@repo/astro-site/components';
-import { getRelatedContent } from '@repo/astro-site/utils/related-content';
 import type { GetStaticPathsOptions, InferGetStaticPropsType } from 'astro';
 import SiteLayout from '../../layouts/site-layout.astro';
-import { ogConfig } from '../../og.config.ts';
 import { siteConfig } from '../../site.config.ts';
-import {
-  entryPaths,
-  getRelated,
-  localizedValue,
-  type Relation,
-  viewProps,
-} from '../../utils/intl.ts';
+import { entryPaths, getRelated, localizedValue, viewProps } from '../../utils/intl.ts';
 import { createPosts } from '../../utils/posts.ts';
-import { postsNewestFirst } from '../../utils/sorting.ts';
-import { useTranslations } from '../../utils/t.ts';
 
 export async function getStaticPaths({ routePattern }: GetStaticPathsOptions) {
   return entryPaths(routePattern, 'posts');
@@ -29,26 +17,14 @@ type Props = InferGetStaticPropsType<typeof getStaticPaths>;
 const props = await viewProps(Astro, getStaticPaths);
 if (!props) return new Response(null, { status: 404 });
 const { locale, path, entry } = props;
-const t = useTranslations(locale);
 const posts = createPosts(locale);
 
 const title = entry.data.seoTitle;
-const description = entry.data.seoDesc;
-const publishedTime = entry.data.pubDate.toISOString();
-const ogImage = ogImageFor(Astro.url.pathname, ogConfig);
 
 const hasBody = typeof entry.body === 'string' && entry.body.length > 0;
 const Content = hasBody ? (await render(entry)).Content : undefined;
 
-// getRelatedContent keeps input order on ties, so give it a fixed order.
-const ordered = (await posts.list()).toSorted(postsNewestFirst);
 const terms = await posts.terms(entry.data.tags);
-// getRelatedContent compares tags as strings, so give it the tag ids.
-const withTagIds = <T extends { data: { tags: Relation[] } }>(post: T) => ({
-  ...post,
-  data: { ...post.data, tags: post.data.tags.map((tag) => tag.id) },
-});
-const related = await posts.related(getRelatedContent(withTagIds(entry), ordered.map(withTagIds)));
 const image = posts.image(entry);
 
 const authorEntry = entry.data.author ? await getRelated(locale, entry.data.author) : undefined;
@@ -70,41 +46,36 @@ const source =
     : undefined;
 ---
 
-<SiteLayout locale={locale} path={path}>
-  <Fragment slot="head">
-    <Seo
-      siteConfig={siteConfig}
-      lang={locale}
-      title={title}
-      description={description}
-      type="article"
-      publishedTime={publishedTime}
-      {...ogImage}
-      imageAlt={entry.data.og?.alt ?? title}
-    />
-    <Schema
-      siteConfig={siteConfig}
-      lang={locale}
-      type="article"
-      title={title}
-      description={description}
-      datePublished={publishedTime}
-      author={authorName}
-    />
-  </Fragment>
-
-  <main class="measure measure-size-wide mx-auto flow flow-4">
-    {byline ? <p>{byline}</p> : null}
-    <Article
-      title={title}
-      datetime={publishedTime}
-      dateLabel={posts.dateLabel(entry)}
-      image={image}
-      terms={terms}
-      source={source}
-    >
+<SiteLayout locale={locale} path={path} title={title} description={entry.data.seoDesc}>
+  <main>
+    <article>
+      {image && <img src={image.src} alt={image.alt} />}
+      <h1>{title}</h1>
+      {byline ? <p>{byline}</p> : null}
+      {source && (
+        <p>
+          <a
+            href={source.href}
+            target={source.external ? '_blank' : undefined}
+            rel={source.external ? 'noopener noreferrer' : undefined}
+          >
+            {source.label}
+          </a>
+        </p>
+      )}
+      <p>
+        <time datetime={entry.data.pubDate.toISOString()}>{posts.dateLabel(entry)}</time>
+      </p>
+      {terms.length > 0 && (
+        <ul>
+          {terms.map((term) => (
+            <li>
+              <a href={term.href}>{term.label}</a>
+            </li>
+          ))}
+        </ul>
+      )}
       {Content ? <Content /> : null}
-    </Article>
-    <RelatedPosts heading={t('blog.related')} items={related} />
+    </article>
   </main>
 </SiteLayout>

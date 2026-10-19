@@ -1,6 +1,6 @@
 /**
  * Startup failure when the app's content config directly imports
- * `@repo/astro-intl/runtime`. Astro loads that file before page modules exist,
+ * `@siteonce/astro-intl/runtime`. Astro loads that file before page modules exist,
  * so `astro:config/server` is unavailable there. Filenames follow Astro's
  * search: modern `content.config.*` under `src`, then legacy `content/config.*`.
  * The first existing file is the content config. Transitive imports are ignored.
@@ -21,12 +21,12 @@ const CONTENT_CONFIG_FILENAMES = [
 ] as const;
 
 /**
- * True when `source` directly imports `@repo/astro-intl/runtime`.
+ * True when `source` directly imports `@siteonce/astro-intl/runtime`.
  * Matches static `import`, side-effect `import`, `export … from`, and `import()`,
  * with single or double quotes. Not a module graph.
  */
 export function importsAstroIntlRuntime(source: string): boolean {
-  const specifier = /(['"])@repo\/astro-intl\/runtime\1/g;
+  const specifier = /(['"])@siteonce\/astro-intl\/runtime\1/g;
   for (const match of source.matchAll(specifier)) {
     const before = source.slice(0, match.index);
     if (isDirectRuntimeImport(before)) return true;
@@ -68,7 +68,7 @@ export function contentConfigRuntimeError(
   if (!importsAstroIntlRuntime(read(file))) return undefined;
   const relativePath = relative(root, file).split(sep).join('/');
   return (
-    `@repo/astro-intl: ${relativePath} imports @repo/astro-intl/runtime. ` +
+    `@siteonce/astro-intl: ${relativePath} imports @siteonce/astro-intl/runtime. ` +
     'Astro loads the content config before page modules exist, so astro:config/server is unavailable there. ' +
     'Read locales from your intl config instead.'
   );

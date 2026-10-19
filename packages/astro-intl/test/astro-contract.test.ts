@@ -4,7 +4,7 @@ import { mkdir, symlink, writeFile } from 'node:fs/promises';
 import { createRequire } from 'node:module';
 import { dirname, join } from 'node:path';
 import { describe, it } from 'node:test';
-import { astroIntl } from '@repo/astro-intl';
+import { astroIntl } from '@siteonce/astro-intl';
 import { type AstroIntegration, build } from 'astro';
 import { projectRoot, type ResolvedRoute, viewComponent, writeViews } from './astro.ts';
 import { intlConfig } from './fixtures.ts';

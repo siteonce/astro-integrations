@@ -3,7 +3,7 @@ import { siteConfig } from '../site.config.ts';
 import { deployClass } from '../utils/deploy.ts';
 
 // Prerendered so the body can branch on deploy class at build. Governs
-// crawling only; per-page indexing is Seo `noindex`, which does not feed this.
+// crawling only; per-page indexing is the layout's `noindex`, which does not feed this.
 export const prerender = true;
 
 const sitemap = new URL('/sitemap-index.xml', siteConfig.siteUrl).href;

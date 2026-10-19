@@ -17,7 +17,6 @@
   "blog": {
     "title": "Blog",
     "description": "Aktuelle Beiträge dieser Site.",
-    "related": "Ähnlich",
     "previous": "Zurück",
     "next": "Weiter"
   },

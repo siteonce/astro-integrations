@@ -1,11 +1,8 @@
 ---
-// 404 fallback. Not a view. Catalog chrome
-// via t(); copied Seo; NotFound block. Document shell is SiteLayout →
-// BaseLayout. noindex so error pages stay out of search.
+// 404 fallback. Not a view. Catalog copy via t(), and noindex so error pages
+// stay out of search.
 import { getRelativeLocaleUrl } from 'astro:i18n';
-import { NotFound, Seo } from '@repo/astro-site/components';
 import SiteLayout from '../layouts/site-layout.astro';
-import { siteConfig } from '../site.config.ts';
 import { defaultLocale, locales } from '../utils/intl.ts';
 import { useTranslations } from '../utils/t.ts';
 
@@ -14,23 +11,12 @@ const t = useTranslations(locale);
 const homeHref = getRelativeLocaleUrl(locale);
 ---
 
-<SiteLayout locale={locale}>
-  <Fragment slot="head">
-    <Seo
-      siteConfig={siteConfig}
-      lang={locale}
-      title={t('notFound.title')}
-      description={t('notFound.body')}
-      noindex
-    />
-  </Fragment>
-
-  <main class="measure measure-size-wide mx-auto flow flow-4">
-    <NotFound
-      title={t('notFound.title')}
-      body={t('notFound.body')}
-      homeHref={homeHref}
-      homeLabel={t('notFound.backHome')}
-    />
+<SiteLayout locale={locale} title={t('notFound.title')} description={t('notFound.body')} noindex>
+  <main>
+    <h1>{t('notFound.title')}</h1>
+    <p>{t('notFound.body')}</p>
+    <p>
+      <a href={homeHref}>{t('notFound.backHome')}</a>
+    </p>
   </main>
 </SiteLayout>

@@ -4,7 +4,7 @@ export const LOCALE_TYPES_FILENAME = 'intl-locales.d.ts';
 /**
  * Module augmentation that sets `IntlRegister['locale']` to this config's locales
  * and, when the config names collections, `IntlRegister['entries']` to those entries.
- * `export {}` keeps the file a module, so `declare module` augments `@repo/astro-intl`
+ * `export {}` keeps the file a module, so `declare module` augments `@siteonce/astro-intl`
  * instead of replacing it. No collection names means no `entries` key.
  */
 export function localeTypeDeclaration(
@@ -13,7 +13,7 @@ export function localeTypeDeclaration(
 ): string {
   const localeUnion = locales.map((locale) => JSON.stringify(locale)).join(' | ');
   const lines = [
-    "declare module '@repo/astro-intl' {",
+    "declare module '@siteonce/astro-intl' {",
     '  interface IntlRegister {',
     `    locale: ${localeUnion};`,
   ];

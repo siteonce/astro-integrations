@@ -1,6 +1,7 @@
 packages:
   - 'packages/*'
   - 'apps/*'
+  - '!packages/astro-og-image'
 allowBuilds:
   '@parcel/watcher': true
   esbuild: true

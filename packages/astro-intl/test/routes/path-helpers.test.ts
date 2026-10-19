@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
-import { createIntl, defineIntl, type ListingOrder } from '@repo/astro-intl';
+import { createIntl, defineIntl, type ListingOrder } from '@siteonce/astro-intl';
 import type { PaginateFunction } from 'astro';
 import { astroPaginate } from '../astro.ts';
 import {
@@ -132,7 +132,7 @@ describe('path helpers', () => {
     for (const pattern of ['/nope', '/en/blog/[...page]']) {
       await assert.rejects(
         () => intl.entryPaths(pattern, 'blog'),
-        { message: `@repo/astro-intl: no injected entry route for pattern "${pattern}".` },
+        { message: `@siteonce/astro-intl: no injected entry route for pattern "${pattern}".` },
         pattern,
       );
     }
@@ -146,7 +146,7 @@ describe('path helpers', () => {
 
     await assert.rejects(() => intl.entryPaths('/en/blog/[slug]', 'tags'), {
       message:
-        '@repo/astro-intl: entryPaths for "/en/blog/[slug]" in view "post" got "tags", but that route row names collection "blog". Pass "blog" (or add it to the list).',
+        '@siteonce/astro-intl: entryPaths for "/en/blog/[slug]" in view "post" got "tags", but that route row names collection "blog". Pass "blog" (or add it to the list).',
     });
   });
 
@@ -170,7 +170,7 @@ describe('path helpers', () => {
 
     await assert.rejects(() => intl.entryPaths('/en/blog/[slug]', ['tags', 'notes']), {
       message:
-        '@repo/astro-intl: entryPaths for "/en/blog/[slug]" in view "post" got "tags", "notes", but that route row names collection "blog". Pass "blog" (or add it to the list).',
+        '@siteonce/astro-intl: entryPaths for "/en/blog/[slug]" in view "post" got "tags", "notes", but that route row names collection "blog". Pass "blog" (or add it to the list).',
     });
   });
 
@@ -399,7 +399,7 @@ describe('path helpers', () => {
       async () => intl.listingPaths('/en/blog/[page]', 'blog', pageFive, keepOrder()),
       {
         message:
-          '@repo/astro-intl: listing "blog/{page}" in "en" emits page 5, which pairing did not publish.',
+          '@siteonce/astro-intl: listing "blog/{page}" in "en" emits page 5, which pairing did not publish.',
       },
     );
   });
@@ -420,7 +420,7 @@ describe('path helpers', () => {
       async () => intl.listingPaths('/en/blog/[page]', 'blog', onlyPageOne, keepOrder()),
       {
         message:
-          '@repo/astro-intl: listing "blog/{page}" in "en" emits 0 pages; pairing published 2.',
+          '@siteonce/astro-intl: listing "blog/{page}" in "en" emits 0 pages; pairing published 2.',
       },
     );
   });
@@ -487,7 +487,7 @@ describe('path helpers', () => {
         }),
       {
         message:
-          '@repo/astro-intl: listing "blog" in "en" order must keep every entry and only reorder.',
+          '@siteonce/astro-intl: listing "blog" in "en" order must keep every entry and only reorder.',
       },
     );
   });
@@ -506,7 +506,7 @@ describe('path helpers', () => {
         }),
       {
         message:
-          '@repo/astro-intl: listing "blog" in "en" order must keep every entry and only reorder.',
+          '@siteonce/astro-intl: listing "blog" in "en" order must keep every entry and only reorder.',
       },
     );
   });
@@ -522,7 +522,7 @@ describe('path helpers', () => {
           await astroPaginate('...page'),
           {} as ListingOrder<CollectionEntry>,
         ),
-      { message: '@repo/astro-intl: listing "blog" in "en" needs sort or order.' },
+      { message: '@siteonce/astro-intl: listing "blog" in "en" needs sort or order.' },
     );
   });
 
@@ -535,7 +535,7 @@ describe('path helpers', () => {
           sort: () => () => 0,
           order: (entries: readonly CollectionEntry[]) => entries,
         } as unknown as ListingOrder<CollectionEntry>),
-      { message: '@repo/astro-intl: listing "blog" in "en" sets both sort and order.' },
+      { message: '@siteonce/astro-intl: listing "blog" in "en" sets both sort and order.' },
     );
   });
 
@@ -552,7 +552,7 @@ describe('path helpers', () => {
         ),
       {
         message:
-          '@repo/astro-intl: listingPaths for "/en/blog/[...page]" in view "index" got "tags", but that route row names collection "blog". Pass "blog" (or add it to the list).',
+          '@siteonce/astro-intl: listingPaths for "/en/blog/[...page]" in view "index" got "tags", but that route row names collection "blog". Pass "blog" (or add it to the list).',
       },
     );
   });
@@ -596,7 +596,7 @@ describe('path helpers', () => {
         ),
       {
         message:
-          '@repo/astro-intl: listingPaths for "/en/blog/[...page]" in view "index" got "tags", "notes", but that route row names collection "blog". Pass "blog" (or add it to the list).',
+          '@siteonce/astro-intl: listingPaths for "/en/blog/[...page]" in view "index" got "tags", "notes", but that route row names collection "blog". Pass "blog" (or add it to the list).',
       },
     );
   });

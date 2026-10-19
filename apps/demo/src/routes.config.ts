@@ -1,4 +1,4 @@
-import type { RouteConfig } from '@repo/astro-intl';
+import type { RouteConfig } from '@siteonce/astro-intl';
 
 // Data only. `view` names a view under `src/views/`.
 // Tails are relative to the locale prefix, and `'/'` is the locale's home.

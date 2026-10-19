@@ -1,4 +1,4 @@
-import { defineIntl } from '@repo/astro-intl';
+import { defineIntl } from '@siteonce/astro-intl';
 import { routes } from './routes.config.ts';
 
 const intl = defineIntl({

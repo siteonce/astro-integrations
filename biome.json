@@ -81,7 +81,7 @@
                 "patterns": [
                   {
                     "group": ["**/src", "**/src/**"],
-                    "message": "A package test imports the package by name (e.g. @repo/astro-intl), never src/. See docs/agents/tests.md."
+                    "message": "A package test imports the package by name (e.g. @siteonce/astro-intl), never src/. See docs/agents/tests.md."
                   }
                 ]
               }

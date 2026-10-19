@@ -4,7 +4,7 @@ export type PairingField = 'id' | 'locale' | 'slug';
 export class NonStringFieldError extends Error {
   constructor(kind: PairingField, field: string, where: string) {
     super(
-      `@repo/astro-intl: ${kind} field "${field}" on ${where} is not a string. Coerce it in the collection schema, for example with z.coerce.string().`,
+      `@siteonce/astro-intl: ${kind} field "${field}" on ${where} is not a string. Coerce it in the collection schema, for example with z.coerce.string().`,
     );
     this.name = 'NonStringFieldError';
   }
@@ -35,7 +35,7 @@ export function resolveEntryId(
 ): string {
   const value = readStringField(data, field, 'id', where);
   if (!value) {
-    throw new Error(`@repo/astro-intl: id field "${field}" is missing.`);
+    throw new Error(`@siteonce/astro-intl: id field "${field}" is missing.`);
   }
   return `${collection}/${value}`;
 }

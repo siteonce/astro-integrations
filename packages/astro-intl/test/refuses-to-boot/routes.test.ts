@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { join, sep } from 'node:path';
 import { describe, it, type TestContext } from 'node:test';
-import { createIntl } from '@repo/astro-intl';
+import { createIntl } from '@siteonce/astro-intl';
 import {
   boot,
   type IntlHooks,
@@ -22,10 +22,10 @@ import {
  * The German route names the same rows.
  */
 const sameShapeEn =
-  '@repo/astro-intl: on-demand {page} route "/en/blog/[page]" (row 1) has the same shape as {slug} route "/en/blog/[slug]" (row 0). Give pagination its own view that exports prerender = true. /en/blog/2 stays, and page 1 stays on demand. Export prerender = true from the row\'s view. This also prerenders page 1. Give pagination.slug its own segment (for example blog/page/{page}).';
+  '@siteonce/astro-intl: on-demand {page} route "/en/blog/[page]" (row 1) has the same shape as {slug} route "/en/blog/[slug]" (row 0). Give pagination its own view that exports prerender = true. /en/blog/2 stays, and page 1 stays on demand. Export prerender = true from the row\'s view. This also prerenders page 1. Give pagination.slug its own segment (for example blog/page/{page}).';
 
 const sameShapeDe =
-  '@repo/astro-intl: on-demand {page} route "/de/artikel/[page]" (row 1) has the same shape as {slug} route "/de/artikel/[slug]" (row 0). Give pagination its own view that exports prerender = true. /de/artikel/2 stays, and page 1 stays on demand. Export prerender = true from the row\'s view. This also prerenders page 1. Give pagination.slug its own segment (for example blog/page/{page}).';
+  '@siteonce/astro-intl: on-demand {page} route "/de/artikel/[page]" (row 1) has the same shape as {slug} route "/de/artikel/[slug]" (row 0). Give pagination its own view that exports prerender = true. /de/artikel/2 stays, and page 1 stays on demand. Export prerender = true from the row\'s view. This also prerenders page 1. Give pagination.slug its own segment (for example blog/page/{page}).';
 
 /** `{slug}` beside `blog/{page}`, the shape an on-demand numbered route must not share. */
 function clashingPages(): IntlConfigInput {
@@ -331,7 +331,8 @@ describe('Two rows compile to the same route pattern.', () => {
           }),
         ),
       {
-        message: '@repo/astro-intl: route pattern "/en/about/[...index]" repeats (rows 0 and 3).',
+        message:
+          '@siteonce/astro-intl: route pattern "/en/about/[...index]" repeats (rows 0 and 3).',
       },
     );
   });
@@ -351,35 +352,35 @@ describe('A file route shaped like an injected route would serve a URL that rout
     const collisions = [
       [
         '/en/blog/[post]',
-        '@repo/astro-intl: file route "/en/blog/[post]" collides with injected route "/en/blog/[slug]" (view "post").',
+        '@siteonce/astro-intl: file route "/en/blog/[post]" collides with injected route "/en/blog/[slug]" (view "post").',
       ],
       [
         '/de/artikel/[id]',
-        '@repo/astro-intl: file route "/de/artikel/[id]" collides with injected route "/de/artikel/[slug]" (view "post").',
+        '@siteonce/astro-intl: file route "/de/artikel/[id]" collides with injected route "/de/artikel/[slug]" (view "post").',
       ],
       [
         '/en/about',
-        '@repo/astro-intl: file route "/en/about" collides with injected route "/en/about/[...index]" (view "about").',
+        '@siteonce/astro-intl: file route "/en/about" collides with injected route "/en/about/[...index]" (view "about").',
       ],
       [
         '/en/about/[...rest]',
-        '@repo/astro-intl: file route "/en/about/[...rest]" collides with injected route "/en/about/[...index]" (view "about").',
+        '@siteonce/astro-intl: file route "/en/about/[...rest]" collides with injected route "/en/about/[...index]" (view "about").',
       ],
       [
         '/en/blog',
-        '@repo/astro-intl: file route "/en/blog" collides with injected route "/en/blog/[...page]" (view "blog").',
+        '@siteonce/astro-intl: file route "/en/blog" collides with injected route "/en/blog/[...page]" (view "blog").',
       ],
       [
         '/en/blog/2',
-        '@repo/astro-intl: file route "/en/blog/2" collides with injected route "/en/blog/[...page]" (view "blog").',
+        '@siteonce/astro-intl: file route "/en/blog/2" collides with injected route "/en/blog/[...page]" (view "blog").',
       ],
       [
         '/en/blog/12',
-        '@repo/astro-intl: file route "/en/blog/12" collides with injected route "/en/blog/[...page]" (view "blog").',
+        '@siteonce/astro-intl: file route "/en/blog/12" collides with injected route "/en/blog/[...page]" (view "blog").',
       ],
       [
         '/en/blog/[...rest]',
-        '@repo/astro-intl: file route "/en/blog/[...rest]" collides with injected route "/en/blog/[...page]" (view "blog").',
+        '@siteonce/astro-intl: file route "/en/blog/[...rest]" collides with injected route "/en/blog/[...page]" (view "blog").',
       ],
     ] as const;
 
@@ -414,7 +415,7 @@ describe('A file route shaped like an injected route would serve a URL that rout
       () => listing.routesResolved([projectFile('/en/blog/[n]'), siteRootRoute()]),
       {
         message:
-          '@repo/astro-intl: file route "/en/blog/[n]" collides with injected route "/en/blog/[...page]" (view "blog").',
+          '@siteonce/astro-intl: file route "/en/blog/[n]" collides with injected route "/en/blog/[...page]" (view "blog").',
       },
     );
 
@@ -422,15 +423,15 @@ describe('A file route shaped like an injected route would serve a URL that rout
     const pageCollisions = [
       [
         '/en/blog/page/3',
-        '@repo/astro-intl: file route "/en/blog/page/3" collides with injected route "/en/blog/page/[page]" (view "blog").',
+        '@siteonce/astro-intl: file route "/en/blog/page/3" collides with injected route "/en/blog/page/[page]" (view "blog").',
       ],
       [
         '/en/blog/page/12',
-        '@repo/astro-intl: file route "/en/blog/page/12" collides with injected route "/en/blog/page/[page]" (view "blog").',
+        '@siteonce/astro-intl: file route "/en/blog/page/12" collides with injected route "/en/blog/page/[page]" (view "blog").',
       ],
       [
         '/en/blog/page/[n]',
-        '@repo/astro-intl: file route "/en/blog/page/[n]" collides with injected route "/en/blog/page/[page]" (view "blog").',
+        '@siteonce/astro-intl: file route "/en/blog/page/[n]" collides with injected route "/en/blog/page/[page]" (view "blog").',
       ],
     ] as const;
     for (const [file, message] of pageCollisions) {
@@ -498,7 +499,7 @@ describe('A file route shaped like an injected route would serve a URL that rout
 
     await assert.rejects(() => hooks.routesResolved([projectFile('/')]), {
       message:
-        '@repo/astro-intl: file route "/" collides with injected route "/[...index]" (view "home").',
+        '@siteonce/astro-intl: file route "/" collides with injected route "/[...index]" (view "home").',
     });
   });
 
@@ -568,7 +569,7 @@ describe('A `(locale, path)` is duplicated.', () => {
 
     await assert.rejects(intl.getPairedSlugs(), {
       message:
-        '@repo/astro-intl: (locale, path) "en" / "blog/hello-world" collides (pages vs blog).',
+        '@siteonce/astro-intl: (locale, path) "en" / "blog/hello-world" collides (pages vs blog).',
     });
   });
 
@@ -606,7 +607,7 @@ describe('A `(locale, path)` is duplicated.', () => {
 
     await assert.rejects(intl.getPairedSlugs(), {
       message:
-        '@repo/astro-intl: (locale, path) "en" / "blog/hello-world" collides (blog vs route tail).',
+        '@siteonce/astro-intl: (locale, path) "en" / "blog/hello-world" collides (blog vs route tail).',
     });
   });
 
@@ -637,7 +638,7 @@ describe('A `(locale, path)` is duplicated.', () => {
 
     await assert.rejects(intl.getPairedSlugs(), {
       message:
-        '@repo/astro-intl: (locale, path) "en" / "blog/2" collides (route tail vs route tail).',
+        '@siteonce/astro-intl: (locale, path) "en" / "blog/2" collides (route tail vs route tail).',
     });
   });
 });

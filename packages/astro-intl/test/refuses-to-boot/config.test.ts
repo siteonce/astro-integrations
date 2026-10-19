@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { describe, it, type TestContext } from 'node:test';
-import { createIntl } from '@repo/astro-intl';
+import { createIntl } from '@siteonce/astro-intl';
 import { intlHooks } from '../astro.ts';
 import {
   collectionEntry,
@@ -12,14 +12,14 @@ import {
 /** Validation error `createIntl` throws. Each cause is one prettified issue, arrow line included. */
 function failed(...causes: string[]): string {
   const body = causes.map((cause) => `✖ ${cause}`).join('\n');
-  return `@repo/astro-intl: intl config failed validation.\n${body}`;
+  return `@siteonce/astro-intl: intl config failed validation.\n${body}`;
 }
 
 function refuses(config: IntlConfigInput, message: string, label?: string): void {
   assert.throws(() => createIntl(config), { message }, label ?? message);
 }
 
-const validationPrefix = '@repo/astro-intl: intl config failed validation.';
+const validationPrefix = '@siteonce/astro-intl: intl config failed validation.';
 
 /** Prefix, issue count, each `→ at` path, and any key the config names. */
 function refusesAt(
@@ -64,7 +64,7 @@ async function refusesJson(t: TestContext, config: IntlConfigInput, path: string
   assert.ok(error instanceof Error, path);
   assert.equal(
     error.message,
-    `@repo/astro-intl: intl config does not survive a JSON round trip at "${path}".`,
+    `@siteonce/astro-intl: intl config does not survive a JSON round trip at "${path}".`,
     path,
   );
 }

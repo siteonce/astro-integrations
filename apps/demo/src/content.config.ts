@@ -1,7 +1,5 @@
 import { defineCollection } from 'astro:content';
-import { createIntlSchema, id, leafSlug, locale, slug } from '@repo/astro-intl';
-import { blog } from '@repo/astro-site/schemas/content/blog';
-import { seo } from '@repo/astro-site/schemas/content/seo';
+import { createIntlSchema, id, leafSlug, locale, slug } from '@siteonce/astro-intl';
 import { glob } from 'astro/loaders';
 import { z } from 'astro/zod';
 // `astro:config/server` does not resolve while Astro loads this file.
@@ -29,11 +27,20 @@ const posts = defineCollection({
     }),
     keepDrafts,
   ),
-  schema: blog
-    .extend({
+  // Fields the views, the feed, and the draft filter read.
+  schema: z
+    .object({
       id,
       locale,
       slug,
+      seoTitle: z.string().min(1),
+      seoDesc: z.string().min(1),
+      excerpt: z.string().min(1),
+      pubDate: z.coerce.date(),
+      status: z.enum(['draft', 'published']),
+      // A URL, or a co-located relative path (`./feat.png`), so not z.url().
+      featImage: z.string().min(1),
+      featImageAlt: z.string().min(1),
       author: relation('authors').optional(),
       source: relation('sources').optional(),
       role: relation('roles').optional(),
@@ -49,7 +56,15 @@ const tags = defineCollection({
     base: './src/content/tags',
     generateId: entryFileId,
   }),
-  schema: seo.extend({ id, locale, slug }).superRefine(leafSlug({ slugify })),
+  schema: z
+    .object({
+      id,
+      locale,
+      slug,
+      seoTitle: z.string().min(1),
+      seoDesc: z.string().min(1),
+    })
+    .superRefine(leafSlug({ slugify })),
 });
 
 const authors = defineCollection({

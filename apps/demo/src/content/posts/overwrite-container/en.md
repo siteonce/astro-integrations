@@ -9,10 +9,6 @@ seoDesc: Tune a Measure with static measure classes on the landmark, or by editi
 # Co-located demo image so preview needs no cloud account — not the B2 path.
 featImage: ./feat.png
 featImageAlt: Placeholder feature image — replace with your own.
-primaryKeyword: container overwrite
-secondaryKeywords:
-  - measure
-  - call-site class
 tags:
   - engineering
 source: measure

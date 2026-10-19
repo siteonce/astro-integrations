@@ -1,5 +1,5 @@
 {
-  "name": "@repo/astro-intl",
+  "name": "@siteonce/astro-intl",
   "version": "0.0.1",
   "private": true,
   "description": "Astro integration for catalogs, collection pairing, query helpers, and sorting helpers.",

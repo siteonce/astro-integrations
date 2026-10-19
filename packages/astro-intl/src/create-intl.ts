@@ -74,7 +74,7 @@ async function loadNamedCollection(
   try {
     return await loaders.getCollection(name);
   } catch {
-    throw new Error(`@repo/astro-intl: ${missingContentCollection(list, name)}.`);
+    throw new Error(`@siteonce/astro-intl: ${missingContentCollection(list, name)}.`);
   }
 }
 
@@ -98,7 +98,9 @@ export function createIntl<const Translated extends string = never>(
   function translatedCollection(name: string) {
     const fields = translatedFields(spec)[name];
     if (!fields) {
-      throw new Error(`@repo/astro-intl: collection "${name}" is not in collections.translated.`);
+      throw new Error(
+        `@siteonce/astro-intl: collection "${name}" is not in collections.translated.`,
+      );
     }
     return fields;
   }
@@ -110,7 +112,7 @@ export function createIntl<const Translated extends string = never>(
       return `${ref.intlRelationTarget}/${ref.id}`;
     }
     if (!ref.collection) {
-      throw new Error('@repo/astro-intl: entry has no collection.');
+      throw new Error('@siteonce/astro-intl: entry has no collection.');
     }
     const fields = translatedCollection(ref.collection);
     return resolveEntryId(ref.collection, ref.data, fields.id, describeEntry(ref.collection, ref));
@@ -146,7 +148,7 @@ export function createIntl<const Translated extends string = never>(
       getContentById: query.getContentById,
     });
     for (const warning of query.pairing.warnings) {
-      console.warn(`@repo/astro-intl: ${warning}`);
+      console.warn(`@siteonce/astro-intl: ${warning}`);
     }
     return query;
   }

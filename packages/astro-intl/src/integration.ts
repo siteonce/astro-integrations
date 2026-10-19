@@ -28,7 +28,7 @@
  * and deletes the output. `astro:config:done` injects a module augmentation so
  * `Locale` is this config's locale union and `entries` maps each collection name
  * to its content entry. `astro:config:setup` fails startup
- * when the content config directly imports `@repo/astro-intl/runtime`. Astro
+ * when the content config directly imports `@siteonce/astro-intl/runtime`. Astro
  * loads that file before page modules exist, so `astro:config/server` is
  * unavailable there. Does not load catalog JSON and does not create a virtual
  * module.
@@ -102,19 +102,21 @@ type AstroIntegrationConfigI18n = {
       };
 };
 
-/** `@astrojs/sitemap` appears before `@repo/astro-intl` in the integration list. */
+/** `@astrojs/sitemap` appears before `@siteonce/astro-intl` in the integration list. */
 function sitemapRegisteredBeforeIntl(integrations: readonly { name: string }[]): boolean {
   const sitemapAt = integrations.findIndex(
     (integration) => integration.name === '@astrojs/sitemap',
   );
   if (sitemapAt === -1) return false;
-  const intlAt = integrations.findIndex((integration) => integration.name === '@repo/astro-intl');
+  const intlAt = integrations.findIndex(
+    (integration) => integration.name === '@siteonce/astro-intl',
+  );
   return sitemapAt < intlAt;
 }
 
 function refusedFallbackView(): string {
   return (
-    '@repo/astro-intl: a fallback view exports prerender = false. ' +
+    '@siteonce/astro-intl: a fallback view exports prerender = false. ' +
     'A fallback route shares its pattern with the {slug} route, and two on-demand routes cannot share one pattern.'
   );
 }
@@ -206,7 +208,7 @@ export function astroIntl(
   const drift = jsonRoundTripKey(input);
   if (drift !== undefined) {
     throw new Error(
-      `@repo/astro-intl: intl config does not survive a JSON round trip at "${drift}".`,
+      `@siteonce/astro-intl: intl config does not survive a JSON round trip at "${drift}".`,
     );
   }
   const intlConfig = parseIntlConfig(input);
@@ -220,7 +222,7 @@ export function astroIntl(
   let viewRendering: IntlConfig['viewRendering'];
 
   return {
-    name: '@repo/astro-intl',
+    name: '@siteonce/astro-intl',
     sitemap: sitemapOptions.sitemap,
     hooks: {
       'astro:build:done': async ({ dir, logger }) => {
@@ -252,7 +254,7 @@ export function astroIntl(
             `Overlapping i18n keys already set on defineConfig (${list}). Author locales and prefix policy only in src/intl.config.ts.`,
           );
           throw new Error(
-            `@repo/astro-intl: overlapping i18n keys are already set on defineConfig.`,
+            `@siteonce/astro-intl: overlapping i18n keys are already set on defineConfig.`,
           );
         }
 
@@ -260,12 +262,12 @@ export function astroIntl(
           logger.error(
             `@astrojs/sitemap i18n option is set. Pairing is document-owned; do not turn on the sitemap i18n option.`,
           );
-          throw new Error(`@repo/astro-intl: @astrojs/sitemap i18n option is set.`);
+          throw new Error(`@siteonce/astro-intl: @astrojs/sitemap i18n option is set.`);
         }
 
         if (sitemapRegisteredBeforeIntl(config.integrations)) {
           const message =
-            '@repo/astro-intl: @astrojs/sitemap is registered before @repo/astro-intl. List intl first.';
+            '@siteonce/astro-intl: @astrojs/sitemap is registered before @siteonce/astro-intl. List intl first.';
           logger.error(message);
           throw new Error(message);
         }
@@ -275,7 +277,7 @@ export function astroIntl(
 
         if (viewRendering === 'request' && !config.adapter) {
           const message =
-            '@repo/astro-intl: viewRendering is "request" and the site has no adapter.';
+            '@siteonce/astro-intl: viewRendering is "request" and the site has no adapter.';
           logger.error(message);
           throw new Error(message);
         }
@@ -380,7 +382,7 @@ export function astroIntl(
         const collision = fileRouteCollision(projectRoutes, injected);
         if (collision) {
           const message =
-            `@repo/astro-intl: file route "${collision.file}" collides with injected route ` +
+            `@siteonce/astro-intl: file route "${collision.file}" collides with injected route ` +
             `"${collision.injected.pattern}" (view "${collision.injected.view}").`;
           logger.error(message);
           throw new Error(message);
@@ -399,7 +401,7 @@ export function astroIntl(
         if (intlConfig.routing.prefixDefaultLocale) {
           if (!servesSiteRoot(routes)) {
             const message =
-              `@repo/astro-intl: prefixDefaultLocale is true, and nothing serves "/". ` +
+              `@siteonce/astro-intl: prefixDefaultLocale is true, and nothing serves "/". ` +
               `Add a redirect in defineConfig (redirects: { '/': '/${intlConfig.defaultLocale}/' }) or a src/pages/index file.`;
             logger.error(message);
             throw new Error(message);

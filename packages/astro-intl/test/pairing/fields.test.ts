@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
-import { createIntl, id, leafSlug, locale, slug } from '@repo/astro-intl';
+import { createIntl, id, leafSlug, locale, slug } from '@siteonce/astro-intl';
 import { astroPaginate } from '../astro.ts';
 import {
   type CollectionEntry,
@@ -271,7 +271,7 @@ describe('pairing fields', { concurrency: 1 }, () => {
     const warnings = await warningsFrom(() => intl.getAlternatePaths('blog/nur-de'));
     assert.deepEqual(await intl.getAlternatePaths('blog/nur-de'), { de: 'artikel/nur-de' });
     assert.deepEqual(warnings, [
-      '@repo/astro-intl: default-locale sibling missing for entryId "blog/nur-de" (defaultLocale "en").',
+      '@siteonce/astro-intl: default-locale sibling missing for entryId "blog/nur-de" (defaultLocale "en").',
     ]);
   });
 
@@ -291,7 +291,7 @@ describe('pairing fields', { concurrency: 1 }, () => {
     );
 
     await assert.rejects(intl.getPairedSlugs(), {
-      message: '@repo/astro-intl: id field "id" is missing. (pages:home/en)',
+      message: '@siteonce/astro-intl: id field "id" is missing. (pages:home/en)',
     });
   });
 
@@ -311,7 +311,7 @@ describe('pairing fields', { concurrency: 1 }, () => {
     );
 
     await assert.rejects(intl.getPairedSlugs(), {
-      message: '@repo/astro-intl: locale field "locale" is missing on pages:home/en.',
+      message: '@siteonce/astro-intl: locale field "locale" is missing on pages:home/en.',
     });
   });
 
@@ -321,7 +321,7 @@ describe('pairing fields', { concurrency: 1 }, () => {
     });
 
     await assert.rejects(intl.getPairedSlugs(), {
-      message: '@repo/astro-intl: locale "fr" on blog:x is not in locales.',
+      message: '@siteonce/astro-intl: locale "fr" on blog:x is not in locales.',
     });
   });
 
@@ -348,7 +348,7 @@ describe('pairing fields', { concurrency: 1 }, () => {
       await assert.rejects(
         intl.getPairedSlugs(),
         {
-          message: `@repo/astro-intl: id field "${item.field}" on blog:x is not a string. Coerce it in the collection schema, for example with z.coerce.string().`,
+          message: `@siteonce/astro-intl: id field "${item.field}" on blog:x is not a string. Coerce it in the collection schema, for example with z.coerce.string().`,
         },
         item.field,
       );
@@ -382,7 +382,7 @@ describe('pairing fields', { concurrency: 1 }, () => {
       await assert.rejects(
         intl.getPairedSlugs(),
         {
-          message: `@repo/astro-intl: locale field "${item.field}" on blog:x is not a string. Coerce it in the collection schema, for example with z.coerce.string().`,
+          message: `@siteonce/astro-intl: locale field "${item.field}" on blog:x is not a string. Coerce it in the collection schema, for example with z.coerce.string().`,
         },
         item.field,
       );
@@ -417,7 +417,7 @@ describe('pairing fields', { concurrency: 1 }, () => {
 
     await assert.rejects(intl.getPairedSlugs(), {
       message:
-        '@repo/astro-intl: (entryId, locale) "blog/hello" / "en" is not unique (blog vs blog).',
+        '@siteonce/astro-intl: (entryId, locale) "blog/hello" / "en" is not unique (blog vs blog).',
     });
   });
 
@@ -544,7 +544,7 @@ describe('pairing fields', { concurrency: 1 }, () => {
       await assert.rejects(
         intl.getPairedSlugs(),
         {
-          message: `@repo/astro-intl: slug field "${item.field}" on blog:x is not a string. Coerce it in the collection schema, for example with z.coerce.string().`,
+          message: `@siteonce/astro-intl: slug field "${item.field}" on blog:x is not a string. Coerce it in the collection schema, for example with z.coerce.string().`,
         },
         item.field,
       );
@@ -563,7 +563,7 @@ describe('pairing fields', { concurrency: 1 }, () => {
     );
 
     await assert.rejects(intl.getPairedSlugs(), {
-      message: '@repo/astro-intl: slug is missing on routed entry blog:x.',
+      message: '@siteonce/astro-intl: slug is missing on routed entry blog:x.',
     });
   });
 
@@ -583,7 +583,7 @@ describe('pairing fields', { concurrency: 1 }, () => {
     );
 
     await assert.rejects(intl.getPairedSlugs(), {
-      message: '@repo/astro-intl: slug "blog/hello-world" is not one segment. (blog:bad)',
+      message: '@siteonce/astro-intl: slug "blog/hello-world" is not one segment. (blog:bad)',
     });
   });
 });

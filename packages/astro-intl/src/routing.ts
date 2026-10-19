@@ -149,7 +149,7 @@ export function pageSlugClash(
 export function pageSlugClashMessage(clash: { page: CompiledRoute; entry: CompiledRoute }): string {
   const example = clash.page.pattern.replaceAll('[page]', '2');
   return (
-    `@repo/astro-intl: on-demand {page} route "${clash.page.pattern}" (row ${clash.page.rowIndex}) ` +
+    `@siteonce/astro-intl: on-demand {page} route "${clash.page.pattern}" (row ${clash.page.rowIndex}) ` +
     `has the same shape as {slug} route "${clash.entry.pattern}" (row ${clash.entry.rowIndex}). ` +
     `Give pagination its own view that exports prerender = true. ${example} stays, and page 1 stays on demand. ` +
     "Export prerender = true from the row's view. This also prerenders page 1. " +
@@ -166,7 +166,7 @@ function pushRoute(
   const previous = seen.get(key);
   if (previous !== undefined) {
     throw new Error(
-      `@repo/astro-intl: route pattern "${route.pattern}" repeats (rows ${previous} and ${route.rowIndex}).`,
+      `@siteonce/astro-intl: route pattern "${route.pattern}" repeats (rows ${previous} and ${route.rowIndex}).`,
     );
   }
   seen.set(key, route.rowIndex);
@@ -188,10 +188,10 @@ export function viewEntrypoint(
   const hasIndex = exists(index);
   if (hasFile && hasIndex) {
     throw new Error(
-      `@repo/astro-intl: view "${view}" has both "${view}.astro" and "${view}/index.astro".`,
+      `@siteonce/astro-intl: view "${view}" has both "${view}.astro" and "${view}/index.astro".`,
     );
   }
   if (hasFile) return file;
   if (hasIndex) return index;
-  throw new Error(`@repo/astro-intl: view "${view}" has no file under src/views/.`);
+  throw new Error(`@siteonce/astro-intl: view "${view}" has no file under src/views/.`);
 }

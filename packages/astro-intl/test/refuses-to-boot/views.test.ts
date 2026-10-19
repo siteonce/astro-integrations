@@ -15,15 +15,15 @@ import { type IntlConfigInput, intlConfig } from '../fixtures.ts';
 const viewsDirectory = ['src', 'views'].join('/');
 
 const fallbackOnDemand =
-  '@repo/astro-intl: a fallback view exports prerender = false. ' +
+  '@siteonce/astro-intl: a fallback view exports prerender = false. ' +
   'A fallback route shares its pattern with the {slug} route, and two on-demand routes cannot share one pattern.';
 
 function missingViewMessage(view: string): string {
-  return `@repo/astro-intl: view "${view}" has no file under ${viewsDirectory}/.`;
+  return `@siteonce/astro-intl: view "${view}" has no file under ${viewsDirectory}/.`;
 }
 
 function bothFilesMessage(view: string): string {
-  return `@repo/astro-intl: view "${view}" has both "${view}.astro" and "${view}/index.astro".`;
+  return `@siteonce/astro-intl: view "${view}" has both "${view}.astro" and "${view}/index.astro".`;
 }
 
 async function writeViewFiles(root: string, names: readonly string[]): Promise<void> {

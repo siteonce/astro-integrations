@@ -14,7 +14,7 @@ import { tmpdir } from 'node:os';
 import { dirname, join, sep } from 'node:path';
 import type { TestContext } from 'node:test';
 import { pathToFileURL } from 'node:url';
-import { astroIntl } from '@repo/astro-intl';
+import { astroIntl } from '@siteonce/astro-intl';
 import type { AstroConfig, AstroIntegration, PaginateFunction } from 'astro';
 import { intlConfig } from './fixtures.ts';
 

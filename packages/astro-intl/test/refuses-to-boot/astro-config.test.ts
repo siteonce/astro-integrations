@@ -7,7 +7,7 @@ import { boot, type IntlHooks, intlHooks, resolvedRoute, siteRootRoute } from '.
 import { intlConfig } from '../fixtures.ts';
 
 const sitemapIntegration = { name: '@astrojs/sitemap', hooks: {} } as AstroIntegration;
-const intlIntegration = { name: '@repo/astro-intl', hooks: {} } as AstroIntegration;
+const intlIntegration = { name: '@siteonce/astro-intl', hooks: {} } as AstroIntegration;
 const otherIntegration = { name: 'other', hooks: {} } as AstroIntegration;
 
 /** What `intlConfig()` writes into Astro `i18n` when setup finishes. */
@@ -22,7 +22,7 @@ const writtenI18n = {
 };
 
 const nothingServesRoot =
-  '@repo/astro-intl: prefixDefaultLocale is true, and nothing serves "/". ' +
+  '@siteonce/astro-intl: prefixDefaultLocale is true, and nothing serves "/". ' +
   `Add a redirect in defineConfig (redirects: { '/': '/en/' }) or a ${['src', 'pages', 'index'].join('/')} file.`;
 
 /**
@@ -63,7 +63,7 @@ describe('Overlapping `i18n` keys are already set on `defineConfig`.', () => {
             },
           },
         }),
-      { message: '@repo/astro-intl: overlapping i18n keys are already set on defineConfig.' },
+      { message: '@siteonce/astro-intl: overlapping i18n keys are already set on defineConfig.' },
     );
     assert.deepEqual(hooks.updates, []);
   });
@@ -76,7 +76,7 @@ describe('`@astrojs/sitemap` is registered before intl.', () => {
     assert.ok(integration);
     await assert.rejects(() => hooks.setup({ integrations: [sitemapIntegration, integration] }), {
       message:
-        '@repo/astro-intl: @astrojs/sitemap is registered before @repo/astro-intl. List intl first.',
+        '@siteonce/astro-intl: @astrojs/sitemap is registered before @siteonce/astro-intl. List intl first.',
     });
     assert.deepEqual(hooks.updates, []);
   });
@@ -112,7 +112,7 @@ export default { integrations: [sitemap({ i18n: { defaultLocale: 'en', locales: 
     await assert.rejects(
       () => hooks.setup({ integrations: [intlIntegration, sitemapIntegration] }),
       {
-        message: '@repo/astro-intl: @astrojs/sitemap i18n option is set.',
+        message: '@siteonce/astro-intl: @astrojs/sitemap i18n option is set.',
       },
     );
     assert.deepEqual(hooks.updates, []);
@@ -201,7 +201,7 @@ export default { integrations: [sitemap({ filter: (page) => page !== \`x)\`, i18
       await writeAstroConfig(hooks.root, source);
       await assert.rejects(
         () => hooks.setup({ integrations: [intlIntegration, sitemapIntegration] }),
-        { message: '@repo/astro-intl: @astrojs/sitemap i18n option is set.' },
+        { message: '@siteonce/astro-intl: @astrojs/sitemap i18n option is set.' },
         source,
       );
     }
@@ -212,7 +212,7 @@ describe("`viewRendering` is `'request'` and the site has no adapter, outside `a
   it('refuses when the site has no adapter', async (t) => {
     const hooks = await intlHooks(t, intlConfig({ viewRendering: 'request' }));
     await assert.rejects(() => hooks.setup({ command: 'build' }), {
-      message: '@repo/astro-intl: viewRendering is "request" and the site has no adapter.',
+      message: '@siteonce/astro-intl: viewRendering is "request" and the site has no adapter.',
     });
     assert.deepEqual(hooks.updates, []);
   });

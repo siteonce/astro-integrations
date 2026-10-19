@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { describe, it, type TestContext } from 'node:test';
-import { viewProps } from '@repo/astro-intl';
+import { viewProps } from '@siteonce/astro-intl';
 import type { GetStaticPathsOptions } from 'astro';
 import {
   astroPaginate,

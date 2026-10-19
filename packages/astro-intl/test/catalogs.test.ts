@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
-import { createT } from '@repo/astro-intl';
+import { createT } from '@siteonce/astro-intl';
 import { warningsFrom } from './fixtures.ts';
 
 describe('catalogs', { concurrency: 1 }, () => {
@@ -54,7 +54,7 @@ describe('catalogs', { concurrency: 1 }, () => {
       () => createT({ en: { greet: 'Hello {' } }),
       {
         message:
-          '@repo/astro-intl: message "greet" in locale "en" is not valid ICU. Fix it in the "en" catalog.',
+          '@siteonce/astro-intl: message "greet" in locale "en" is not valid ICU. Fix it in the "en" catalog.',
       },
       'en greet',
     );
@@ -66,7 +66,7 @@ describe('catalogs', { concurrency: 1 }, () => {
         }),
       {
         message:
-          '@repo/astro-intl: message "HomePage.greeting" in locale "de" is not valid ICU. Fix it in the "de" catalog.',
+          '@siteonce/astro-intl: message "HomePage.greeting" in locale "de" is not valid ICU. Fix it in the "de" catalog.',
       },
       'de HomePage.greeting',
     );
@@ -78,7 +78,7 @@ describe('catalogs', { concurrency: 1 }, () => {
       assert.equal(t('en', 'greet'), 'Hello {name}');
     });
     assert.deepEqual(warnings, [
-      '@repo/astro-intl: message "greet" in locale "en" is missing a value; returned as written.',
+      '@siteonce/astro-intl: message "greet" in locale "en" is missing a value; returned as written.',
     ]);
   });
 
@@ -96,7 +96,7 @@ describe('catalogs', { concurrency: 1 }, () => {
       assert.deepEqual(
         warnings,
         [
-          `@repo/astro-intl: message "${key}" in locale "en" could not format a value; returned as written.`,
+          `@siteonce/astro-intl: message "${key}" in locale "en" could not format a value; returned as written.`,
         ],
         message,
       );

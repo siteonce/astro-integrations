@@ -3,7 +3,7 @@
  * URL stubs stand in for `astro:i18n`. Collection maps stand in for `astro:content`.
  */
 
-import type { astroIntl, createIntl, Relation } from '@repo/astro-intl';
+import type { astroIntl, createIntl, Relation } from '@siteonce/astro-intl';
 
 /** Authored intl config: the argument of `astroIntl` and `createIntl`. */
 export type IntlConfigInput = Parameters<typeof astroIntl>[0];

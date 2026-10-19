@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
-import { defineIntl } from '@repo/astro-intl';
+import { defineIntl } from '@siteonce/astro-intl';
 import { intlHooks } from './astro.ts';
 import { intlConfig } from './fixtures.ts';
 
@@ -81,7 +81,7 @@ describe('sit on Astro i18n', () => {
     assert.deepEqual(hooks.types, [
       {
         filename: 'intl-locales.d.ts',
-        content: `declare module '@repo/astro-intl' {
+        content: `declare module '@siteonce/astro-intl' {
   interface IntlRegister {
     locale: "en" | "de";
   }
@@ -105,7 +105,7 @@ export {};
     assert.deepEqual(hooks.types, [
       {
         filename: 'intl-locales.d.ts',
-        content: `declare module '@repo/astro-intl' {
+        content: `declare module '@siteonce/astro-intl' {
   interface IntlRegister {
     locale: "en" | "de";
     entries: { [C in "posts" | "sources"]: import('astro:content').CollectionEntry<C> };
@@ -123,7 +123,7 @@ export {};
     assert.deepEqual(hooks.types, [
       {
         filename: 'intl-locales.d.ts',
-        content: `declare module '@repo/astro-intl' {
+        content: `declare module '@siteonce/astro-intl' {
   interface IntlRegister {
     locale: "en" | "a\\"b";
   }

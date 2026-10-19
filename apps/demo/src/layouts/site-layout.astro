@@ -1,20 +1,17 @@
 ---
-// Site chrome around BaseLayout: styles, Favicon, Analytics, locale switcher,
-// and a head pass-through. The layout renders the alternates. Pages drop Seo
-// and Schema into the head slot and own their landmarks. This file does not
-// compose blocks.
-
-import { BaseLayout } from '@repo/astro-site/components';
-import { cn } from '@repo/astro-site/utils/cn';
-import type { HTMLAttributes } from 'astro/types';
-import Analytics from '../components/analytics.astro';
+// Document shell: `<head>` with title, description, canonical, and the
+// alternates, then the locale switcher. Pages own their landmarks.
 import Favicon from '../components/favicon.astro';
+import { siteConfig } from '../site.config.ts';
 import { hreflangLinks, type Locale, localeSwitcherLinks } from '../utils/intl.ts';
 import { useTranslations } from '../utils/t.ts';
-import '../styles';
+import '../styles/site.css';
+
+// `%page%` is the page title, `%site%` the site name. A page with no title gets the bare site name.
+const titleTemplate = '%page% | %site%';
 
 interface Props {
-  /** Document language. Forwarded to BaseLayout as `<html lang>`. */
+  /** Document language on `<html lang>`. */
   locale: Locale;
   /**
    * This view's locale-relative path. Another locale links to the sibling
@@ -22,54 +19,61 @@ interface Props {
    * where pairing publishes one. The current locale is not a link.
    */
   path?: string;
-  /** Attrs on `<html>` except `lang`. Forwarded to BaseLayout. */
-  html?: Omit<HTMLAttributes<'html'>, 'lang'>;
-  /** Attrs on `<body>`. Forwarded to BaseLayout. */
-  body?: HTMLAttributes<'body'>;
+  /** Page title. Omit on the home page. */
+  title?: string;
+  /** Meta description. */
+  description: string;
+  /** Keeps the page out of search results. */
+  noindex?: boolean;
 }
 
-const { locale, path, html, body } = Astro.props;
+const { locale, path, title, description, noindex = false } = Astro.props;
 const t = useTranslations(locale);
 // With no path, ask pairing for each locale's home. The current locale is not a link.
 const switcher = await localeSwitcherLinks(locale, path ?? '/');
 const alternates = path === undefined ? undefined : await hreflangLinks(locale, path);
-const { class: htmlClass, 'class:list': htmlClassList, ...htmlRest } = html ?? {};
-const { class: bodyClass, 'class:list': bodyClassList, ...bodyRest } = body ?? {};
+const pageTitle = title
+  ? titleTemplate.replaceAll('%page%', title).replaceAll('%site%', siteConfig.siteName)
+  : siteConfig.siteName;
+const canonical = new URL(Astro.url.pathname, siteConfig.siteUrl).href;
 ---
 
-<BaseLayout
-  lang={locale}
-  html={{ ...htmlRest, class: cn('font-sans', htmlClass, htmlClassList) }}
-  body={{ ...bodyRest, class: cn('bg-body text-body', bodyClass, bodyClassList) }}
->
-  <Fragment slot="head">
-    <Favicon />
-    <Analytics />
-    <slot name="head" />
+<!doctype html>
+<html lang={locale}>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{pageTitle}</title>
+    <meta name="description" content={description} />
+    <link rel="canonical" href={canonical} />
+    {noindex && <meta name="robots" content="noindex, nofollow" />}
     {alternates?.map((link) => (
       <link rel="alternate" hreflang={link.hreflang} href={link.href} />
     ))}
-  </Fragment>
-  <header>
-    <nav class="measure measure-size-wide mx-auto" aria-label={t('chrome.localeSwitcher')}>
-      <ul>
-        {switcher.map((item) => (
-          <li>
-            {item.current ? (
-              <span aria-current="page">{t(`locale.${item.locale}`)}</span>
-            ) : item.href ? (
-              <a href={item.href} hreflang={item.locale} lang={item.locale}>
-                {t(`locale.${item.locale}`)}
-              </a>
-            ) : (
-              <span aria-disabled="true" lang={item.locale}>
-                {t(`locale.${item.locale}`)}
-              </span>
-            )}
-          </li>
-        ))}
-      </ul>
-    </nav>
-  </header>
-  <slot />
-</BaseLayout>
+    <Favicon />
+  </head>
+  <body>
+    <header>
+      <nav aria-label={t('chrome.localeSwitcher')}>
+        <ul>
+          {switcher.map((item) => (
+            <li>
+              {item.current ? (
+                <span aria-current="page">{t(`locale.${item.locale}`)}</span>
+              ) : item.href ? (
+                <a href={item.href} hreflang={item.locale} lang={item.locale}>
+                  {t(`locale.${item.locale}`)}
+                </a>
+              ) : (
+                <span aria-disabled="true" lang={item.locale}>
+                  {t(`locale.${item.locale}`)}
+                </span>
+              )}
+            </li>
+          ))}
+        </ul>
+      </nav>
+    </header>
+    <slot />
+  </body>
+</html>

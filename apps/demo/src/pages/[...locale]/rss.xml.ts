@@ -32,7 +32,7 @@ export const GET: APIRoute<{ locale: Locale }> = async (context) => {
       posts.map(async (post) => {
         const link = await getAbsoluteEntryUrl(locale, post);
         if (link === undefined) {
-          console.warn(`starter: no url for "${post.collection}/${post.data.id}" in "${locale}".`);
+          console.warn(`demo: no url for "${post.collection}/${post.data.id}" in "${locale}".`);
           return undefined;
         }
         return {

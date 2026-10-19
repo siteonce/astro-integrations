@@ -1,6 +1,12 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
-import { createIntl, createIntlSchema, defineIntl, localizedValue, slug } from '@repo/astro-intl';
+import {
+  createIntl,
+  createIntlSchema,
+  defineIntl,
+  localizedValue,
+  slug,
+} from '@siteonce/astro-intl';
 import {
   type CollectionEntry,
   collectionEntry,
@@ -81,7 +87,7 @@ describe('relations', () => {
 
   it('throws when a localized field omits the locale', () => {
     assert.throws(() => localizedValue({ en: 'Editor' }, 'de'), {
-      message: '@repo/astro-intl: localized field missing locale "de".',
+      message: '@siteonce/astro-intl: localized field missing locale "de".',
     });
   });
 
@@ -239,7 +245,7 @@ describe('relations', () => {
     collections.sources = [];
     const intl = relationsIntl(collections);
     await assert.rejects(() => intl.getRelated('de', relation('sources', 'astro')), {
-      message: '@repo/astro-intl: relation sources/astro is missing (blog:hello-en).',
+      message: '@siteonce/astro-intl: relation sources/astro is missing (blog:hello-en).',
     });
   });
 
@@ -250,7 +256,7 @@ describe('relations', () => {
     ];
     const intl = relationsIntl(collections);
     await assert.rejects(() => intl.getRelated('de', relation('sources', 'astro')), {
-      message: '@repo/astro-intl: relation sources/astro is missing (blog:hello-en).',
+      message: '@siteonce/astro-intl: relation sources/astro is missing (blog:hello-en).',
     });
   });
 

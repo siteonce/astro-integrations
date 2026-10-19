@@ -41,7 +41,7 @@ export function patternSection(slug: string): string | undefined {
 
 export function compilePath(prefix: string, slug: string): string {
   if (slug.includes('/')) {
-    throw new Error(`@repo/astro-intl: slug "${slug}" is not one segment.`);
+    throw new Error(`@siteonce/astro-intl: slug "${slug}" is not one segment.`);
   }
   return `${prefix}/${slug}`;
 }

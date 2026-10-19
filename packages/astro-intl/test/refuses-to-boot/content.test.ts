@@ -3,7 +3,7 @@ import { mkdir, writeFile } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 import { describe, it, type TestContext } from 'node:test';
 import { pathToFileURL } from 'node:url';
-import { createIntl, createIntlSchema, defineIntl, slug } from '@repo/astro-intl';
+import { createIntl, createIntlSchema, defineIntl, slug } from '@siteonce/astro-intl';
 import { intlHooks, resolvedRoute, siteRootRoute, stubAstroModules, writeViews } from '../astro.ts';
 import {
   type CollectionEntry,
@@ -28,10 +28,10 @@ const writtenI18n = {
 };
 
 const contentConfigImportsRuntime =
-  '@repo/astro-intl: src/content.config.ts imports @repo/astro-intl/runtime. Astro loads the content config before page modules exist, so astro:config/server is unavailable there. Read locales from your intl config instead.';
+  '@siteonce/astro-intl: src/content.config.ts imports @siteonce/astro-intl/runtime. Astro loads the content config before page modules exist, so astro:config/server is unavailable there. Read locales from your intl config instead.';
 
 const legacyContentConfigImportsRuntime =
-  '@repo/astro-intl: src/content/config.mts imports @repo/astro-intl/runtime. Astro loads the content config before page modules exist, so astro:config/server is unavailable there. Read locales from your intl config instead.';
+  '@siteonce/astro-intl: src/content/config.mts imports @siteonce/astro-intl/runtime. Astro loads the content config before page modules exist, so astro:config/server is unavailable there. Read locales from your intl config instead.';
 
 /**
  * Writes content-config files under the temp project's `src` and returns the hooks.
@@ -117,56 +117,56 @@ function loadIntl(
   );
 }
 
-describe('The content config directly imports `@repo/astro-intl/runtime`. Read locales from the intl config.', () => {
+describe('The content config directly imports `@siteonce/astro-intl/runtime`. Read locales from the intl config.', () => {
   // A direct import is a static import, a side-effect import, export-from, or import().
   const directImports = [
-    `import { locales } from '@repo/astro-intl/runtime';`,
-    `import { locales } from "@repo/astro-intl/runtime";`,
-    `import locales from '@repo/astro-intl/runtime';`,
-    `import type { Locale } from '@repo/astro-intl/runtime';`,
-    `import '@repo/astro-intl/runtime';`,
-    `import "@repo/astro-intl/runtime";`,
-    `import\n  '@repo/astro-intl/runtime';`,
-    `import {\n  locales,\n} from '@repo/astro-intl/runtime';`,
-    `export { locales } from '@repo/astro-intl/runtime';`,
-    `export * from "@repo/astro-intl/runtime";`,
-    `export type { Locale } from '@repo/astro-intl/runtime';`,
-    `const locales = await import('@repo/astro-intl/runtime');`,
-    `import(\n  "@repo/astro-intl/runtime"\n);`,
-    `import { id } from '@repo/astro-intl';\nimport { locales } from '@repo/astro-intl/runtime';`,
+    `import { locales } from '@siteonce/astro-intl/runtime';`,
+    `import { locales } from "@siteonce/astro-intl/runtime";`,
+    `import locales from '@siteonce/astro-intl/runtime';`,
+    `import type { Locale } from '@siteonce/astro-intl/runtime';`,
+    `import '@siteonce/astro-intl/runtime';`,
+    `import "@siteonce/astro-intl/runtime";`,
+    `import\n  '@siteonce/astro-intl/runtime';`,
+    `import {\n  locales,\n} from '@siteonce/astro-intl/runtime';`,
+    `export { locales } from '@siteonce/astro-intl/runtime';`,
+    `export * from "@siteonce/astro-intl/runtime";`,
+    `export type { Locale } from '@siteonce/astro-intl/runtime';`,
+    `const locales = await import('@siteonce/astro-intl/runtime');`,
+    `import(\n  "@siteonce/astro-intl/runtime"\n);`,
+    `import { id } from '@siteonce/astro-intl';\nimport { locales } from '@siteonce/astro-intl/runtime';`,
   ];
 
   // A different specifier, a longer specifier, or a quoted mention is not that import.
   // Without a semicolon, the next line is a new statement. A quoted mention there is not an import.
   const notDirectImports = [
-    `import { id, locale } from '@repo/astro-intl';\nexport { id, locale };\n`,
-    `import { id, locale } from '@repo/astro-intl';`,
-    `import { locales } from '@repo/astro-intl/sorting';`,
-    `import { locales } from '@repo/astro-intl/runtime/extra';`,
-    `import { locales } from '@repo/astro-intl/runtime.ts';`,
-    `const spec = '@repo/astro-intl/runtime';`,
-    `import { id } from '@repo/astro-intl';\nconst spec = '@repo/astro-intl/runtime';`,
-    `import { locales } from "@repo/astro-intl/runtime';`,
-    `const zod = await import('zod');\nconst spec = '@repo/astro-intl/runtime';`,
-    `import { id } from '@repo/astro-intl';\n// locales come from '@repo/astro-intl/runtime'`,
-    `import { defineCollection } from 'astro:content'\nconst note = '@repo/astro-intl/runtime'`,
+    `import { id, locale } from '@siteonce/astro-intl';\nexport { id, locale };\n`,
+    `import { id, locale } from '@siteonce/astro-intl';`,
+    `import { locales } from '@siteonce/astro-intl/sorting';`,
+    `import { locales } from '@siteonce/astro-intl/runtime/extra';`,
+    `import { locales } from '@siteonce/astro-intl/runtime.ts';`,
+    `const spec = '@siteonce/astro-intl/runtime';`,
+    `import { id } from '@siteonce/astro-intl';\nconst spec = '@siteonce/astro-intl/runtime';`,
+    `import { locales } from "@siteonce/astro-intl/runtime';`,
+    `const zod = await import('zod');\nconst spec = '@siteonce/astro-intl/runtime';`,
+    `import { id } from '@siteonce/astro-intl';\n// locales come from '@siteonce/astro-intl/runtime'`,
+    `import { defineCollection } from 'astro:content'\nconst note = '@siteonce/astro-intl/runtime'`,
   ];
 
-  it('refuses when the content config directly imports @repo/astro-intl/runtime', async (t) => {
+  it('refuses when the content config directly imports @siteonce/astro-intl/runtime', async (t) => {
     for (const source of directImports) {
       const hooks = await contentProject(t, { 'content.config.ts': source });
       await assert.rejects(() => hooks.setup(), { message: contentConfigImportsRuntime }, source);
     }
   });
 
-  it('refuses when the legacy content config directly imports @repo/astro-intl/runtime', async (t) => {
+  it('refuses when the legacy content config directly imports @siteonce/astro-intl/runtime', async (t) => {
     const hooks = await contentProject(t, {
-      'content/config.mts': `export { locales } from '@repo/astro-intl/runtime';\n`,
+      'content/config.mts': `export { locales } from '@siteonce/astro-intl/runtime';\n`,
     });
     await assert.rejects(() => hooks.setup(), { message: legacyContentConfigImportsRuntime });
   });
 
-  it('boots when the content config imports @repo/astro-intl', async (t) => {
+  it('boots when the content config imports @siteonce/astro-intl', async (t) => {
     for (const source of notDirectImports) {
       const hooks = await contentProject(t, { 'content.config.ts': source });
       await hooks.setup();
@@ -180,18 +180,18 @@ describe('The content config directly imports `@repo/astro-intl/runtime`. Read l
     assert.deepEqual(hooks.updates, [writtenI18n]);
   });
 
-  it('boots when the content config does not import @repo/astro-intl/runtime', async (t) => {
+  it('boots when the content config does not import @siteonce/astro-intl/runtime', async (t) => {
     // content.config.mjs is the content config. The later content.config.ts is not read.
     const earlier = await contentProject(t, {
-      'content.config.mjs': `import { id } from '@repo/astro-intl';\n`,
-      'content.config.ts': `import { locales } from '@repo/astro-intl/runtime';\n`,
+      'content.config.mjs': `import { id } from '@siteonce/astro-intl';\n`,
+      'content.config.ts': `import { locales } from '@siteonce/astro-intl/runtime';\n`,
     });
     await earlier.setup();
 
     // content.config.ts is the content config. The legacy content/config.ts is not read.
     const modern = await contentProject(t, {
-      'content.config.ts': `import { id } from '@repo/astro-intl';\n`,
-      'content/config.ts': `import('@repo/astro-intl/runtime');\n`,
+      'content.config.ts': `import { id } from '@siteonce/astro-intl';\n`,
+      'content/config.ts': `import('@siteonce/astro-intl/runtime');\n`,
     });
     await modern.setup();
 
@@ -207,7 +207,8 @@ describe('A name in `translated` or `untranslated` is not a content collection.'
       { loaders: collectionLoaders({ pages: [], blog: [] }, { strict: true }) },
     );
     await assert.rejects(() => intl.getPairedSlugs(), {
-      message: '@repo/astro-intl: collections.translated: "authors" is not a content collection.',
+      message:
+        '@siteonce/astro-intl: collections.translated: "authors" is not a content collection.',
     });
   });
 
@@ -224,7 +225,8 @@ describe('A name in `translated` or `untranslated` is not a content collection.'
       },
     );
     await assert.rejects(() => intl.getPairedSlugs(), {
-      message: '@repo/astro-intl: collections.untranslated: "sources" is not a content collection.',
+      message:
+        '@siteonce/astro-intl: collections.untranslated: "sources" is not a content collection.',
     });
   });
 });
@@ -239,7 +241,7 @@ describe('`relation()` names a collection neither `collections.translated` nor `
       },
       {
         message:
-          '@repo/astro-intl: relation("ghost") is in neither collections.translated nor collections.untranslated.',
+          '@siteonce/astro-intl: relation("ghost") is in neither collections.translated nor collections.untranslated.',
       },
     );
   });
@@ -264,7 +266,7 @@ describe('A **relation** points at a collection neither `collections.translated`
     const intl = loadIntl(collections);
     await assert.rejects(() => intl.getPairedSlugs(), {
       message:
-        '@repo/astro-intl: relation points at "ghost", which neither collections.translated nor collections.untranslated lists (blog:hello-en).',
+        '@siteonce/astro-intl: relation points at "ghost", which neither collections.translated nor collections.untranslated lists (blog:hello-en).',
     });
   });
 
@@ -276,7 +278,7 @@ describe('A **relation** points at a collection neither `collections.translated`
 
     await assert.rejects(() => intl.getRelated('en', relation('ghost', 'x')), {
       message:
-        '@repo/astro-intl: relation points at "ghost", which neither collections.translated nor collections.untranslated lists.',
+        '@siteonce/astro-intl: relation points at "ghost", which neither collections.translated nor collections.untranslated lists.',
     });
     assert.deepEqual(loaded, ['blog', 'authors', 'sources', 'roles']);
   });
@@ -295,7 +297,7 @@ describe('A **relation** pairing `id` is missing, the relation’s target entry 
     ];
     const intl = loadIntl(collections);
     await assert.rejects(() => intl.getPairedSlugs(), {
-      message: '@repo/astro-intl: relation authors/ada is missing locale "de" (blog:hello-de).',
+      message: '@siteonce/astro-intl: relation authors/ada is missing locale "de" (blog:hello-de).',
     });
   });
 
@@ -313,7 +315,7 @@ describe('A **relation** pairing `id` is missing, the relation’s target entry 
       roles: [],
     });
     await assert.rejects(() => intl.getPairedSlugs(), {
-      message: '@repo/astro-intl: relation authors/ada is missing locale "de" (sources:astro).',
+      message: '@siteonce/astro-intl: relation authors/ada is missing locale "de" (sources:astro).',
     });
   });
 
@@ -347,7 +349,7 @@ describe('A **relation** pairing `id` is missing, the relation’s target entry 
       },
     );
     await assert.rejects(() => intl.getPairedSlugs(), {
-      message: '@repo/astro-intl: relation tags/ghost is missing locale "en" (blog:hello-en).',
+      message: '@siteonce/astro-intl: relation tags/ghost is missing locale "en" (blog:hello-en).',
     });
   });
 
@@ -410,7 +412,7 @@ describe('A literal file route sits on an entry URL that a `{slug}` row publishe
     try {
       await assert.rejects(() => route.GET(), {
         message:
-          '@repo/astro-intl: file route "/de/artikel/hallo-welt" shadows "/de/artikel/hallo-welt/", ' +
+          '@siteonce/astro-intl: file route "/de/artikel/hallo-welt" shadows "/de/artikel/hallo-welt/", ' +
           'the URL that entry blog:hello-de publishes in locale "de". Astro serves the file route there, ' +
           "while the sitemap and the siblings' hreflang point at the entry. " +
           "Remove or move the file route, or change the entry's slug.",

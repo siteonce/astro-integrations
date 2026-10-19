@@ -2,16 +2,12 @@
 // Term. One tags entry and the posts tagged with it.
 // `entryPaths` emits one path per translated term.
 import { render } from 'astro:content';
-import { ogImageFor } from '@repo/astro-og-image/utils/og-image-for';
-import { Hero, PostList, Schema, Seo } from '@repo/astro-site/components';
 import type { GetStaticPathsOptions, InferGetStaticPropsType } from 'astro';
+import PostList from '../../components/post-list.svelte';
 import SiteLayout from '../../layouts/site-layout.astro';
-import { ogConfig } from '../../og.config.ts';
-import { siteConfig } from '../../site.config.ts';
 import { entryPaths, viewProps } from '../../utils/intl.ts';
 import { createPosts } from '../../utils/posts.ts';
 import { postsNewestFirst } from '../../utils/sorting.ts';
-import { useTranslations } from '../../utils/t.ts';
 
 export async function getStaticPaths({ routePattern }: GetStaticPathsOptions) {
   return entryPaths(routePattern, 'tags');
@@ -22,12 +18,10 @@ type Props = InferGetStaticPropsType<typeof getStaticPaths>;
 const props = await viewProps(Astro, getStaticPaths);
 if (!props) return new Response(null, { status: 404 });
 const { locale, path, entry } = props;
-const t = useTranslations(locale);
 const posts = createPosts(locale);
 
-const title = entry.data.seoTitle ?? t(`taxonomy.blogTags.${entry.data.id}`);
-const description = entry.data.seoDesc ?? title;
-const ogImage = ogImageFor(Astro.url.pathname, ogConfig);
+const title = entry.data.seoTitle;
+const description = entry.data.seoDesc;
 
 const hasBody = typeof entry.body === 'string' && entry.body.length > 0;
 const Content = hasBody ? (await render(entry)).Content : undefined;
@@ -38,21 +32,10 @@ const tagged = (await posts.list())
 const items = await posts.items(tagged);
 ---
 
-<SiteLayout locale={locale} path={path}>
-  <Fragment slot="head">
-    <Seo
-      siteConfig={siteConfig}
-      lang={locale}
-      title={title}
-      description={description}
-      {...ogImage}
-      imageAlt={title}
-    />
-    <Schema siteConfig={siteConfig} lang={locale} description={description} />
-  </Fragment>
-
-  <main class="measure measure-size-wide mx-auto flow flow-4">
-    <Hero title={title}>{Content ? <Content /> : <p>{description}</p>}</Hero>
+<SiteLayout locale={locale} path={path} title={title} description={description}>
+  <main>
+    <h1>{title}</h1>
+    {Content ? <Content /> : <p>{description}</p>}
     <PostList items={items} />
   </main>
 </SiteLayout>

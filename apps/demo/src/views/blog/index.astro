@@ -2,12 +2,9 @@
 // Listing. One chunk of that locale's published posts, newest first. This view
 // sets that order. The HTML title comes from the catalog. `listingPaths` emits
 // each page and its path.
-import { ogImageFor } from '@repo/astro-og-image/utils/og-image-for';
-import { Hero, PostList, Schema, Seo } from '@repo/astro-site/components';
 import type { GetStaticPathsOptions, InferGetStaticPropsType } from 'astro';
+import PostList from '../../components/post-list.svelte';
 import SiteLayout from '../../layouts/site-layout.astro';
-import { ogConfig } from '../../og.config.ts';
-import { siteConfig } from '../../site.config.ts';
 import { listingPaths, viewProps } from '../../utils/intl.ts';
 import { createPosts } from '../../utils/posts.ts';
 import { postsNewestFirst } from '../../utils/sorting.ts';
@@ -29,28 +26,14 @@ const posts = createPosts(locale);
 
 const title = t('blog.title');
 const description = t('blog.description');
-const ogImage = ogImageFor(Astro.url.pathname, ogConfig);
 
 const items = await posts.items(page.data);
 ---
 
-<SiteLayout locale={locale} path={path}>
-  <Fragment slot="head">
-    <Seo
-      siteConfig={siteConfig}
-      lang={locale}
-      title={title}
-      description={description}
-      {...ogImage}
-      imageAlt={title}
-    />
-    <Schema siteConfig={siteConfig} lang={locale} description={description} />
-  </Fragment>
-
-  <main class="measure measure-size-wide mx-auto flow flow-4">
-    <Hero title={title}>
-      <p>{description}</p>
-    </Hero>
+<SiteLayout locale={locale} path={path} title={title} description={description}>
+  <main>
+    <h1>{title}</h1>
+    <p>{description}</p>
     <PostList items={items} />
     {(page.url.prev !== undefined || page.url.next !== undefined) && (
       <nav>

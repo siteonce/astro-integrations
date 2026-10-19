@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
-import { createIntl } from '@repo/astro-intl';
-import { byDate, byFlag, byNumber, byText, sortBy } from '@repo/astro-intl/sorting';
+import { createIntl } from '@siteonce/astro-intl';
+import { byDate, byFlag, byNumber, byText, sortBy } from '@siteonce/astro-intl/sorting';
 import { astroPaginate } from '../astro.ts';
 import {
   type CollectionEntry,
@@ -419,7 +419,7 @@ describe('listings', () => {
         assert.ok(error instanceof Error);
         assert.equal(
           error.message,
-          '@repo/astro-intl: entry slug "2" matches published page 2 on section "blog".',
+          '@siteonce/astro-intl: entry slug "2" matches published page 2 on section "blog".',
         );
         return true;
       },

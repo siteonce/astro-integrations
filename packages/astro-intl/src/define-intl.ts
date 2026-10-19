@@ -502,7 +502,7 @@ export function parseIntlConfig(input: IntlConfigInput): IntlConfig {
   const parsed = safeParseIntlConfig(input);
   if (!parsed.success) {
     throw new Error(
-      `@repo/astro-intl: intl config failed validation.\n${z.prettifyError(parsed.error)}`,
+      `@siteonce/astro-intl: intl config failed validation.\n${z.prettifyError(parsed.error)}`,
     );
   }
   return parsed.data;

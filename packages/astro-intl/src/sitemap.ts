@@ -28,9 +28,9 @@ export type IntlSitemapOptions = {
 /** Pathname of the build-only route that carries sitemap entries. */
 export const SITEMAP_DATA_PATH = '/_intl/sitemap-entries.json';
 
-const MISSING_DATA_ROUTE = '@repo/astro-intl: the sitemap data route was not built.';
+const MISSING_DATA_ROUTE = '@siteonce/astro-intl: the sitemap data route was not built.';
 
-const DATA_ROUTE_NOT_A_LIST = '@repo/astro-intl: the sitemap data route did not return a list.';
+const DATA_ROUTE_NOT_A_LIST = '@siteonce/astro-intl: the sitemap data route did not return a list.';
 
 function normalizeLoc(url: string): string {
   const parsed = new URL(url);

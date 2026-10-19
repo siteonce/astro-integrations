@@ -1,9 +1,9 @@
-import { createIntl } from '@repo/astro-intl';
+import { createIntl } from '@siteonce/astro-intl';
 import intlConfig from '../intl.config.ts';
 
 // Intl's page helpers, bound once to this app's intl config. Re-exports
-// `viewProps`, `Relation`, `localizedValue`, and `Locale` from `@repo/astro-intl`,
-// and `locales` and `defaultLocale` from `@repo/astro-intl/runtime`. Server-only,
+// `viewProps`, `Relation`, `localizedValue`, and `Locale` from `@siteonce/astro-intl`,
+// and `locales` and `defaultLocale` from `@siteonce/astro-intl/runtime`. Server-only,
 // since it pulls `/runtime`: client islands and the content config must not import it.
 export const {
   entryPaths,
@@ -17,5 +17,5 @@ export const {
   localeSwitcherLinks,
 } = createIntl(intlConfig);
 
-export { type Locale, localizedValue, type Relation, viewProps } from '@repo/astro-intl';
-export { defaultLocale, locales } from '@repo/astro-intl/runtime';
+export { type Locale, localizedValue, type Relation, viewProps } from '@siteonce/astro-intl';
+export { defaultLocale, locales } from '@siteonce/astro-intl/runtime';

@@ -114,7 +114,7 @@ function patternsByCollection(config: IntlConfig): Map<string, PatternRow> {
       const section = patternSection(route.slug[locale] ?? '');
       if (!section) {
         throw new Error(
-          `@repo/astro-intl: route collection "${route.collection}" slug for locale "${locale}" must use {slug} as the final segment.`,
+          `@siteonce/astro-intl: route collection "${route.collection}" slug for locale "${locale}" must use {slug} as the final segment.`,
         );
       }
       sections.set(locale, section);
@@ -167,7 +167,7 @@ export function pairCollections(
     const existing = byLocalePath.get(pathKey);
     if (existing) {
       throw new Error(
-        `@repo/astro-intl: (locale, path) "${document.locale}" / "${document.path}" collides (${existing.collection} vs ${document.collection}).`,
+        `@siteonce/astro-intl: (locale, path) "${document.locale}" / "${document.path}" collides (${existing.collection} vs ${document.collection}).`,
       );
     }
     byLocalePath.set(pathKey, document);
@@ -180,7 +180,7 @@ export function pairCollections(
     if (existing || byLocaleTail.has(pathKey)) {
       const left = existing?.collection ?? 'route tail';
       throw new Error(
-        `@repo/astro-intl: (locale, path) "${locale}" / "${path}" collides (${left} vs route tail).`,
+        `@siteonce/astro-intl: (locale, path) "${locale}" / "${path}" collides (${left} vs route tail).`,
       );
     }
     const tail: RouteTail = { locale, path, tails: siblings };
@@ -197,11 +197,11 @@ export function pairCollections(
       const locale = readStringField(entry.data, fields.locale, 'locale', where);
       if (!locale) {
         throw new Error(
-          `@repo/astro-intl: locale field "${fields.locale}" is missing on ${where}.`,
+          `@siteonce/astro-intl: locale field "${fields.locale}" is missing on ${where}.`,
         );
       }
       if (!locales.has(locale)) {
-        throw new Error(`@repo/astro-intl: locale "${locale}" on ${where} is not in locales.`);
+        throw new Error(`@siteonce/astro-intl: locale "${locale}" on ${where} is not in locales.`);
       }
 
       let entryId: string;
@@ -217,7 +217,7 @@ export function pairCollections(
       const existingName = seenIds.get(idKey);
       if (existingName) {
         throw new Error(
-          `@repo/astro-intl: (entryId, locale) "${entryId}" / "${locale}" is not unique (${existingName} vs ${name}).`,
+          `@siteonce/astro-intl: (entryId, locale) "${entryId}" / "${locale}" is not unique (${existingName} vs ${name}).`,
         );
       }
       seenIds.set(idKey, name);
@@ -228,7 +228,7 @@ export function pairCollections(
       if (hasSlugRow) {
         const slug = readStringField(entry.data, fields.slug, 'slug', where);
         if (!slug) {
-          throw new Error(`@repo/astro-intl: slug is missing on routed entry ${where}.`);
+          throw new Error(`@siteonce/astro-intl: slug is missing on routed entry ${where}.`);
         }
         leaves.push({ name, entry, locale, entryId, dataId, slug });
         continue;
@@ -267,7 +267,7 @@ export function pairCollections(
     const pattern = patterns.get(leaf.name);
     if (!pattern) {
       throw new Error(
-        `@repo/astro-intl: collections.translated: "${leaf.name}" has no section for locale "${leaf.locale}".`,
+        `@siteonce/astro-intl: collections.translated: "${leaf.name}" has no section for locale "${leaf.locale}".`,
       );
     }
     if (pattern.entry && pattern.entry !== leaf.dataId) {
@@ -285,7 +285,7 @@ export function pairCollections(
     const section = pattern.sections.get(leaf.locale);
     if (!section) {
       throw new Error(
-        `@repo/astro-intl: collections.translated: "${leaf.name}" has no section for locale "${leaf.locale}".`,
+        `@siteonce/astro-intl: collections.translated: "${leaf.name}" has no section for locale "${leaf.locale}".`,
       );
     }
     let path: string;
@@ -368,7 +368,7 @@ export function pairCollections(
           if (existing?.slug === String(page)) {
             const section = pageTokenSection(pageTails[locale] ?? '{page}');
             throw new Error(
-              `@repo/astro-intl: entry slug "${existing.slug}" matches published page ${page} on section "${section}".`,
+              `@siteonce/astro-intl: entry slug "${existing.slug}" matches published page ${page} on section "${section}".`,
             );
           }
         }

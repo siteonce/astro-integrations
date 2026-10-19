@@ -8,7 +8,6 @@ seoTitle: Measure überschreiben
 seoDesc: Measure mit statischen Klassen am Landmark oder in der Utilities-Datei anpassen — nicht wrappen.
 featImage: ./feat.png
 featImageAlt: Platzhalter-Beitragsbild — ersetze es durch dein eigenes.
-primaryKeyword: container overwrite
 tags:
   - engineering
 source: measure
