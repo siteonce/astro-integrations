@@ -11,6 +11,10 @@ name: CI
 # `pnpm publish`, which exchanges this job's OIDC token for a short-lived npm
 # token. There is no `NPM_TOKEN`. Provenance is attached when the repository
 # is public.
+#
+# Third-party actions are pinned to a commit SHA, with the release tag in a
+# trailing comment, because `release` can publish and push. A moved tag can't
+# change what runs.
 on:
   push:
     branches: [main]
@@ -34,7 +38,7 @@ jobs:
       # the root package.json `packageManager` field — no need to pin it here.
       # Exact tag: v6.1.0 is the first release that runs pnpm 12, and the
       # floating `v6` tag still points at v6.0.10.
-      - uses: pnpm/action-setup@v6.1.0
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
 
       - uses: actions/setup-node@v7
         with:
@@ -74,7 +78,7 @@ jobs:
       # the root package.json `packageManager` field — no need to pin it here.
       # Exact tag: v6.1.0 is the first release that runs pnpm 12, and the
       # floating `v6` tag still points at v6.0.10.
-      - uses: pnpm/action-setup@v6.1.0
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
 
       # No `registry-url`. That writes an `.npmrc` auth token and would take
       # precedence over the OIDC exchange `pnpm publish` performs itself.
@@ -87,7 +91,7 @@ jobs:
       - run: pnpm install --frozen-lockfile
 
       - name: Create Release Pull Request or Publish
-        uses: changesets/action@v2.1.2
+        uses: changesets/action@ae32849d5ba541f9ae29e40e22a623bc13562f51 # v2.1.2
         with:
           publish-script: pnpm release
           version-script: pnpm version-packages
