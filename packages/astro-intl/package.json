@@ -1,6 +1,6 @@
 {
   "name": "@siteonce/astro-intl",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Pairs content entries across locales and injects localized routes on top of Astro's i18n.",
   "keywords": [
     "astro-integration",
