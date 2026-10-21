@@ -118,4 +118,10 @@ The public astro-intl.dev package is an unrelated message library (`[lang]` segm
 - **No `.md` under `src/pages/`:** it becomes a route, so no nested `AGENTS.md` there.
 - **Intl's `source` condition:** everything in the repo resolves `@siteonce/astro-intl` to `src/` through the `source` export condition: package tests, Stryker, both tsconfigs (`customConditions`), and the demo's scripts and Vite plugin. A new entry point (a script, a test harness, a Vite config) must add it, or it resolves `dist/`, which doesn't exist until a build. `pnpm smoke` is the only check on `dist/`.
 - **Zod in intl:** intl imports `astro/zod`, never `zod`. Its own `zod` would put intl's schema pieces from one zod copy into schemas the app builds with Astro's copy.
-- **No changeset for `0.1.0`:** the manifest already says `0.1.0`, and the first publish is by hand. A changeset would turn the first release into a version-bump pull request.
+
+## Release gotchas
+
+- **Version Packages pull request:** the release job opens it with `GITHUB_TOKEN`, so no CI runs on it. `verify` runs after the merge, before `release` publishes.
+- **Publishing by hand:** a fallback only; CI publishes. npm needs Marc's security key, which needs an interactive terminal. From an agent's shell, `pnpm publish` stops with `ERR_PNPM_OTP_NON_INTERACTIVE`, so Marc runs it in his own terminal.
+- **Bumping a pinned action:** `pnpm/action-setup` and `changesets/action` use annotated tags, so the SHA a tag ref points at is the tag object, not the commit. Get the commit with `gh api repos/<owner>/<repo>/git/tags/<sha>`.
+- **The trusted publisher names `ci.yml`:** renaming the workflow breaks publishing. Its fields can't be edited. Delete it and create a new one on npmjs.com, ticking "Allow `npm publish`" (newer publishers default to staged publishing only).

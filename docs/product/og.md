@@ -1,10 +1,10 @@
 # Open Graph
 
-Open issues in `@repo/astro-og-image`. What the visitor gets from Open Graph lives in [`site.md`](site.md#open-graph).
+Open issues in `@repo/astro-og-image`.
 
 ## Today
 
-OG is parked: outside the pnpm workspace, unbuilt, unpublished, and not wired into the demo. Reviving it is its own project with its own plan. `site.md` below is astro-stack’s, which promises the images.
+OG is parked: outside the pnpm workspace, unbuilt, unpublished, and not wired into the demo. Reviving it is its own project with its own plan.
 
 A build stops in Open Graph:
 
@@ -12,7 +12,7 @@ A build stops in Open Graph:
 @repo/astro-og-image: paired slug "de" "/" has no entry.
 ```
 
-`site.md` promises an image for home, listings, posts, and terms. Home, a listing, and a numbered listing page are tails with no entry. `getPairedSlugs()` returns routed documents and tails together. Open Graph requires an entry for every slug it gets, so the first tail fails the build.
+OG promises an image for home, listings, posts, and terms. Home, a listing, and a numbered listing page are tails with no entry. `getPairedSlugs()` returns routed documents and tails together. Open Graph requires an entry for every slug it gets, so the first tail fails the build.
 
 Tails with no entry reached `getPairedSlugs()` after Open Graph was written. Until then, every paired slug had an entry.
 
