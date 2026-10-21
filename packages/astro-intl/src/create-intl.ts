@@ -34,10 +34,13 @@ import { assertRelations, type Relation, resolveRelation } from './relation.ts';
 import {
   type EntryPath,
   entryPathsFor,
+  type FallbackPath,
   fallbackPathsFor,
   type ListingOrder,
+  type ListingPath,
   listingPathsFor,
   routeFor,
+  type StaticPath,
   staticPathsFor,
 } from './routed-paths.ts';
 import { type CompiledRoute, compileRoutes } from './routing.ts';
@@ -220,12 +223,14 @@ export function createIntl<const Translated extends string = never>(
    * `sort` compares two entries. `order` reorders the whole list and must keep every entry.
    * One is required. Both receive the route's locale.
    */
+  // Named so declaration emit keeps `Locale` and `EntryOf<C>`. Inferred, it writes
+  // `string` and `CollectionEntryLike` from the unaugmented register.
   async function listingPaths<C extends Translated>(
     routePattern: string,
     collection: C | readonly C[],
     paginate: PaginateFunction,
     ordering: ListingOrder<EntryOf<C>>,
-  ) {
+  ): Promise<ListingPath<C>[]> {
     const query = await loadQuery();
     const route = routeFor(compiledRoutes(), routePattern, 'listing');
     const { getRelativeLocaleUrl } = await resolveLoaders();
@@ -245,7 +250,7 @@ export function createIntl<const Translated extends string = never>(
    * `[]` when the locale does not publish it.
    * `entry` is a translated collection's entry, or undefined when the tail names none.
    */
-  async function staticPaths(routePattern: string) {
+  async function staticPaths(routePattern: string): Promise<StaticPath<Translated>[]> {
     const query = await loadQuery();
     const route = routeFor(compiledRoutes(), routePattern, 'static');
     return staticPathsFor(config, query, route).map((row) => ({
@@ -262,7 +267,7 @@ export function createIntl<const Translated extends string = never>(
    * Missing-translation paths for the injected route at `routePattern`.
    * `entry` is the default-locale entry from that row's translated collection.
    */
-  async function fallbackPaths(routePattern: string) {
+  async function fallbackPaths(routePattern: string): Promise<FallbackPath<Translated>[]> {
     const query = await loadQuery();
     const route = routeFor(compiledRoutes(), routePattern, 'fallback');
     const { getRelativeLocaleUrl } = await resolveLoaders();

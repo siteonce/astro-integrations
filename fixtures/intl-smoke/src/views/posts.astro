@@ -1,0 +1,44 @@
+---
+// Paginated listing. Fails astro check when listingPaths' rows lose the
+// injected Locale union or the posts entry type.
+import type { CollectionEntry } from 'astro:content';
+import { type Locale, viewProps } from '@siteonce/astro-intl';
+import type { GetStaticPathsOptions, InferGetStaticPropsType } from 'astro';
+import { listingPaths } from '../intl.ts';
+
+export async function getStaticPaths({ paginate, routePattern }: GetStaticPathsOptions) {
+  return listingPaths(routePattern, 'posts', paginate, {
+    sort: () => (a, b) => a.data.title.localeCompare(b.data.title),
+  });
+}
+
+type Props = InferGetStaticPropsType<typeof getStaticPaths>;
+
+function heading(locale: Locale): string {
+  return locale === 'de' ? 'Artikel' : 'Posts';
+}
+
+function titles(posts: CollectionEntry<'posts'>[]): string[] {
+  return posts.map((post) => post.data.title);
+}
+
+const props = await viewProps(Astro, getStaticPaths);
+if (!props) return new Response(null, { status: 404 });
+const { locale, path, page } = props;
+---
+
+<html lang={locale}>
+  <head>
+    <meta charset="utf-8" />
+    <title>{heading(locale)}</title>
+  </head>
+  <body>
+    <h1>{heading(locale)}</h1>
+    <p>{path}</p>
+    <ul>
+      {titles(page.data).map((title) => (
+        <li>{title}</li>
+      ))}
+    </ul>
+  </body>
+</html>

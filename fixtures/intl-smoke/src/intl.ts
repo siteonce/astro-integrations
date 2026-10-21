@@ -5,7 +5,7 @@ import intlConfig from './intl.config.ts';
 
 // Named binding. Astro extracts `getStaticPaths` into its own module, and a
 // local destructure in the view is not in scope there.
-export const { entryPaths } = createIntl(intlConfig);
+export const { entryPaths, listingPaths } = createIntl(intlConfig);
 
 // Type-only, so `astro check` still loads the declarations for
 // `@siteonce/astro-intl/create-intl` and `@siteonce/astro-intl/shadowed-entries`.

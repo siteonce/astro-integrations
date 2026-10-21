@@ -42,6 +42,11 @@ const builtPages = [
   ['dist/de/artikel/hallo/index.html', 'Uebersetztes Intro'],
 ];
 
+const builtListings = [
+  ['dist/posts/index.html', 'Hello'],
+  ['dist/de/artikel/index.html', 'Hallo'],
+];
+
 function run(command, args, cwd) {
   return new Promise((resolveRun, reject) => {
     const child = spawn(command, args, {
@@ -208,6 +213,14 @@ async function smoke(work) {
     }
     if (!html.includes('en,de')) {
       throw new Error(`${relativePath} does not include the runtime locale list`);
+    }
+  }
+
+  for (const [relativePath, text] of builtListings) {
+    const file = join(appDir, relativePath);
+    if (!existsSync(file)) throw new Error(`missing built listing ${relativePath}`);
+    if (!readFileSync(file, 'utf8').includes(text)) {
+      throw new Error(`${relativePath} does not include ${JSON.stringify(text)}`);
     }
   }
 

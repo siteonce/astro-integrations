@@ -3,7 +3,7 @@
  * Paths come from the pairing index. The helpers do not read a content collection.
  */
 
-import type { PaginateFunction } from 'astro';
+import type { Page, PaginateFunction } from 'astro';
 import { fieldsFor, type IntlConfig } from './define-intl.ts';
 import type { EntryOf, Locale } from './intl-register.ts';
 import { type CollectionEntryLike, listingSelection, localePathKey } from './pairing.ts';
@@ -99,6 +99,12 @@ export function entryPathsFor<C extends string>(
   }));
 }
 
+/** One `getStaticPaths` row for an injected listing route. `page.url` holds localized URLs. */
+export type ListingPath<C extends string> = {
+  params: { page: string | undefined };
+  props: { locale: Locale; route: RouteRow; path: string; page: Page<EntryOf<C>> };
+};
+
 /**
  * Paginated rows for this listing route.
  * A `[...page]` route emits page 1. A `[page]` route emits pages 2 onward.
@@ -116,7 +122,7 @@ export function listingPathsFor<C extends string>(
   paginate: PaginateFunction,
   ordering: ListingOrder<EntryOf<C>>,
   relativeUrl: RelativeUrl,
-) {
+): ListingPath<C>[] {
   const row = routeRow(config, route);
   const named = requireRouteCollection('listingPaths', route, row, collection);
   const pagination = row.pagination;
@@ -236,6 +242,18 @@ function sameEntries<T>(selected: readonly T[], ordered: readonly T[]): boolean 
 function listingSpan(pattern: string): 'first' | 'rest' {
   return pattern.endsWith('/[...page]') ? 'first' : 'rest';
 }
+
+/** One `getStaticPaths` row for an injected static route. `entry` is undefined when the tail names none. */
+export type StaticPath<C extends string> = {
+  params: { index: undefined };
+  props: { locale: Locale; route: RouteRow; path: string; entry: EntryOf<C> | undefined };
+};
+
+/** One `getStaticPaths` row for an injected fallback route. `target` is the default-locale URL. */
+export type FallbackPath<C extends string> = {
+  params: { slug: string };
+  props: { locale: Locale; route: RouteRow; path: string; target: string; entry: EntryOf<C> };
+};
 
 /**
  * The one path for this static route, or none when that tail is unpublished.

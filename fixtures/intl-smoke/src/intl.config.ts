@@ -8,6 +8,15 @@ const intl = defineIntl({
   },
   routes: [
     {
+      slug: { en: 'posts', de: 'artikel' },
+      collection: 'posts',
+      view: 'posts',
+      pagination: {
+        pageSize: 1,
+        slug: { en: 'posts/{page}', de: 'artikel/{page}' },
+      },
+    },
+    {
       slug: { en: 'posts/{slug}', de: 'artikel/{slug}' },
       collection: 'posts',
       view: 'post',
