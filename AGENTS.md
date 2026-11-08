@@ -18,3 +18,16 @@
 - **OG is parked.** `packages/astro-og-image` is outside the workspace, unbuilt, and unpublished. Don't change it until its revival plan is agreed.
 - **Source comments.** Describe current behavior. Do not cite plan phases, PR numbers, or plan/backlog files.
 - **Memory.** `MEMORY.md`. Anything workspace-related you'd save to your tool's built-in memory goes here instead, so all agents work from one record instead of drifting, partial copies.
+
+<!-- prettier-ignore-start -->
+<!-- shipyard:start -->
+This repo uses shipyard. Before any work:
+
+1. Read `.shipyard/settings.yml` for this repo's roles, folders and commands.
+2. Read `.shipyard/core/index.md` and the kit glossary, `.shipyard/core/glossary.md`.
+3. Read the agent rules index in the agent rules folder the settings file names. Where its house rules and kit text conflict, the house rules win.
+
+Trigger labels: none
+Skills: none
+<!-- shipyard:end -->
+<!-- prettier-ignore-end -->

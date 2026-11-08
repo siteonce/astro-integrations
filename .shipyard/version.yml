@@ -1,0 +1,25 @@
+# Written by shipyard-kit. Managed: the CLI rewrites it on each install or update.
+release: 0.1.0
+agents-block: 891b65a9cada3cbf8e091c25e1091c58585349caa068b3ea00891ca903c07047
+files:
+  core/NOTICE.md: a578bb6a45e71d6b6f4807441ea22ffd711d59447259d6cf6f6baebe86a4690a
+  core/glossary.md: f51d30f8cc489b2730eddaa24a2a5544cfee2be4dbfedb85f0e5949a10e7e984
+  core/house-rules.md: 6550e13fc8fc70b8076f84787bfd244276b57044c30d0a1f1877c81e4cfb0d57
+  core/human-steps.md: fc1195d18237e1b12dc70b468b0485c598ec846466aea9f50266667a19df6691
+  core/index.md: 12b5fc4c4cfac334b14f60d4f611c92ee04924f6b0dd274fa9884c2d1877f8d0
+  core/plans.md: 2464c77fdcba8b8f7391c90214007be433885155410c8e57c960a76f7beec4c5
+  core/pr-shapes/docs-only.md: 8819c1df6bcfdb271963cf4669b392e242bd1bdc253e92376550ff10b75388d5
+  core/pr-shapes/hotfix.md: 066436a3938e11d5a5aa00245143aa5ee1c61686286f6a6fe4c2b00bf295aaf8
+  core/pr-shapes/index.md: 2ab4b28397dad3dd33b8217a2c67e78b286ff9014a127031cc3fb197d7aa520e
+  core/pr-shapes/plan.md: 3704f396aebf2f4ecfd488f7e6e7571e862ea15ad7a88c1a41959f32083f1229
+  core/practices/git.md: 712d5256c81b3c4a5cb734935888f8a624df85462a7c2509cf43179ab2506bb2
+  core/practices/testing.md: 218b4b292246efb1351baa53e71a429c2e1b8aefbbbe141f94683ddb37e80987
+  core/practices/verification.md: 5fc4b5c2fb00244ada95f05c5ef3d635450de9acf33a5be41bbba2011ecd756c
+  core/roles.md: 8afac370e7f94ffb423b04d40124409ac03be76eab1445f1eac12399dee833b6
+  core/spec-writing.md: 1208705a222667d8f69e89f575d1188e3ae0a194f392dd09a74047733dab6521
+  core/templates/agent-rules-index.md: 660db837274a3709835e52daebe6f2b3e1fa4a83505a35ecebb6475069ab1322
+  core/templates/agents-block.md: bb52e9aed410f00a4a9cc41a7aaa8e5b0c735e8913c9434bf9f7b61e2ba5e1f3
+  core/templates/context.md: 99f399d4d56495c78aaaff1d863241812e56b2d960ded26f75d9285ef3db7c37
+  core/templates/plan.md: 05b86d48b75f4c2c45bdbe1681601bd403bcb85ff89f1e588ae7a63d65e01c5c
+  core/templates/settings.yml: 1d3712f367517a48ed05bfc1c9ee876f6c2e8f2efa013f8aa917d408a384821f
+  core/templates/spec-index.md: 99aa8d8a2c60e29bbb53d796d4b92835b8c18661dd049cf2168f7c8c5b90a32c

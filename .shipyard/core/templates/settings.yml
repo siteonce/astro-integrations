@@ -1,0 +1,67 @@
+# Shipyard settings for this repo. Repo-owned: edit freely.
+# Skills and CI pieces read this file. CI pieces read it from the default branch.
+# A key marked "# read by:" matters only to the parts it names. The CLI leaves
+# such a key out when the repo takes none of them; copied by hand, keep its
+# default or delete it.
+
+# Which tool fills each role, and how it is started: a shell command or a plain
+# description.
+roles:
+  planning-agent:
+    tool: ""
+    start: ""
+  orchestrator-bot:   # read by: building, weekly-drift-check
+    tool: ""
+    start: ""
+  builder-bot:        # read by: building
+    tool: ""
+    start: ""
+  reviewer-bot:       # read by: building, weekly-drift-check
+    tool: ""
+    start: ""
+
+# Folders, relative to the repo root.
+paths:
+  specs: docs/product/
+  agent-rules: docs/agents/
+  plans: docs/plans/
+  glossary: docs/context.md
+  north-star: ""          # optional, such as docs/north-star.md
+  sizing-log: ""          # read by: building. Empty: no Sizing log
+  verification-skill: ""  # read by: verification. The repo's verification skill, such as docs/agents/skills/verify/; empty: none
+  docs:                   # what counts as docs for a docs-only PR
+    - "docs/**"
+    - "**/*.md"
+
+branches:
+  default: main
+  plan: plan/<slug>       # one branch per plan, holding the plan and its work
+  hotfix: hotfix/<slug>
+  drift-check: drift/<date>   # read by: weekly-drift-check
+
+# The repo's own commands. Leave one empty until it exists.
+commands:
+  install: ""
+  check: ""               # types, lint, build
+  test: ""
+
+# Where tests touch the code, one short phrase each, such as "package exports",
+# "HTTP routes" or "the CLI: arguments in, stdout, stderr and exit code out".
+seams: []
+
+# The surfaces verification drives, such as web page, API, library or CLI.
+verification-surfaces: []   # read by: verification
+
+# The least line coverage, in percent. Empty: coverage is printed, never enforced.
+coverage-floor: ""   # read by: coverage-floor
+
+# Who examines the weekly drift check's findings.
+drift-check:   # read by: weekly-drift-check
+  human: ""
+
+labels:   # read by: dispatch
+  prefix: "shipyard:"
+  trigger-label-adders: []   # empty: anyone with write access
+notify: mention   # read by: dispatch. How the plan's human is told about a human step:
+                  # mention (the Human step comment's mention), or a plain
+                  # description of another channel the bots can reach

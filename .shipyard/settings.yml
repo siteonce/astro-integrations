@@ -1,0 +1,38 @@
+# Shipyard settings for this repo. Repo-owned: edit freely.
+# Skills and CI pieces read this file. CI pieces read it from the default branch.
+# A key marked "# read by:" matters only to the parts it names. The CLI leaves
+# such a key out when the repo takes none of them; copied by hand, keep its
+# default or delete it.
+
+# Which tool fills each role, and how it is started: a shell command or a plain
+# description.
+roles:
+  planning-agent:
+    tool: ""
+    start: ""
+
+# Folders, relative to the repo root.
+paths:
+  specs: docs/product/
+  agent-rules: docs/agents/
+  plans: docs/plans/
+  glossary: docs/context.md
+  north-star: ""          # optional, such as docs/north-star.md
+  docs:                   # what counts as docs for a docs-only PR
+    - "docs/**"
+    - "**/*.md"
+
+branches:
+  default: main
+  plan: plan/<slug>       # one branch per plan, holding the plan and its work
+  hotfix: hotfix/<slug>
+
+# The repo's own commands. Leave one empty until it exists.
+commands:
+  install: ""
+  check: ""               # types, lint, build
+  test: ""
+
+# Where tests touch the code, one short phrase each, such as "package exports",
+# "HTTP routes" or "the CLI: arguments in, stdout, stderr and exit code out".
+seams: []
