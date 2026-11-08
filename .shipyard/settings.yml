@@ -8,15 +8,15 @@
 # description.
 roles:
   planning-agent:
-    tool: ""
-    start: ""
+    tool: Claude Code
+    start: claude
 
 # Folders, relative to the repo root.
 paths:
   specs: docs/product/
   agent-rules: docs/agents/
   plans: docs/plans/
-  glossary: docs/context.md
+  glossary: CONTEXT.md
   north-star: ""          # optional, such as docs/north-star.md
   docs:                   # what counts as docs for a docs-only PR
     - "docs/**"
@@ -29,10 +29,12 @@ branches:
 
 # The repo's own commands. Leave one empty until it exists.
 commands:
-  install: ""
-  check: ""               # types, lint, build
-  test: ""
+  install: pnpm install
+  check: pnpm format:check && pnpm lint && pnpm typecheck && pnpm build && pnpm smoke   # as CI's verify runs them
+  test: pnpm test
 
 # Where tests touch the code, one short phrase each, such as "package exports",
 # "HTTP routes" or "the CLI: arguments in, stdout, stderr and exit code out".
-seams: []
+seams:
+  - "package exports: tests import the package by name, never src/"
+  - "a demo util's module: tests sit beside it"
