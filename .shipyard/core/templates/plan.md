@@ -1,10 +1,10 @@
 # <Plan title>
 
-Status: draft
-Human: <who owns this plan's intent>
-Goal: <one sentence on what changes for the user>
-Specs touched: <spec files the Changes edit, or none>
-Out of scope: <what this plan leaves alone>
+- Status: draft
+- Human: <who owns this plan's intent>
+- Goal: <one sentence on what changes for the user>
+- Specs touched: <spec files the Changes edit, or none>
+- Out of scope: <what this plan leaves alone>
 
 ## Changes
 
