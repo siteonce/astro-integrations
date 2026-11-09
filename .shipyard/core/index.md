@@ -2,8 +2,8 @@
 
 The part of the kit every adopting repo takes. It works with a human and a planning agent alone.
 
-Needs: no other part.
-Roles: human, planning agent.
+- Needs: no other part.
+- Roles: human, planning agent.
 
 ## Contents
 
@@ -26,7 +26,7 @@ Roles: human, planning agent.
 
 ## How the kit is written
 
-- Each part's index has a Needs line, whose first sentence names the parts it needs by folder name, such as `core, dispatch.`, and a Roles line.
+- Each part's index lists a Needs line, whose first sentence names the parts it needs by folder name, such as `core, dispatch.`, and a Roles line.
 - Each workflow names its trigger, its steps, the roles that take part and the PR shapes it produces.
 - Each PR shape fills the fields in [PR shapes](pr-shapes/index.md).
 - Kit text names roles, never tools, and uses only terms from the glossary.

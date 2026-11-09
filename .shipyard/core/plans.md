@@ -17,7 +17,7 @@ A plan states one piece of intended work. It is a file in the plans folder the s
 
 ## Plan format
 
-Header lines:
+Header lines, a list under the title, one item per field, such as `- Status: draft`:
 
 - **Status**: `draft`, `ready`, `in progress` or `done`. The human sets `ready`; whoever builds the plan keeps it after that. Status is never a trigger.
 - **Human**: the person who owns the plan's intent and answers its questions. By default, the person who asked for the plan.
@@ -52,7 +52,7 @@ An inspection of a plan for its required items. It lists what is missing and nev
 
 Required before approval:
 
-- Status, Human, Goal, Specs touched and Out of scope lines
+- the Status, Human, Goal, Specs touched and Out of scope lines, as list items
 - at least one Change
 - no open questions
 - each Change has a Spec line and an Evidence line, and the Evidence line names concrete verification evidence: what is driven and what is captured
