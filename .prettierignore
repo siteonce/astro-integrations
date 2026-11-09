@@ -5,3 +5,7 @@
 **/dist
 **/.astro
 pnpm-lock.yaml
+
+# Shipyard's managed files and plans keep their line breaks; updates check their checksums.
+.shipyard
+docs/plans

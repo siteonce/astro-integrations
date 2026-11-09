@@ -6,6 +6,8 @@
 
 ## Design, then handover
 
+Outside a plan. Plan work follows shipyard: `docs/agents/index.md`, House rules.
+
 In design discussions, discuss only — never edit repo files. Once agreed, write a handover for another agent to implement, then review that agent's result.
 
 **Why:** Marc separates design from implementation and uses the designing agent (claude) as designer and reviewer (stated 2026-09-27).
@@ -24,6 +26,8 @@ The spec skills under `.grok/skills/` (write-spec, implement-spec, review-spec, 
 **How to apply:** Start each skill in its own session. Don't invoke `/conceptualize` or `/issue-loop` unless Marc asks.
 
 ## Commits
+
+Outside a plan. A plan's build commits and pushes each phase on the plan's branch: `docs/agents/index.md`, Building plans.
 
 Commit only when Marc asks, or when the handoff being implemented has an explicit Commit section. Never push unless asked. Conventional prefix, lowercase subject, scope optional. `Refs #N` only when the issue exists; never Fixes or Closes. Never amend — new work goes in new commits.
 
