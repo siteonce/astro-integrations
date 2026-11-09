@@ -20,7 +20,7 @@ How agents work in this repo. What the codebase does is in the spec, not here.
 
 ## Building plans
 
-- The planning agent builds an approved plan in the same session, with the human watching: it adds the phases, builds and verifies each one, and keeps the plan record. The plan's PR takes core's plan PR shape.
+- The planning agent adds the phases to an approved plan and hands each phase to Grok, which builds it in its own worktree, following `tests.md`. The planning agent reviews and verifies each phase, commits it on the plan's branch, and keeps the plan record. The plan's PR takes core's plan PR shape.
 
 ## Commands
 
